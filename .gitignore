@@ -1,0 +1,17 @@
+# Local data directory contents
+/data/*
+
+# Non-shared IDE project files
+.idea/libraries/*
+.idea/shelf/*
+.idea/workspace.xml
+
+# Gradle installation and outputs
+.gradle
+build
+
+# Editor swap files
+.swp
+
+# Mac junk
+.DS_Store

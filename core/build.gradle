@@ -1,0 +1,13 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    def graalvmVersion = "1.0.0-rc9"
+
+    compile "org.graalvm.truffle:truffle-api:${graalvmVersion}"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
+    testCompile "junit:junit:4.12"
+    testCompile 'org.hamcrest:hamcrest-library:1.3'
+}
