@@ -1,13 +1,31 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
+    id 'antlr'
+    id 'idea'
+
 }
 
 dependencies {
     def graalvmVersion = "1.0.0-rc9"
+    def antrlVersion = "4.7.1"
+
+    antlr "org.antlr:antlr4:${antrlVersion}"
+
+    annotationProcessor "org.graalvm.truffle:truffle-dsl-processor:${graalvmVersion}"
+    // The processor needs to be on the classpath for IDEA to discover it.
+    // We might be able to instead add the Gradle output path after
+    // https://github.com/gradle/gradle/issues/4956 is resolved
+    implementation "org.graalvm.truffle:truffle-dsl-processor:${graalvmVersion}"
 
     compile "org.graalvm.truffle:truffle-api:${graalvmVersion}"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
     testCompile "junit:junit:4.12"
     testCompile 'org.hamcrest:hamcrest-library:1.3'
+}
+
+// ANTLR parameters
+generateGrammarSource {
+    maxHeapSize = "64m"
+    arguments += ["-visitor", "-long-messages"]
 }

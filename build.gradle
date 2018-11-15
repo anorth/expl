@@ -1,6 +1,7 @@
 // This root project is empty of code, but defines common build configuration for sub-projects.
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.71'
+    id 'idea'
 }
 
 allprojects {
@@ -9,11 +10,11 @@ allprojects {
 
     repositories {
         mavenCentral()
+        jcenter()
     }
 }
 
 subprojects {
-
     compileKotlin {
         kotlinOptions.jvmTarget = "1.8"
     }
