@@ -1,8 +1,8 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'antlr'
-    id 'idea'
-
+//    id 'java'
+//    id 'idea'
 }
 
 dependencies {
@@ -22,6 +22,17 @@ dependencies {
 
     testCompile "junit:junit:4.12"
     testCompile 'org.hamcrest:hamcrest-library:1.3'
+}
+
+compileJava {
+    // Move annotation-processor generated sources outside the build/classes directory
+    // See https://github.com/gradle/gradle/issues/4956
+    String genSrcPath = "build/generated-src/java/main"
+    sourceSets.main.java { srcDir genSrcPath }
+    File generatedSourceDir = project.file(genSrcPath)
+    project.mkdir(generatedSourceDir)
+    options.annotationProcessorGeneratedSourcesDirectory = generatedSourceDir
+    outputs.dir(generatedSourceDir)
 }
 
 // ANTLR parameters
