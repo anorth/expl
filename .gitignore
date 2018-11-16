@@ -6,6 +6,9 @@
 .idea/shelf/*
 .idea/workspace.xml
 
+# IDE build outputs
+out
+
 # Gradle installation and outputs
 .gradle
 build
