@@ -37,6 +37,7 @@ compileJava {
 
 // ANTLR parameters
 generateGrammarSource {
+    //outputDirectory = project.file("build/generated/antlr/main")
     maxHeapSize = "64m"
     arguments += ["-visitor", "-long-messages"]
 }
