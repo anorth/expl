@@ -7,7 +7,9 @@ package org.explang.parser;
 
 expression: sum ;
 
-sum: signed ((PLUS | MINUS) signed)* ;
+sum: product ((PLUS | MINUS) product)* ;
+product: factor ((TIMES | DIV) factor)* ;
+factor: signed (POW signed)* ;
 
 signed
    : PLUS signed
@@ -28,14 +30,16 @@ PLUS: '+' ;
 MINUS: '-' ;
 TIMES: '*' ;
 DIV: '/' ;
+POW: '^' ;
 
 LPAREN: '(' ;
 RPAREN: ')' ;
 
-INTEGER: [0-9]+ ;
-FLOAT: [0-9]+ ('.' [0-9]*)? (E SIGN? [0-9]+)? ;
+INTEGER: DIGITS ;
+FLOAT: DIGITS ('.' [0-9]*)? (E SIGN? DIGITS)? ;
 
 fragment E: ('e' | 'E') ;
 fragment SIGN: ('+' | '-') ;
+fragment DIGITS: [0-9]+ ;
 
 WHITESPACE: [ \r\n\t]+ -> skip ;
