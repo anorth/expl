@@ -7,6 +7,7 @@ import org.explang.parser.ExplParser
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FactorNode
 import org.explang.truffle.nodes.LiteralDoubleNode
+import org.explang.truffle.nodes.NegationNode
 import org.explang.truffle.nodes.ProductNode
 import org.explang.truffle.nodes.SumNode
 import java.lang.Double.parseDouble
@@ -68,7 +69,7 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
 
   override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode<Double> = when {
     ctx.PLUS() != null -> visitSigned(ctx.signed())
-    ctx.MINUS() != null -> TODO("Unsupported unary minus operator")
+    ctx.MINUS() != null -> NegationNode(visitSigned(ctx.signed()))
     else -> visitAtom(ctx.atom())
   }
 
