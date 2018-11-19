@@ -12,12 +12,12 @@ public class ExpressionRootNode extends RootNode {
     this.body = body;
   }
 
-  public ExpressionNode getBody() {
-    return body;
-  }
-
   @Override
   public Object execute(VirtualFrame frame) {
-    return body.executeGeneric(frame);
+    return body.executeDouble(frame);
+  }
+
+  public ExpressionNode getBody() {
+    return body;
   }
 }

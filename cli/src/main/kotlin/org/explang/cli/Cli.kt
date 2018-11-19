@@ -15,8 +15,8 @@ import org.explang.truffle.nodes.ExpressionRootNode
 // See https://github.com/xenomachina/kotlin-argparser
 class Args(parser: ArgParser) {
   val trace by parser.flagging("--trace", help = "Print parser trace")
-  val showTokens by parser.flagging("--show-tokens", help = "Print tokens to standard output")
-  val showTree by parser.flagging("--show-tree", help = "Print parse tree to standard output")
+  val showTokens by parser.flagging("--show-lex", help = "Print tokens to standard output")
+  val showTree by parser.flagging("--show-parse", help = "Print parse tree to standard output")
   val expression by parser.positional("EXPRESSION", help = "Expression to evaluate")
 }
 
@@ -25,7 +25,7 @@ class Cli {
     val lexer = ExplLexer(CharStreams.fromString(args.expression))
     val tokens = CommonTokenStream(lexer)
     val parser = ExplParser(tokens)
-    parser.buildParseTree = args.showTree
+    parser.buildParseTree = true // For visiting in in compiler
     parser.isTrace = args.trace
 
     // Show tokens
@@ -54,7 +54,7 @@ class Cli {
     println(result)
   }
 
-  private fun evaluate(expr: ExpressionNode): Any {
+  private fun evaluate(expr: ExpressionNode<*>): Any {
     val baseFrame = Truffle.getRuntime().createVirtualFrame(arrayOf(), FrameDescriptor())
     val mf = baseFrame.materialize()
 
