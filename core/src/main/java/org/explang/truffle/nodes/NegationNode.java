@@ -5,10 +5,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 /**
  * Unary negation node.
  */
-public final class NegationNode<T> extends ExpressionNode<T> {
-  @Child private ExpressionNode<T> child;
+public final class NegationNode extends ExpressionNode {
+  @Child private ExpressionNode child;
 
-  public NegationNode(ExpressionNode<T> child) {
+  public NegationNode(ExpressionNode child) {
     this.child = child;
   }
 

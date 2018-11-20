@@ -60,7 +60,7 @@ class Cli {
     println(result)
   }
 
-  private fun evaluate(expr: ExpressionNode<*>): Any {
+  private fun evaluate(expr: ExpressionNode): Any {
     // Evaluate the expression
     val rootNode = ExpressionRootNode(expr, FrameDescriptor())
     val target = Truffle.getRuntime().createCallTarget(rootNode)

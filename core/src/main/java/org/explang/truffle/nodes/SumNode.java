@@ -6,8 +6,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
  * Strongly typed addition nodes.
  */
 public final class SumNode {
-  public static ExpressionNode<Double> addDouble(ExpressionNode<Double> left,
-      ExpressionNode<Double> right) {
+  public static ExpressionNode addDouble(ExpressionNode left,
+      ExpressionNode right) {
     return new BinaryNode<Double>(left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
@@ -19,8 +19,8 @@ public final class SumNode {
     };
   }
 
-  public static ExpressionNode<Double> subDouble(ExpressionNode<Double> left,
-      ExpressionNode<Double> right) {
+  public static ExpressionNode subDouble(ExpressionNode left,
+      ExpressionNode right) {
     return new BinaryNode<Double>(left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {

@@ -9,12 +9,12 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import org.explang.truffle.ExplFunction;
 
-public class FunctionCallNode<T> extends ExpressionNode<T> {
-  @Child private ExpressionNode<?> functionNode;
-  @Children private final ExpressionNode<?>[] argNodes;
+public class FunctionCallNode<T> extends ExpressionNode {
+  @Child private ExpressionNode functionNode;
+  @Children private final ExpressionNode[] argNodes;
   @Child private IndirectCallNode callNode; // FIXME make a direct call
 
-  public FunctionCallNode(ExpressionNode<?> functionNode, ExpressionNode<?>[] argNodes) {
+  public FunctionCallNode(ExpressionNode functionNode, ExpressionNode[] argNodes) {
     this.functionNode = functionNode;
     this.argNodes = argNodes;
     this.callNode = Truffle.getRuntime().createIndirectCallNode();
@@ -41,7 +41,7 @@ public class FunctionCallNode<T> extends ExpressionNode<T> {
   public String toString() {
     StringJoiner j = new StringJoiner(",", "call(", ")");
     j.add(this.functionNode.toString());
-    for (ExpressionNode<?> node : this.argNodes) {
+    for (ExpressionNode node : this.argNodes) {
       j.add(node.toString());
     }
     return j.toString();

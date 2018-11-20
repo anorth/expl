@@ -6,8 +6,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
  * Strongly typed exponentiation node.
  */
 public final class FactorNode {
-  public static ExpressionNode<Double> expDouble(ExpressionNode<Double> left,
-      ExpressionNode<Double> right) {
+  public static ExpressionNode expDouble(ExpressionNode left,
+      ExpressionNode right) {
     return new BinaryNode<Double>(left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {

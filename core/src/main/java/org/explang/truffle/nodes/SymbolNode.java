@@ -5,14 +5,13 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.truffle.ExplFunction;
-import org.explang.truffle.ExplSymbol;
 import org.explang.truffle.RuntimeTypeError;
 
 /**
  * A symbol to be resolved at runtime in the executing frame.
  */
 @NodeInfo(shortName = "Symbol")
-public final class SymbolNode extends ExpressionNode<ExplSymbol> {
+public final class SymbolNode extends ExpressionNode {
   private final FrameSlot value;
 
   public SymbolNode(FrameSlot value) {

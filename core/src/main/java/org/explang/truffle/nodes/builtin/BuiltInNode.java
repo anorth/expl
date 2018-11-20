@@ -13,7 +13,7 @@ import org.explang.truffle.nodes.ExpressionRootNode;
  * Built-ins are expected to have no child nodes, but read their arguments directly from
  * the call frame.
  */
-public abstract class BuiltInNode<T> extends ExpressionNode<T> {
+public abstract class BuiltInNode<T> extends ExpressionNode {
   /**
    * Creates an function node for a built-in.
    */

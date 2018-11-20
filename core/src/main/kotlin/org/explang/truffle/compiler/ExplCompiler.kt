@@ -18,18 +18,18 @@ import org.explang.truffle.nodes.builtin.StaticBoundNode
 import java.lang.Double.parseDouble
 
 class ExplCompiler {
-  fun compile(parse: ExplParser.ExpressionContext) : ExpressionNode<*> {
+  fun compile(parse: ExplParser.ExpressionContext) : ExpressionNode {
     val builder = AstBuilder()
     return builder.build(parse)
   }
 }
 
 /** A parse tree visitor that constructs an AST */
-class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
+class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   // TODO: scope this better to avoid mutability.
   private var frameStack: MutableList<FrameDescriptor>? = null
 
-  fun build(tree: ParseTree): ExpressionNode<*> {
+  fun build(tree: ParseTree): ExpressionNode {
     frameStack = mutableListOf(FrameDescriptor())
     try {
       return tree.accept(this)
@@ -41,7 +41,7 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
   override fun visitExpression(ctx: ExplParser.ExpressionContext) =
       visitSum(ctx.sum())
 
-  override fun visitSum(ctx: ExplParser.SumContext): ExpressionNode<Double> {
+  override fun visitSum(ctx: ExplParser.SumContext): ExpressionNode {
     // Build left-associative tree.
     val itr = ctx.children.iterator()
     var left = visitProduct(itr.next() as ExplParser.ProductContext)
@@ -56,7 +56,7 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
     return left
   }
 
-  override fun visitProduct(ctx: ExplParser.ProductContext): ExpressionNode<Double> {
+  override fun visitProduct(ctx: ExplParser.ProductContext): ExpressionNode {
     // Build left-associative tree.
     val itr = ctx.children.iterator()
     var left = visitFactor(itr.next() as ExplParser.FactorContext)
@@ -71,7 +71,7 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
     return left
   }
 
-  override fun visitFactor(ctx: ExplParser.FactorContext): ExpressionNode<Double> {
+  override fun visitFactor(ctx: ExplParser.FactorContext): ExpressionNode {
     // Exponentiation is right-associative.
     val itr = ctx.children.asReversed().iterator()
     var rt = visitSigned(itr.next() as ExplParser.SignedContext)
@@ -79,31 +79,31 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
       val op = itr.next()
       val left = visitSigned(itr.next() as ExplParser.SignedContext)
       require((op as TerminalNode).symbol.type == ExplLexer.POW)
-      rt = FactorNode.expDouble(rt as ExpressionNode<Double>, left as ExpressionNode<Double>)
+      rt = FactorNode.expDouble(rt, left)
     }
-    return rt as ExpressionNode<Double>
+    return rt
   }
 
-  override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode<*> = when {
+  override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode = when {
     ctx.PLUS() != null -> visitSigned(ctx.signed())
     ctx.MINUS() != null -> NegationNode(visitSigned(ctx.signed()))
     ctx.fcall() != null -> visitFcall(ctx.fcall())
     else -> visitAtom(ctx.atom())
   }
 
-  override fun visitFcall(ctx: ExplParser.FcallContext): ExpressionNode<*> {
+  override fun visitFcall(ctx: ExplParser.FcallContext): ExpressionNode {
     val symbol = visitAtom(ctx.atom()) // TODO: check type of symbol is function with these args
     val args = ctx.expression().map { visitExpression(it) }.toTypedArray()
     return FunctionCallNode<Any>(symbol, args)
   }
 
-  override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode<*> = when {
+  override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode = when {
     ctx.number() != null -> visitNumber(ctx.number())
     ctx.symbol() != null -> visitSymbol(ctx.symbol())
     else -> visitExpression(ctx.expression())
   }
 
-  override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode<*> {
+  override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode {
     val name = ctx.text
     return if (name in BUILT_INS) {
       StaticBoundNode.builtIn(BUILT_INS[name]!!)
@@ -114,6 +114,6 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
     }
   }
 
-  override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode<Double> =
+  override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode =
       LiteralDoubleNode(parseDouble(ctx.text))
 }
