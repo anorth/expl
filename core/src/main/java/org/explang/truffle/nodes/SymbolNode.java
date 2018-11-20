@@ -6,6 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.truffle.ExplFunction;
 import org.explang.truffle.RuntimeTypeError;
+import org.explang.truffle.Type;
 
 /**
  * A symbol to be resolved at runtime in the executing frame.
@@ -14,12 +15,14 @@ import org.explang.truffle.RuntimeTypeError;
 public final class SymbolNode extends ExpressionNode {
   private final FrameSlot value;
 
-  public SymbolNode(FrameSlot value) {
+  public SymbolNode(Type t, FrameSlot value) {
+    super(t);
     this.value = value;
   }
 
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
+    checkTypeIsFunction();
     try {
       return (ExplFunction) frame.getObject(value);
     } catch (FrameSlotTypeException | ClassCastException e) {
@@ -29,6 +32,7 @@ public final class SymbolNode extends ExpressionNode {
 
   @Override
   public double executeDouble(VirtualFrame frame) {
+    checkType(Type.DOUBLE);
     try {
       return frame.getDouble(value);
     } catch (FrameSlotTypeException e) {

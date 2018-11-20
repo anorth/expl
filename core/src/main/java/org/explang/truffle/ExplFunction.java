@@ -4,13 +4,13 @@ import com.oracle.truffle.api.RootCallTarget;
 
 /**
  * Type object for a function.
- *
- * TODO: add argument and return type objects
  */
 public class ExplFunction {
+  public final Type type;
   public final RootCallTarget callTarget;
 
-  public ExplFunction(RootCallTarget callTarget) {
+  public ExplFunction(Type type, RootCallTarget callTarget) {
+    this.type = type;
     this.callTarget = callTarget;
   }
 }

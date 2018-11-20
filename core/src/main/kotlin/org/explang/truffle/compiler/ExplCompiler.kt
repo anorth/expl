@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.tree.TerminalNode
 import org.explang.parser.ExplBaseVisitor
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
+import org.explang.truffle.Type
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FactorNode
 import org.explang.truffle.nodes.FunctionCallNode
@@ -14,7 +15,7 @@ import org.explang.truffle.nodes.NegationNode
 import org.explang.truffle.nodes.ProductNode
 import org.explang.truffle.nodes.SumNode
 import org.explang.truffle.nodes.SymbolNode
-import org.explang.truffle.nodes.builtin.StaticBoundNode
+import org.explang.truffle.nodes.builtin.StaticBound
 import java.lang.Double.parseDouble
 
 class ExplCompiler {
@@ -94,7 +95,7 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   override fun visitFcall(ctx: ExplParser.FcallContext): ExpressionNode {
     val symbol = visitAtom(ctx.atom()) // TODO: check type of symbol is function with these args
     val args = ctx.expression().map { visitExpression(it) }.toTypedArray()
-    return FunctionCallNode<Any>(symbol, args)
+    return FunctionCallNode(symbol, args)
   }
 
   override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode = when {
@@ -106,11 +107,12 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode {
     val name = ctx.text
     return if (name in BUILT_INS) {
-      StaticBoundNode.builtIn(BUILT_INS[name]!!)
+      StaticBound.builtIn(BUILT_INS[name]!!)
     } else {
+      // FIXME propagate type information
       // TODO: Add FrameSlotKind based on symbol type info
       val frame = frameStack!!.last()
-      return SymbolNode(frame.findOrAddFrameSlot(ctx.text))
+      return SymbolNode(Type.DOUBLE, frame.findOrAddFrameSlot(ctx.text))
     }
   }
 

@@ -5,17 +5,17 @@ import org.explang.truffle.ExplFunction;
 import org.explang.truffle.nodes.ExpressionNode;
 
 /**
- * Node for a static (compile-time) reference.
+ * Nodes for static (compile-time) references.
  */
-public final class StaticBoundNode<T> extends ExpressionNode {
+public final class StaticBound {
   /** Builds a node statically resolving to a built-in function */
-  public static ExpressionNode builtIn(BuiltInNode<?> builtin) {
+  public static ExpressionNode builtIn(BuiltInNode builtin) {
     return function(BuiltInNode.createBuiltin(builtin));
   }
 
   /** Builds a node statically resolving to a function */
   public static ExpressionNode function(ExplFunction f) {
-    return new ExpressionNode() {
+    return new ExpressionNode(f.type) {
       @Override
       public ExplFunction executeFunction(VirtualFrame frame) {
         return f;

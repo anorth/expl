@@ -9,6 +9,7 @@ public final class NegationNode extends ExpressionNode {
   @Child private ExpressionNode child;
 
   public NegationNode(ExpressionNode child) {
+    super(child.type);
     this.child = child;
   }
 

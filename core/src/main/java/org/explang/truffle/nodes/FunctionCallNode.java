@@ -8,13 +8,15 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import org.explang.truffle.ExplFunction;
+import org.explang.truffle.Type;
 
-public class FunctionCallNode<T> extends ExpressionNode {
+public class FunctionCallNode extends ExpressionNode {
   @Child private ExpressionNode functionNode;
   @Children private final ExpressionNode[] argNodes;
   @Child private IndirectCallNode callNode; // FIXME make a direct call
 
   public FunctionCallNode(ExpressionNode functionNode, ExpressionNode[] argNodes) {
+    super(functionNode.type.result());
     this.functionNode = functionNode;
     this.argNodes = argNodes;
     this.callNode = Truffle.getRuntime().createIndirectCallNode();
@@ -23,6 +25,7 @@ public class FunctionCallNode<T> extends ExpressionNode {
   @Override
   @ExplodeLoop
   public double executeDouble(VirtualFrame virtualFrame) {
+    checkType(Type.DOUBLE);
     ExplFunction function = this.functionNode.executeFunction(virtualFrame);
     CompilerAsserts.compilationConstant(this.argNodes.length);
 
