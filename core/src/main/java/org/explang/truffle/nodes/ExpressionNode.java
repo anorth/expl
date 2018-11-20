@@ -14,19 +14,21 @@ public abstract class ExpressionNode extends Node {
   protected ExpressionNode(Type type) { this.type = type; }
 
   public double executeDouble(VirtualFrame frame) {
-    checkType(Type.DOUBLE);
-    throw new AssertionError("No implementation for double");
+    assertType(Type.DOUBLE);
+    throw new AssertionError(String.format("%s has no implementation for double", this));
   }
   public ExplFunction executeFunction(VirtualFrame frame) {
-    throw new AssertionError("No implementation for function");
+    assertTypeIsFunction();
+    throw new AssertionError(String.format("%s has no implementation for function", this));
   }
 
-  protected void checkType(Type expected) {
+  // Run-time type assertions (which should never fail if static type checks are sufficient).
+  protected void assertType(Type expected) {
     assert type.equals(expected):
         String.format("Expecting type %s but %s is %s", expected, this, type);
   }
 
-  protected void checkTypeIsFunction() {
+  protected void assertTypeIsFunction() {
     assert type.isFunction() :
         String.format("Expecting a function type but %s is %s", this, type);
   }

@@ -11,3 +11,7 @@ dependencies {
     compile "com.xenomachina:kotlin-argparser:2.0.4"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
+
+run {
+    enableAssertions = true
+}

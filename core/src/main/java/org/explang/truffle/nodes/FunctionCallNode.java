@@ -25,7 +25,7 @@ public class FunctionCallNode extends ExpressionNode {
   @Override
   @ExplodeLoop
   public double executeDouble(VirtualFrame virtualFrame) {
-    checkType(Type.DOUBLE);
+    assertType(Type.DOUBLE);
     ExplFunction function = this.functionNode.executeFunction(virtualFrame);
     CompilerAsserts.compilationConstant(this.argNodes.length);
 

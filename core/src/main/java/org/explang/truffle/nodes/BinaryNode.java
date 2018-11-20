@@ -11,8 +11,6 @@ abstract class BinaryNode extends ExpressionNode {
 
   BinaryNode(Type t, ExpressionNode left, ExpressionNode right) {
     super(t);
-    left.checkType(t);
-    right.checkType(t);
     this.left = left;
     this.right = right;
   }

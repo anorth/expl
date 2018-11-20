@@ -22,7 +22,7 @@ public final class SymbolNode extends ExpressionNode {
 
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
-    checkTypeIsFunction();
+    assertTypeIsFunction();
     try {
       return (ExplFunction) frame.getObject(value);
     } catch (FrameSlotTypeException | ClassCastException e) {
@@ -32,7 +32,7 @@ public final class SymbolNode extends ExpressionNode {
 
   @Override
   public double executeDouble(VirtualFrame frame) {
-    checkType(Type.DOUBLE);
+    assertType(Type.DOUBLE);
     try {
       return frame.getDouble(value);
     } catch (FrameSlotTypeException e) {
