@@ -1,26 +1,43 @@
 package org.explang.truffle.compiler
 
+import com.oracle.truffle.api.frame.FrameDescriptor
+import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.explang.parser.ExplBaseVisitor
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FactorNode
+import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.LiteralDoubleNode
 import org.explang.truffle.nodes.NegationNode
 import org.explang.truffle.nodes.ProductNode
 import org.explang.truffle.nodes.SumNode
+import org.explang.truffle.nodes.SymbolNode
+import org.explang.truffle.nodes.builtin.StaticBoundNode
 import java.lang.Double.parseDouble
 
 class ExplCompiler {
   fun compile(parse: ExplParser.ExpressionContext) : ExpressionNode<*> {
     val builder = AstBuilder()
-    return builder.visit(parse)
+    return builder.build(parse)
   }
 }
 
 /** A parse tree visitor that constructs an AST */
 class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
+  // TODO: scope this better to avoid mutability.
+  private var frameStack: MutableList<FrameDescriptor>? = null
+
+  fun build(tree: ParseTree): ExpressionNode<*> {
+    frameStack = mutableListOf(FrameDescriptor())
+    try {
+      return tree.accept(this)
+    } finally {
+      frameStack = null
+    }
+  }
+
   override fun visitExpression(ctx: ExplParser.ExpressionContext) =
       visitSum(ctx.sum())
 
@@ -62,20 +79,39 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode<*>>() {
       val op = itr.next()
       val left = visitSigned(itr.next() as ExplParser.SignedContext)
       require((op as TerminalNode).symbol.type == ExplLexer.POW)
-      rt = FactorNode.expDouble(rt, left)
+      rt = FactorNode.expDouble(rt as ExpressionNode<Double>, left as ExpressionNode<Double>)
     }
-    return rt
+    return rt as ExpressionNode<Double>
   }
 
-  override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode<Double> = when {
+  override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode<*> = when {
     ctx.PLUS() != null -> visitSigned(ctx.signed())
     ctx.MINUS() != null -> NegationNode(visitSigned(ctx.signed()))
+    ctx.fcall() != null -> visitFcall(ctx.fcall())
     else -> visitAtom(ctx.atom())
   }
 
-  override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode<Double> = when {
+  override fun visitFcall(ctx: ExplParser.FcallContext): ExpressionNode<*> {
+    val symbol = visitAtom(ctx.atom()) // TODO: check type of symbol is function with these args
+    val args = ctx.expression().map { visitExpression(it) }.toTypedArray()
+    return FunctionCallNode<Any>(symbol, args)
+  }
+
+  override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode<*> = when {
     ctx.number() != null -> visitNumber(ctx.number())
+    ctx.symbol() != null -> visitSymbol(ctx.symbol())
     else -> visitExpression(ctx.expression())
+  }
+
+  override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode<*> {
+    val name = ctx.text
+    return if (name in BUILT_INS) {
+      StaticBoundNode.builtIn(BUILT_INS[name]!!)
+    } else {
+      // TODO: Add FrameSlotKind based on symbol type info
+      val frame = frameStack!!.last()
+      return SymbolNode(frame.findOrAddFrameSlot(ctx.text))
+    }
   }
 
   override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode<Double> =
