@@ -17,8 +17,10 @@ dependencies {
     // https://github.com/gradle/gradle/issues/4956 is resolved
     implementation "org.graalvm.truffle:truffle-dsl-processor:${graalvmVersion}"
 
+    compile "com.google.code.findbugs:jsr305:3.0.2"
     compile "org.graalvm.truffle:truffle-api:${graalvmVersion}"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
 
     testCompile "junit:junit:4.12"
     testCompile 'org.hamcrest:hamcrest-library:1.3'
