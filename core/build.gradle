@@ -35,6 +35,8 @@ compileJava {
     outputs.dir(generatedSourceDir)
 }
 
+compileKotlin.dependsOn(generateGrammarSource)
+
 // ANTLR parameters
 generateGrammarSource {
     //outputDirectory = project.file("build/generated/antlr/main")
