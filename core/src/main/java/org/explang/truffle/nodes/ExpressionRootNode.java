@@ -17,6 +17,9 @@ public class ExpressionRootNode extends RootNode {
     return body.executeDouble(frame);
   }
 
+  @Override
+  public String toString() { return this.body.toString(); }
+
   public ExpressionNode getBody() {
     return body;
   }

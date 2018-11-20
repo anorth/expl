@@ -16,7 +16,8 @@ import org.explang.truffle.nodes.ExpressionRootNode
 class Args(parser: ArgParser) {
   val trace by parser.flagging("--trace", help = "Print parser trace")
   val showTokens by parser.flagging("--show-lex", help = "Print tokens to standard output")
-  val showTree by parser.flagging("--show-parse", help = "Print parse tree to standard output")
+  val showParse by parser.flagging("--show-parse", help = "Print parse tree to standard output")
+  val showAst by parser.flagging("--show-ast", help = "Print syntax tree to standard output")
   val expression by parser.positional("EXPRESSION", help = "Expression to evaluate")
 }
 
@@ -42,26 +43,28 @@ class Cli {
     }
 
     val parse = parser.expression()
-    if (args.showTree) {
-      println("*Tree*")
+    if (args.showParse) {
+      println("*Parse*")
       println(parse.toStringTree(parser))
     }
 
     val compiler = ExplCompiler()
     val ast = compiler.compile(parse)
+    if (args.showAst) {
+      println("*AST*")
+      println(ast)
+    }
+
     val result = evaluate(ast)
     println("*Result*")
     println(result)
   }
 
   private fun evaluate(expr: ExpressionNode<*>): Any {
-    val baseFrame = Truffle.getRuntime().createVirtualFrame(arrayOf(), FrameDescriptor())
-    val mf = baseFrame.materialize()
-
     // Evaluate the expression
-    val rootNode = ExpressionRootNode(expr, mf.frameDescriptor)
+    val rootNode = ExpressionRootNode(expr, FrameDescriptor())
     val target = Truffle.getRuntime().createCallTarget(rootNode)
-    return target.call(mf)
+    return target.call()
   }
 }
 

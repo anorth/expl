@@ -13,6 +13,9 @@ public final class FactorNode {
       public double executeDouble(VirtualFrame frame) {
         return Math.pow( left.executeDouble(frame), right.executeDouble(frame));
       }
+
+      @Override
+      public String toString() { return "^(" + this.left + "," + this.right + ")"; }
     };
   }
 }

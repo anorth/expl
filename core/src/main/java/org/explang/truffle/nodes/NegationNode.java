@@ -16,4 +16,7 @@ public final class NegationNode<T> extends ExpressionNode<T> {
   public double executeDouble(VirtualFrame frame) {
     return -child.executeDouble(frame);
   }
+
+  @Override
+  public String toString() { return "-(" + this.child + ")"; }
 }

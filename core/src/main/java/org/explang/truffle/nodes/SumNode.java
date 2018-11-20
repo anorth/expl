@@ -13,6 +13,9 @@ public final class SumNode {
       public double executeDouble(VirtualFrame frame) {
         return left.executeDouble(frame) + right.executeDouble(frame);
       }
+
+      @Override
+      public String toString() { return "+(" + this.left + "," + this.right + ")"; }
     };
   }
 
@@ -23,6 +26,8 @@ public final class SumNode {
       public double executeDouble(VirtualFrame frame) {
         return left.executeDouble(frame) - right.executeDouble(frame);
       }
+
+      @Override public String toString() { return "-(" + this.left + "," + this.right + ")"; }
     };
   }
 }
