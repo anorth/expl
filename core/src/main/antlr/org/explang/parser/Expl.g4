@@ -5,7 +5,12 @@ package org.explang.parser;
 
 /* Parse rules */
 
-expression: sum ;
+expression
+  : let
+  | sum ;
+
+let: LET binding (COMMA binding)* IN expression;
+binding: symbol EQ expression;
 
 sum: product ((PLUS | MINUS) product)* ;
 product: factor ((TIMES | DIV) factor)* ;
@@ -31,10 +36,14 @@ fcall: atom LPAREN expression (COMMA expression)* RPAREN ;
 
 /* Lex rules */
 
-IDENTIFIER: IDENT_START IDENT_CHAR* ;
+LET: 'let';
+IN: 'in';
 
-fragment IDENT_START: ('a' .. 'z') | ('A' .. 'Z') | '_' ;
-fragment IDENT_CHAR: IDENT_START | ('0' .. '9') ;
+EQ: '=';
+
+LPAREN: '(' ;
+RPAREN: ')' ;
+COMMA: ',' ;
 
 PLUS: '+' ;
 MINUS: '-' ;
@@ -42,9 +51,10 @@ TIMES: '*' ;
 DIV: '/' ;
 POW: '^' ;
 
-LPAREN: '(' ;
-RPAREN: ')' ;
-COMMA: ',' ;
+IDENTIFIER: IDENT_START IDENT_CHAR* ;
+
+fragment IDENT_START: ('a' .. 'z') | ('A' .. 'Z') | '_' ;
+fragment IDENT_CHAR: IDENT_START | ('0' .. '9') ;
 
 INTEGER: DIGITS ;
 FLOAT: DIGITS ('.' [0-9]*)? (E SIGN? DIGITS)? ;

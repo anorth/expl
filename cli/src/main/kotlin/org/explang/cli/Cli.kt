@@ -49,20 +49,20 @@ class Cli {
     }
 
     val compiler = ExplCompiler()
-    val ast = compiler.compile(parse)
+    val (ast, topFrameDescriptor) = compiler.compile(parse)
     if (args.showAst) {
       println("*AST*")
       println(ast)
     }
 
-    val result = evaluate(ast)
+    val result = evaluate(ast, topFrameDescriptor)
     println("*Result*")
     println(result)
   }
 
-  private fun evaluate(expr: ExpressionNode): Any {
+  private fun evaluate(expr: ExpressionNode, topFrameDescriptor: FrameDescriptor): Any {
     // Evaluate the expression
-    val rootNode = ExpressionRootNode(expr, FrameDescriptor())
+    val rootNode = ExpressionRootNode(expr, topFrameDescriptor)
     val target = Truffle.getRuntime().createCallTarget(rootNode)
     return target.call()
   }

@@ -26,7 +26,7 @@ public final class SymbolNode extends ExpressionNode {
     try {
       return (ExplFunction) frame.getObject(value);
     } catch (FrameSlotTypeException | ClassCastException e) {
-      throw new RuntimeTypeError(e);
+      throw fail();
     }
   }
 
@@ -36,12 +36,15 @@ public final class SymbolNode extends ExpressionNode {
     try {
       return frame.getDouble(value);
     } catch (FrameSlotTypeException e) {
-      throw new RuntimeTypeError(e);
+      throw fail();
     }
   }
 
   @Override
-  public String toString() {
-    return value.toString();
+  public String toString() { return value.getIdentifier().toString(); }
+
+  private RuntimeTypeError fail() {
+      throw new RuntimeTypeError(
+          String.format("Failed to find %s of type %s", value.getIdentifier(), type));
   }
 }

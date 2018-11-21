@@ -1,15 +1,19 @@
 package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.frame.FrameDescriptor
+import com.oracle.truffle.api.frame.FrameSlotKind
+import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.explang.parser.ExplBaseVisitor
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.truffle.Type
+import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FactorNode
 import org.explang.truffle.nodes.FunctionCallNode
+import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.LiteralDoubleNode
 import org.explang.truffle.nodes.NegationNode
 import org.explang.truffle.nodes.ProductNode
@@ -17,9 +21,12 @@ import org.explang.truffle.nodes.SumNode
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.lang.Double.parseDouble
+import java.util.LinkedList
+
+class CompileError(msg: String, val context: ParserRuleContext): Exception(msg)
 
 class ExplCompiler {
-  fun compile(parse: ExplParser.ExpressionContext) : ExpressionNode {
+  fun compile(parse: ExplParser.ExpressionContext) : Pair<ExpressionNode, FrameDescriptor> {
     val builder = AstBuilder()
     return builder.build(parse)
   }
@@ -28,19 +35,50 @@ class ExplCompiler {
 /** A parse tree visitor that constructs an AST */
 class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   // TODO: scope this better to avoid mutability.
-  private var frameStack: MutableList<FrameDescriptor>? = null
+  private var frameStack: LinkedList<FrameDescriptor>? = null
 
-  fun build(tree: ParseTree): ExpressionNode {
-    frameStack = mutableListOf(FrameDescriptor())
+  fun build(tree: ParseTree): Pair<ExpressionNode, FrameDescriptor> {
+    frameStack = LinkedList()
+    frameStack!!.push(FrameDescriptor())
     try {
-      return tree.accept(this)
+      val ast = tree.accept(this)
+      assert(frameStack!!.size == 1) { "Mangled frame stack" }
+      return ast to frameStack!!.last
     } finally {
       frameStack = null
     }
   }
 
-  override fun visitExpression(ctx: ExplParser.ExpressionContext) =
-      visitSum(ctx.sum())
+  override fun visitExpression(ctx: ExplParser.ExpressionContext): ExpressionNode = when {
+    ctx.let() != null -> visitLet(ctx.let())
+    else -> visitSum(ctx.sum())
+  }
+
+  override fun visitLet(ctx: ExplParser.LetContext): ExpressionNode {
+    // Let bindings go in the same frame as the bound expression.
+    // Bindings are keyed by frame slots in this frame.
+    // Symbol nodes resolved in the subsequent expression will find those frame slots.
+    // Bindings in the let clause are also visible to each other.
+    // TODO: rewrite names in nested let clauses to avoid name re-use trashing the frame for
+    // subsequent bindings (but it works ok for nested clauses). I.e scoped identifiers.
+    // TODO: Statically resolve access to outer scopes
+    val frame = frameStack!!.last
+    val bindingNodes = arrayOfNulls<BindingNode>(ctx.binding().size)
+    val names = mutableListOf<String>() // Faster than a set for small size?
+    ctx.binding().forEachIndexed { i, it ->
+      val name = it.symbol().text
+      if (name in names) throw CompileError("Duplicate binding for $name", it)
+      names.add(name)
+      // FIXME: this construction means a recursive visitExpression might set its own slot
+      // without type information. This can happen generally if the bound expression references
+      // another binding. Need to define semantics for mutual accessibility and shadowing.
+      val value = visitExpression(it.expression())
+      val slot = frame.findOrAddFrameSlot(name, value.type, value.asSlotKind())
+      bindingNodes[i] = BindingNode(slot, value)
+    }
+    val expressionNode = visitExpression(ctx.expression())
+    return LetNode(bindingNodes, expressionNode)
+  }
 
   override fun visitSum(ctx: ExplParser.SumContext): ExpressionNode {
     // Build left-associative tree.
@@ -118,4 +156,9 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
 
   override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode =
       LiteralDoubleNode(parseDouble(ctx.text))
+}
+
+private fun ExpressionNode.asSlotKind() = when (type) {
+  Type.DOUBLE -> FrameSlotKind.Double
+  else -> FrameSlotKind.Object
 }

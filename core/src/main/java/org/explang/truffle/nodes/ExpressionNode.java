@@ -17,9 +17,19 @@ public abstract class ExpressionNode extends Node {
     assertType(Type.DOUBLE);
     throw new AssertionError(String.format("%s has no implementation for double", this));
   }
+
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     throw new AssertionError(String.format("%s has no implementation for function", this));
+  }
+
+  /** Executes a node according to its declared type, discarding any result. */
+  void executeSideEffect(VirtualFrame frame) {
+    if (type == Type.DOUBLE) {
+      executeDouble(frame);
+    } else {
+      executeFunction(frame);
+    }
   }
 
   // Run-time type assertions (which should never fail if static type checks are sufficient).
