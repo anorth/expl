@@ -32,26 +32,22 @@ class CompileError(msg: String, val context: ParserRuleContext): Exception(msg)
 class ExplCompiler {
   @Throws(CompileError::class)
   fun compile(parse: ExplParser.ExpressionContext) : Pair<ExpressionNode, FrameDescriptor> {
-    val builder = AstBuilder()
-    return builder.build(parse)
+    return AstBuilder.build(parse)
   }
 }
 
 /** A parse tree visitor that constructs an AST */
-private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
-  // TODO: scope this better to avoid mutability.
-  private var scope: Scope? = null
-
-  fun build(tree: ParseTree): Pair<ExpressionNode, FrameDescriptor> {
-    scope = Scope(tree)
-    try {
-      val ast = tree.accept(this)
-      val topFrameDescriptor = scope!!.popTopFrame()
+private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<ExpressionNode>() {
+  companion object {
+    fun build(tree: ParseTree): Pair<ExpressionNode, FrameDescriptor> {
+      val builder = AstBuilder(tree)
+      val ast = tree.accept(builder)
+      val topFrameDescriptor = builder.scope.popTopFrame()
       return ast to topFrameDescriptor
-    } finally {
-      scope = null
     }
   }
+
+  private val scope: Scope = Scope(tree)
 
   override fun visitExpression(ctx: ExplParser.ExpressionContext): ExpressionNode = when {
     ctx.let() != null -> visitLet(ctx.let())
@@ -66,7 +62,7 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
     // TODO: rewrite names in nested let clauses to avoid name re-use trashing the frame for
     // subsequent bindings (but it works ok for nested clauses). I.e scoped resolved identifiers.
     // TODO: Resolve access to enclosing scopes, closures in general
-    scope!!.enterBinding(ctx)
+    scope.enterBinding(ctx)
     val bindingNodes = ctx.binding().map(this::visitBinding)
     val names = mutableSetOf<String>()
     val dupNames = mutableSetOf<String>()
@@ -82,7 +78,7 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
     }
 
     val expressionNode = visitExpression(ctx.expression())
-    scope!!.exit()
+    scope.exit()
     return LetNode(bindingNodes.toTypedArray(), expressionNode)
   }
 
@@ -90,7 +86,7 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
     val name = ctx.symbol().text
     // FIXME make bound symbol visible inside binding expression, for recursive definitions
     val expression = visitExpression(ctx.expression())
-    val binding = scope!!.defineBinding(name, expression.type, ctx)
+    val binding = scope.defineBinding(name, expression.type, ctx)
     return BindingNode(binding.slot, expression)
   }
 
@@ -166,7 +162,7 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
 
   override fun visitLambda(ctx: ExplParser.LambdaContext): FunctionDefinitionNode {
     val descriptor = FrameDescriptor()
-    scope!!.enterFunction(descriptor, ctx)
+    scope.enterFunction(descriptor, ctx)
     // The body expression contains symbol nodes which refer to arguments by name.
     // First visit those to define their indices in the scope. Within this scope, matching symbols
     // will resolve to those indices.
@@ -174,10 +170,10 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
     ctx.argnames().symbol().forEachIndexed { i, it ->
       val type = Type.DOUBLE // FIXME type annotation or inference
       argTypes[i] = type
-      scope!!.defineArgument(it.text, type, it)
+      scope.defineArgument(it.text, type, it)
     }
     val body = visitExpression(ctx.expression())
-    scope!!.exit()
+    scope.exit()
 
     val callTarget = Truffle.getRuntime().createCallTarget(ExpressionRootNode(body, descriptor))
     val type = Type.function(body.type, *argTypes)
@@ -193,7 +189,7 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
     return if (name in BUILT_INS) {
       StaticBound.builtIn(BUILT_INS[name]!!)
     } else {
-      val resolution = scope!!.resolve(name)
+      val resolution = scope.resolve(name)
       return when (resolution) {
         is Scope.Resolution.Binding -> SymbolNode(resolution.type, resolution.slot)
         is Scope.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, name)
