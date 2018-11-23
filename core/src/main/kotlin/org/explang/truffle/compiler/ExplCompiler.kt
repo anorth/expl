@@ -1,18 +1,22 @@
 package org.explang.truffle.compiler
 
+import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
-import com.oracle.truffle.api.frame.FrameSlotKind
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.explang.parser.ExplBaseVisitor
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
+import org.explang.truffle.ExplFunction
 import org.explang.truffle.Type
+import org.explang.truffle.nodes.ArgReadNode
 import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.ExpressionNode
+import org.explang.truffle.nodes.ExpressionRootNode
 import org.explang.truffle.nodes.FactorNode
 import org.explang.truffle.nodes.FunctionCallNode
+import org.explang.truffle.nodes.FunctionDefinitionNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.LiteralDoubleNode
 import org.explang.truffle.nodes.NegationNode
@@ -21,7 +25,6 @@ import org.explang.truffle.nodes.SumNode
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.lang.Double.parseDouble
-import java.util.LinkedList
 
 class CompileError(msg: String, val context: ParserRuleContext): Exception(msg)
 
@@ -33,19 +36,18 @@ class ExplCompiler {
 }
 
 /** A parse tree visitor that constructs an AST */
-class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
+private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   // TODO: scope this better to avoid mutability.
-  private var frameStack: LinkedList<FrameDescriptor>? = null
+  private var scope: Scope? = null
 
   fun build(tree: ParseTree): Pair<ExpressionNode, FrameDescriptor> {
-    frameStack = LinkedList()
-    frameStack!!.push(FrameDescriptor())
+    scope = Scope(tree)
     try {
       val ast = tree.accept(this)
-      assert(frameStack!!.size == 1) { "Mangled frame stack" }
-      return ast to frameStack!!.last
+      val topFrameDescriptor = scope!!.popTopFrame()
+      return ast to topFrameDescriptor
     } finally {
-      frameStack = null
+      scope = null
     }
   }
 
@@ -54,30 +56,40 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
     else -> visitSum(ctx.sum())
   }
 
-  override fun visitLet(ctx: ExplParser.LetContext): ExpressionNode {
-    // Let bindings go in the same frame as the bound expression.
+  override fun visitLet(ctx: ExplParser.LetContext): LetNode {
+    // Let bindings go in the current function scope.
     // Bindings are keyed by frame slots in this frame.
-    // Symbol nodes resolved in the subsequent expression will find those frame slots.
+    // Binding nodes resolved in the subsequent expression will find those frame slots.
     // Bindings in the let clause are also visible to each other.
     // TODO: rewrite names in nested let clauses to avoid name re-use trashing the frame for
-    // subsequent bindings (but it works ok for nested clauses). I.e scoped identifiers.
-    // TODO: Statically resolve access to outer scopes
-    val frame = frameStack!!.last
-    val bindingNodes = arrayOfNulls<BindingNode>(ctx.binding().size)
-    val names = mutableListOf<String>() // Faster than a set for small size?
-    ctx.binding().forEachIndexed { i, it ->
-      val name = it.symbol().text
-      if (name in names) throw CompileError("Duplicate binding for $name", it)
-      names.add(name)
-      // FIXME: this construction means a recursive visitExpression might set its own slot
-      // without type information. This can happen generally if the bound expression references
-      // another binding. Need to define semantics for mutual accessibility and shadowing.
-      val value = visitExpression(it.expression())
-      val slot = frame.findOrAddFrameSlot(name, value.type, value.asSlotKind())
-      bindingNodes[i] = BindingNode(slot, value)
+    // subsequent bindings (but it works ok for nested clauses). I.e scoped resolved identifiers.
+    // TODO: Resolve access to enclosing scopes, closures in general
+    scope!!.enterBinding(ctx)
+    val bindingNodes = ctx.binding().map(this::visitBinding)
+    val names = mutableSetOf<String>()
+    val dupNames = mutableSetOf<String>()
+    for (name in names) {
+      if (name in names) {
+        dupNames.add(name)
+      } else {
+        names.add(name)
+      }
     }
+    if (dupNames.isNotEmpty()) {
+      throw CompileError("Duplicate bindings for ${names.joinToString(",")}", ctx)
+    }
+
     val expressionNode = visitExpression(ctx.expression())
-    return LetNode(bindingNodes, expressionNode)
+    scope!!.exit()
+    return LetNode(bindingNodes.toTypedArray(), expressionNode)
+  }
+
+  override fun visitBinding(ctx: ExplParser.BindingContext): BindingNode {
+    val name = ctx.symbol().text
+    // FIXME make bound symbol visible inside binding expression, for recursive definitions
+    val expression = visitExpression(ctx.expression())
+    val binding = scope!!.defineBinding(name, expression.type, ctx)
+    return BindingNode(binding.slot, expression)
   }
 
   override fun visitSum(ctx: ExplParser.SumContext): ExpressionNode {
@@ -126,39 +138,59 @@ class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode = when {
     ctx.PLUS() != null -> visitSigned(ctx.signed())
     ctx.MINUS() != null -> NegationNode(visitSigned(ctx.signed()))
-    ctx.fcall() != null -> visitFcall(ctx.fcall())
     else -> visitAtom(ctx.atom())
   }
 
-  override fun visitFcall(ctx: ExplParser.FcallContext): ExpressionNode {
-    val symbol = visitAtom(ctx.atom()) // TODO: check type of symbol is function with these args
-    val args = ctx.expression().map { visitExpression(it) }.toTypedArray()
+  override fun visitFcall(ctx: ExplParser.FcallContext): FunctionCallNode {
+    val symbol = visitSymbol(ctx.symbol()) // TODO: check type of symbol is function with these args
+    val args = ctx.expression().map(this::visitExpression).toTypedArray()
     return FunctionCallNode(symbol, args)
   }
 
   override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode = when {
+    ctx.lambda() != null -> visitLambda(ctx.lambda())
+    ctx.fcall() != null -> visitFcall(ctx.fcall())
     ctx.number() != null -> visitNumber(ctx.number())
     ctx.symbol() != null -> visitSymbol(ctx.symbol())
     else -> visitExpression(ctx.expression())
   }
+
+  override fun visitLambda(ctx: ExplParser.LambdaContext): FunctionDefinitionNode {
+    val descriptor = FrameDescriptor()
+    scope!!.enterFunction(descriptor, ctx)
+    // The body expression contains symbol nodes which refer to arguments by name.
+    // First visit those to define their indices in the scope. Within this scope, matching symbols
+    // will resolve to those indices.
+    val argTypes = arrayOfNulls<Type>(ctx.argnames().symbol().size)
+    ctx.argnames().symbol().forEachIndexed { i, it ->
+      val type = Type.DOUBLE // FIXME type annotation or inference
+      argTypes[i] = type
+      scope!!.defineArgument(it.text, type, it)
+    }
+    val body = visitExpression(ctx.expression())
+    scope!!.exit()
+
+    val callTarget = Truffle.getRuntime().createCallTarget(ExpressionRootNode(body, descriptor))
+    val type = Type.function(body.type, *argTypes)
+    val f = ExplFunction(type, callTarget)
+    return FunctionDefinitionNode(f)
+  }
+
+  override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode =
+      LiteralDoubleNode(parseDouble(ctx.text))
 
   override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode {
     val name = ctx.text
     return if (name in BUILT_INS) {
       StaticBound.builtIn(BUILT_INS[name]!!)
     } else {
-      // FIXME propagate type information
-      // TODO: Add FrameSlotKind based on symbol type info
-      val frame = frameStack!!.last()
-      return SymbolNode(Type.DOUBLE, frame.findOrAddFrameSlot(ctx.text))
+      val resolution = scope!!.resolve(name)
+      return when (resolution) {
+        is Scope.Resolution.Binding -> SymbolNode(resolution.type, resolution.slot)
+        is Scope.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, name)
+        null -> throw CompileError("Unbound symbol $name", ctx)
+      }
     }
   }
-
-  override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode =
-      LiteralDoubleNode(parseDouble(ctx.text))
 }
 
-private fun ExpressionNode.asSlotKind() = when (type) {
-  Type.DOUBLE -> FrameSlotKind.Double
-  else -> FrameSlotKind.Object
-}

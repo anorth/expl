@@ -6,4 +6,5 @@ package org.explang.truffle;
 public final class RuntimeTypeError extends RuntimeException {
   public RuntimeTypeError(String message) { super(message); }
   public RuntimeTypeError(Throwable cause) { super(cause); }
+  public RuntimeTypeError(String message, Throwable cause) { super(message, cause); }
 }

@@ -3,11 +3,13 @@ package org.explang.truffle.nodes;
 import java.util.StringJoiner;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.truffle.ExplFunction;
 
 /**
- * A let clause setting some bindings in a frame for an expression.
+ * A new scope introducing some bindings for a dependent expression.
  */
+@NodeInfo(shortName = "Let")
 public final class LetNode extends ExpressionNode {
   @Children private BindingNode[] bindings;
   @Child private ExpressionNode expression;

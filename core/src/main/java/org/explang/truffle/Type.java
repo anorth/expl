@@ -32,7 +32,9 @@ public final class Type {
     this.arguments = arguments;
   }
 
+  public String name() { return name; }
   public Type result() { return result; }
+  public Type[] arguments() { return arguments; }
 
   public boolean isFunction() {
     return arguments != null;

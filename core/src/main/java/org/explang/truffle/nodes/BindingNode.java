@@ -2,13 +2,15 @@ package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.truffle.ExplFunction;
 
 /**
- * A node that binds a valueNode to a slot in the current frame.
+ * A binding of a frame slot to an expression's result.
  */
+@NodeInfo(shortName = "Bind")
 public final class BindingNode extends ExpressionNode {
-  private final FrameSlot slot;
+  public final FrameSlot slot;
   @Child private ExpressionNode valueNode;
 
   public BindingNode(FrameSlot slot, ExpressionNode valueNode) {
@@ -19,6 +21,7 @@ public final class BindingNode extends ExpressionNode {
 
   @Override
   public double executeDouble(VirtualFrame frame) {
+    // TODO: Cache the immutable result and avoid recomputing.
     double v = this.valueNode.executeDouble(frame);
     frame.setDouble(slot, v);
     return v;

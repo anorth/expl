@@ -7,9 +7,11 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.truffle.ExplFunction;
 import org.explang.truffle.Type;
 
+@NodeInfo(shortName = "Call")
 public class FunctionCallNode extends ExpressionNode {
   @Child private ExpressionNode functionNode;
   @Children private final ExpressionNode[] argNodes;
@@ -34,7 +36,6 @@ public class FunctionCallNode extends ExpressionNode {
       // FIXME need type information to invoke the right execute call.
       argValues[i] = this.argNodes[i].executeDouble(virtualFrame);
     }
-    // TODO: resolve free variables into the frame
 
     // FIXME handle returns of functions (i.e. higher-order fns)
     return (double) this.callNode.call(function.callTarget, argValues);

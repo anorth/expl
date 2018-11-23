@@ -19,20 +19,24 @@ factor: signed (POW signed)* ;
 signed
    : PLUS signed
    | MINUS signed
-   | fcall
-   | atom
-   ;
+   | atom ;
 
 atom
-   : number
+   : lambda
+   | fcall
    | symbol
-   | LPAREN expression RPAREN
-   ;
+   | number
+   | LPAREN expression RPAREN ;
+
+lambda: LPAREN argnames RPAREN ARROW expression ;
+
+argnames: (symbol (COMMA symbol)*)? ;
 
 number: INTEGER | FLOAT ;
 symbol: IDENTIFIER ;
 
-fcall: atom LPAREN expression (COMMA expression)* RPAREN ;
+// FIXME function object could alternatively come from (expression), fcall, lambda (i.e. atom)
+fcall: symbol LPAREN (expression (COMMA expression)*)? RPAREN ;
 
 /* Lex rules */
 
@@ -40,6 +44,7 @@ LET: 'let';
 IN: 'in';
 
 EQ: '=';
+ARROW: '->';
 
 LPAREN: '(' ;
 RPAREN: ')' ;

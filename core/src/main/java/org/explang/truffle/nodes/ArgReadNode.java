@@ -1,0 +1,52 @@
+package org.explang.truffle.nodes;
+
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.truffle.ExplFunction;
+import org.explang.truffle.RuntimeTypeError;
+import org.explang.truffle.Type;
+
+/**
+ * A reference to a positional argument, resolved at runtime in the executing frame.
+ */
+@NodeInfo(shortName = "Argument")
+public final class ArgReadNode extends ExpressionNode {
+  private final int index;
+  private final String name; // For inspection
+
+  public ArgReadNode(Type t, int index, String name) {
+    super(t);
+    this.index = index;
+    this.name = name;
+  }
+
+  @Override
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    assertTypeIsFunction();
+    try {
+      return (ExplFunction) frame.getArguments()[index];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(e);
+    }
+  }
+
+  @Override
+  public double executeDouble(VirtualFrame frame) {
+    assertType(Type.DOUBLE);
+    try {
+      return (double) frame.getArguments()[index];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(e);
+    }
+  }
+
+  @Override
+  public String toString() {
+    return name + "|" + index;
+  }
+
+  private RuntimeTypeError fail(Throwable cause) {
+      throw new RuntimeTypeError(
+          String.format("Failed to read argument %d (%s) of type %s", index, name, type), cause);
+  }
+}

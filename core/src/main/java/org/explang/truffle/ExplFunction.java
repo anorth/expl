@@ -10,7 +10,13 @@ public class ExplFunction {
   public final RootCallTarget callTarget;
 
   public ExplFunction(Type type, RootCallTarget callTarget) {
+    assert type.isFunction() : "Expected a function type, got" + type;
     this.type = type;
     this.callTarget = callTarget;
+  }
+
+  @Override
+  public String toString() {
+    return type.toString();
   }
 }
