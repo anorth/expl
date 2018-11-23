@@ -25,10 +25,12 @@ import org.explang.truffle.nodes.SumNode
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.lang.Double.parseDouble
+import java.util.Arrays
 
 class CompileError(msg: String, val context: ParserRuleContext): Exception(msg)
 
 class ExplCompiler {
+  @Throws(CompileError::class)
   fun compile(parse: ExplParser.ExpressionContext) : Pair<ExpressionNode, FrameDescriptor> {
     val builder = AstBuilder()
     return builder.build(parse)
@@ -142,8 +144,15 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   }
 
   override fun visitFcall(ctx: ExplParser.FcallContext): FunctionCallNode {
-    val symbol = visitSymbol(ctx.symbol()) // TODO: check type of symbol is function with these args
+    val symbol = visitSymbol(ctx.symbol())
     val args = ctx.expression().map(this::visitExpression).toTypedArray()
+    check(ctx, symbol.type.isFunction) { "Call to a non-function" }
+    val actualTypes = args.map(ExpressionNode::type).toTypedArray()
+    val declaredTypes = symbol.type.arguments()
+    check(ctx, Arrays.equals(declaredTypes, actualTypes)) {
+      "Actual parameters (${actualTypes.joinToString(",")}) don't match " +
+          "declared (${declaredTypes.joinToString(",")})"
+    }
     return FunctionCallNode(symbol, args)
   }
 
@@ -194,3 +203,8 @@ private class AstBuilder : ExplBaseVisitor<ExpressionNode>() {
   }
 }
 
+private inline fun check(ctx: ParserRuleContext, predicate: Boolean, msg: () -> String) {
+  if (!predicate) {
+    throw CompileError(msg(), ctx)
+  }
+}

@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
+import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.ExplCompiler
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.ExpressionRootNode
@@ -49,15 +50,22 @@ class Cli {
     }
 
     val compiler = ExplCompiler()
-    val (ast, topFrameDescriptor) = compiler.compile(parse)
-    if (args.showAst) {
-      println("*AST*")
-      println(ast)
-    }
+    try {
+      val (ast, topFrameDescriptor) = compiler.compile(parse)
+      if (args.showAst) {
+        println("*AST*")
+        println(ast)
+      }
 
-    val result = evaluate(ast, topFrameDescriptor)
-    println("*Result*")
-    println(result)
+      val result = evaluate(ast, topFrameDescriptor)
+      println("*Result*")
+      println(result)
+    } catch (e: CompileError) {
+      println("*Compile failed*")
+      println(args.expression)
+      println(" ".repeat(e.context.getStart().startIndex) + "^")
+      println(e.message)
+    }
   }
 
   private fun evaluate(expr: ExpressionNode, topFrameDescriptor: FrameDescriptor): Any {
