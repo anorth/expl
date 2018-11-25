@@ -28,8 +28,16 @@ public class FunctionCallNode extends ExpressionNode {
   @ExplodeLoop
   public double executeDouble(VirtualFrame virtualFrame) {
     assertType(Type.DOUBLE);
-    ExplFunction function = this.functionNode.executeFunction(virtualFrame);
     CompilerAsserts.compilationConstant(this.argNodes.length);
+
+    ExplFunction function = this.functionNode.executeFunction(virtualFrame);
+
+    // The function object has the closure, if any, which is passed here to the "inside" of the
+    // call as a reference on the call root node.
+    // An alternative way to pass it would be as an arg, which is probably much safer, e.g.
+    // with multiple threads..
+    function.closure().ifPresent(c ->
+        ((CallRootNode) function.callTarget().getRootNode()).setClosure(c));
 
     Object[] argValues = new Object[this.argNodes.length];
     for (int i = 0; i < this.argNodes.length; i++) {
@@ -38,7 +46,7 @@ public class FunctionCallNode extends ExpressionNode {
     }
 
     // FIXME handle returns of functions (i.e. higher-order fns)
-    return (double) this.callNode.call(function.callTarget, argValues);
+    return (double) this.callNode.call(function.callTarget(), argValues);
   }
 
   @Override

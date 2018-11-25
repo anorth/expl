@@ -8,10 +8,11 @@ import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
+import org.explang.truffle.Discloser
 import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.ExplCompiler
+import org.explang.truffle.nodes.CallRootNode
 import org.explang.truffle.nodes.ExpressionNode
-import org.explang.truffle.nodes.ExpressionRootNode
 
 // See https://github.com/xenomachina/kotlin-argparser
 class Args(parser: ArgParser) {
@@ -70,7 +71,9 @@ class Cli {
 
   private fun evaluate(expr: ExpressionNode, topFrameDescriptor: FrameDescriptor): Any {
     // Evaluate the expression
-    val rootNode = ExpressionRootNode(expr, topFrameDescriptor)
+    // TODO: wrap the evaluation in an anon function call and avoid passing the top frame
+    // descriptor around here.
+    val rootNode = CallRootNode(expr, topFrameDescriptor, Discloser.EMPTY)
     val target = Truffle.getRuntime().createCallTarget(rootNode)
     return target.call()
   }

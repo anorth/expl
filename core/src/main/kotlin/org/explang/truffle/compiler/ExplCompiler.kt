@@ -8,12 +8,15 @@ import org.antlr.v4.runtime.tree.TerminalNode
 import org.explang.parser.ExplBaseVisitor
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
+import org.explang.truffle.Discloser
+import org.explang.truffle.Encloser
 import org.explang.truffle.ExplFunction
+import org.explang.truffle.SlotBinding
 import org.explang.truffle.Type
 import org.explang.truffle.nodes.ArgReadNode
 import org.explang.truffle.nodes.BindingNode
+import org.explang.truffle.nodes.CallRootNode
 import org.explang.truffle.nodes.ExpressionNode
-import org.explang.truffle.nodes.ExpressionRootNode
 import org.explang.truffle.nodes.FactorNode
 import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.FunctionDefinitionNode
@@ -57,11 +60,10 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   override fun visitLet(ctx: ExplParser.LetContext): LetNode {
     // Let bindings go in the current function scope.
     // Bindings are keyed by frame slots in this frame.
-    // Binding nodes resolved in the subsequent expression will find those frame slots.
+    // Local nodes resolved in the subsequent expression will find those frame slots.
     // Bindings in the let clause are also visible to each other.
     // TODO: rewrite names in nested let clauses to avoid name re-use trashing the frame for
     // subsequent bindings (but it works ok for nested clauses). I.e scoped resolved identifiers.
-    // TODO: Resolve access to enclosing scopes, closures in general
     scope.enterBinding(ctx)
     val bindingNodes = ctx.binding().map(this::visitBinding)
     val names = mutableSetOf<String>()
@@ -83,10 +85,9 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   }
 
   override fun visitBinding(ctx: ExplParser.BindingContext): BindingNode {
-    val name = ctx.symbol().text
     // FIXME make bound symbol visible inside binding expression, for recursive definitions
     val expression = visitExpression(ctx.expression())
-    val binding = scope.defineBinding(name, expression.type, ctx)
+    val binding = scope.defineBinding(expression.type, ctx)
     return BindingNode(binding.slot, expression)
   }
 
@@ -161,24 +162,51 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   }
 
   override fun visitLambda(ctx: ExplParser.LambdaContext): FunctionDefinitionNode {
-    val descriptor = FrameDescriptor()
-    scope.enterFunction(descriptor, ctx)
-    // The body expression contains symbol nodes which refer to arguments by name.
-    // First visit those to define their indices in the scope. Within this scope, matching symbols
-    // will resolve to those indices.
+    val callDescriptor = FrameDescriptor()
+    scope.enterFunction(callDescriptor, ctx)
+    // The body expression contains symbol nodes which refer to formal parameters by name.
+    // Visit those formal parameter declarations first to define their indices in the scope.
+    // Within this scope, matching symbols will resolve to those indices.
     val argTypes = arrayOfNulls<Type>(ctx.argnames().symbol().size)
     ctx.argnames().symbol().forEachIndexed { i, it ->
       val type = Type.DOUBLE // FIXME type annotation or inference
       argTypes[i] = type
-      scope.defineArgument(it.text, type, it)
+      scope.defineArgument(type, it)
     }
+    // Visit the body of the function.
     val body = visitExpression(ctx.expression())
-    scope.exit()
+    val closedOver = scope.exit()
 
-    val callTarget = Truffle.getRuntime().createCallTarget(ExpressionRootNode(body, descriptor))
+    // Function bodies can close over non-local values. The references are evaluated at the time
+    // the function is defined. The value is closed over, not the reference.
+    //
+    // Values which are closed over are copied to a closure frame allocated when function
+    // *definition* node is executed (which might be multiple times in a loop).
+    // At function *call* time, a function call preamble copies values from the closure
+    // into the executing (callee) frame, where normal symbol nodes will find them.
+
+    // An alternative could be a third symbol-resolution type of "closure", resolving directly
+    // into the closure frame. This would save a copy at call time but indirect symbol
+    // resolution at lookup time.
+    // The closure frame could also be passed to the call frame as an argument or a special
+    // frame slot, rather than the current reference-to-call-root side channel.
+    val closureDescriptor = FrameDescriptor()
+    val closureBindings = arrayOfNulls<SlotBinding>(closedOver.size)
+    val calleeBindings = arrayOfNulls<SlotBinding>(closedOver.size)
+    closedOver.forEachIndexed { i, resolution ->
+      val closureSlot = closureDescriptor.addSlot(resolution.name, resolution.type)
+      closureBindings[i] = when (resolution) {
+        is Scope.Resolution.Local -> SlotBinding(resolution.slot, closureSlot)
+        is Scope.Resolution.Argument -> TODO("Closed arguments")
+      }
+      calleeBindings[i] = SlotBinding(closureSlot, callDescriptor.findFrameSlot(resolution.name))
+    }
+
     val type = Type.function(body.type, *argTypes)
-    val f = ExplFunction(type, callTarget)
-    return FunctionDefinitionNode(f)
+    val callRoot = CallRootNode(body, callDescriptor, Discloser(calleeBindings))
+    val callTarget = Truffle.getRuntime().createCallTarget(callRoot)
+    val fn = ExplFunction.create(type, callTarget);
+    return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))
   }
 
   override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode =
@@ -187,17 +215,28 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode {
     val name = ctx.text
     return if (name in BUILT_INS) {
-      StaticBound.builtIn(BUILT_INS[name]!!)
+      StaticBound.builtIn(BUILT_INS[name]!!) // FIXME allow bindings to shadow builtins
     } else {
-      val resolution = scope.resolve(name)
-      return when (resolution) {
-        is Scope.Resolution.Binding -> SymbolNode(resolution.type, resolution.slot)
-        is Scope.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, name)
-        null -> throw CompileError("Unbound symbol $name", ctx)
-      }
+      val resolution = scope.resolve(ctx)
+      return resolutionAsNode(resolution, name, ctx)
     }
   }
 }
+
+private fun resolutionAsNode(resolution: Scope.Resolution?, name: String,
+    ctx: ParserRuleContext): ExpressionNode {
+  return when (resolution) {
+    is Scope.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, name)
+    is Scope.Resolution.Local -> SymbolNode(resolution.type, resolution.slot)
+    null -> throw CompileError("Unbound symbol $name", ctx)
+  }
+}
+
+private fun FrameDescriptor.findOrAddSlot(identifier: String, type: Type) =
+    this.findOrAddFrameSlot(identifier, type, type.asSlotKind())
+
+private fun FrameDescriptor.addSlot(identifier: String, type: Type) =
+    this.addFrameSlot(identifier, type, type.asSlotKind())
 
 private inline fun check(ctx: ParserRuleContext, predicate: Boolean, msg: () -> String) {
   if (!predicate) {

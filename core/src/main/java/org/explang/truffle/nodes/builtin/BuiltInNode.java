@@ -3,10 +3,11 @@ package org.explang.truffle.nodes.builtin;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
+import org.explang.truffle.Discloser;
 import org.explang.truffle.ExplFunction;
 import org.explang.truffle.Type;
 import org.explang.truffle.nodes.ExpressionNode;
-import org.explang.truffle.nodes.ExpressionRootNode;
+import org.explang.truffle.nodes.CallRootNode;
 
 /**
  * Abstract base class for all built-in functions implementations.
@@ -22,9 +23,9 @@ public abstract class BuiltInNode extends ExpressionNode {
     assert builtin.type.isFunction():
         String.format("Expected built-in to have function type but got %s", builtin.type);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(
-        new ExpressionRootNode(builtin, new FrameDescriptor())
+        new CallRootNode(builtin, new FrameDescriptor(), Discloser.EMPTY)
     );
-    return new ExplFunction(builtin.type, callTarget);
+    return ExplFunction.create(builtin.type, callTarget);
   }
 
   private final String name;

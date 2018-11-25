@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
  * Describes a guest language type.
  */
 public final class Type {
+  public static final Type NONE = new Type("none", null, null);
   public static final Type DOUBLE = new Type("double", null, null);
 
   public static Type function(Type result, Type... arguments) {
@@ -28,7 +29,7 @@ public final class Type {
 
   private Type(String name, @Nullable Type result, @Nullable Type[] arguments) {
     this.name = name;
-    this.result = result != null ? result : this;
+    this.result = result;
     this.arguments = arguments;
   }
 

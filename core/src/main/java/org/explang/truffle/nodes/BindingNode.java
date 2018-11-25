@@ -6,13 +6,17 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.truffle.ExplFunction;
 
 /**
- * A binding of a frame slot to an expression's result.
+ * Binds a value to a slot in the current frame.
  */
 @NodeInfo(shortName = "Bind")
 public final class BindingNode extends ExpressionNode {
   public final FrameSlot slot;
   @Child private ExpressionNode valueNode;
 
+  /**
+   * @param slot the target slot to be bound
+   * @param valueNode provides the bound value
+   */
   public BindingNode(FrameSlot slot, ExpressionNode valueNode) {
     super(valueNode.type);
     this.slot = slot;

@@ -15,7 +15,7 @@ public final class StaticBound {
 
   /** Builds a node statically resolving to a function */
   public static ExpressionNode function(ExplFunction f) {
-    return new ExpressionNode(f.type) {
+    return new ExpressionNode(f.type()) {
       @Override
       public ExplFunction executeFunction(VirtualFrame frame) {
         return f;
@@ -23,7 +23,7 @@ public final class StaticBound {
 
       @Override
       public String toString() {
-        return f.callTarget.toString();
+        return f.callTarget().toString();
       }
     };
   }

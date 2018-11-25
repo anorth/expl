@@ -23,8 +23,12 @@ public abstract class ExpressionNode extends Node {
     throw new AssertionError(String.format("%s has no implementation for function", this));
   }
 
-  /** Executes a node according to its declared type, discarding any result. */
-  void executeSideEffect(VirtualFrame frame) {
+  /**
+   * Executes a node according to its declared type, discarding any result.
+   *
+   * TODO: delete when let nodes return a record of bindings.
+   */
+  final void executeSideEffect(VirtualFrame frame) {
     if (type == Type.DOUBLE) {
       executeDouble(frame);
     } else {
