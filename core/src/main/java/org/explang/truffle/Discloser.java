@@ -5,6 +5,8 @@ import javax.annotation.Nullable;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import org.explang.truffle.FrameBinding.SlotBinding;
+
 /**
  * Copies values from a closure frame to the call frame at the top of a function invocation.
  */

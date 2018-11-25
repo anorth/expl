@@ -12,18 +12,18 @@ import static com.oracle.truffle.api.Truffle.getRuntime;
  * Captures values from a function definition frame to a closure frame.
  */
 public final class Encloser {
-  public static final Encloser EMPTY = new Encloser(new FrameDescriptor(), new SlotBinding[]{});
+  public static final Encloser EMPTY = new Encloser(new FrameDescriptor(), new FrameBinding[]{});
 
   private static final Object[] NO_ARGS = new Object[]{};
 
   private final FrameDescriptor descriptor;
-  private final SlotBinding[] bindings;
+  private final FrameBinding[] bindings;
 
   /**
    * @param descriptor descriptor for the closure frame
    * @param bindings enclosed references and corresponding closure frame slots
    */
-  public Encloser(FrameDescriptor descriptor, SlotBinding[] bindings) {
+  public Encloser(FrameDescriptor descriptor, FrameBinding[] bindings) {
     this.bindings = bindings;
     this.descriptor = descriptor;
   }
@@ -34,7 +34,7 @@ public final class Encloser {
   public Optional<MaterializedFrame> enclose(VirtualFrame frame) {
     if (bindings.length > 0) {
       MaterializedFrame closure = getRuntime().createMaterializedFrame(NO_ARGS, descriptor);
-      for (SlotBinding b : bindings) {
+      for (FrameBinding b : bindings) {
         b.copy(frame, closure);
       }
       return Optional.of(closure);

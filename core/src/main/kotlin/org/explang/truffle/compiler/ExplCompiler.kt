@@ -11,7 +11,8 @@ import org.explang.parser.ExplParser
 import org.explang.truffle.Discloser
 import org.explang.truffle.Encloser
 import org.explang.truffle.ExplFunction
-import org.explang.truffle.SlotBinding
+import org.explang.truffle.FrameBinding
+import org.explang.truffle.FrameBinding.SlotBinding
 import org.explang.truffle.Type
 import org.explang.truffle.nodes.ArgReadNode
 import org.explang.truffle.nodes.BindingNode
@@ -191,13 +192,13 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
     // The closure frame could also be passed to the call frame as an argument or a special
     // frame slot, rather than the current reference-to-call-root side channel.
     val closureDescriptor = FrameDescriptor()
-    val closureBindings = arrayOfNulls<SlotBinding>(closedOver.size)
+    val closureBindings = arrayOfNulls<FrameBinding>(closedOver.size)
     val calleeBindings = arrayOfNulls<SlotBinding>(closedOver.size)
     closedOver.forEachIndexed { i, resolution ->
       val closureSlot = closureDescriptor.addSlot(resolution.name, resolution.type)
       closureBindings[i] = when (resolution) {
         is Scope.Resolution.Local -> SlotBinding(resolution.slot, closureSlot)
-        is Scope.Resolution.Argument -> TODO("Closed arguments")
+        is Scope.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
       }
       calleeBindings[i] = SlotBinding(closureSlot, callDescriptor.findFrameSlot(resolution.name))
     }
