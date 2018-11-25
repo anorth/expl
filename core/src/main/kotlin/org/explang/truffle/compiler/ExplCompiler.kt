@@ -214,11 +214,11 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
 
   override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode {
     val name = ctx.text
-    return if (name in BUILT_INS) {
-      StaticBound.builtIn(BUILT_INS[name]!!) // FIXME allow bindings to shadow builtins
-    } else {
-      val resolution = scope.resolve(ctx)
-      return resolutionAsNode(resolution, name, ctx)
+    val resolution = scope.resolve(ctx)
+    return when {
+      resolution != null -> resolutionAsNode(resolution, name, ctx)
+      name in BUILT_INS -> StaticBound.builtIn(BUILT_INS[name]!!)
+      else -> throw CompileError("Unbound symbol $name", ctx)
     }
   }
 }
