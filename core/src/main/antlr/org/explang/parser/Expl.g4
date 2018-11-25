@@ -10,7 +10,11 @@ expression
   | sum ;
 
 let: LET binding (COMMA binding)* IN expression;
-binding: symbol EQ expression;
+
+binding
+  : symbol EQ expression
+  | symbol LPAREN argnames RPAREN EQ expression // Sugar for function bindings
+  ;
 
 sum: product ((PLUS | MINUS) product)* ;
 product: factor ((TIMES | DIV) factor)* ;

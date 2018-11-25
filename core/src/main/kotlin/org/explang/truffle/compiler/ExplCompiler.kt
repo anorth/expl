@@ -87,9 +87,15 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
 
   override fun visitBinding(ctx: ExplParser.BindingContext): BindingNode {
     // FIXME make bound symbol visible inside binding expression, for recursive definitions
-    val expression = visitExpression(ctx.expression())
-    val binding = scope.defineBinding(expression.type, ctx)
-    return BindingNode(binding.slot, expression)
+    val value = if (ctx.argnames() != null) {
+      // Sugar for lambda definitions.
+      visitLambda(ctx, ctx.argnames(), ctx.expression())
+    } else {
+      // Simple binding.
+      visitExpression(ctx.expression())
+    }
+    val binding = scope.defineBinding(value.type, ctx)
+    return BindingNode(binding.slot, value)
   }
 
   override fun visitSum(ctx: ExplParser.SumContext): ExpressionNode {
@@ -163,19 +169,24 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   }
 
   override fun visitLambda(ctx: ExplParser.LambdaContext): FunctionDefinitionNode {
+    return visitLambda(ctx, ctx.argnames(), ctx.expression())
+  }
+
+  private fun visitLambda(ctx: ParserRuleContext, argsCtx: ExplParser.ArgnamesContext,
+      bodyCtx: ExplParser.ExpressionContext): FunctionDefinitionNode {
     val callDescriptor = FrameDescriptor()
     scope.enterFunction(callDescriptor, ctx)
     // The body expression contains symbol nodes which refer to formal parameters by name.
     // Visit those formal parameter declarations first to define their indices in the scope.
     // Within this scope, matching symbols will resolve to those indices.
-    val argTypes = arrayOfNulls<Type>(ctx.argnames().symbol().size)
-    ctx.argnames().symbol().forEachIndexed { i, it ->
+    val argTypes = arrayOfNulls<Type>(argsCtx.symbol().size)
+    argsCtx.symbol().forEachIndexed { i, it ->
       val type = Type.DOUBLE // FIXME type annotation or inference
       argTypes[i] = type
       scope.defineArgument(type, it)
     }
     // Visit the body of the function.
-    val body = visitExpression(ctx.expression())
+    val body = visitExpression(bodyCtx)
     val closedOver = scope.exit()
 
     // Function bodies can close over non-local values. The references are evaluated at the time
