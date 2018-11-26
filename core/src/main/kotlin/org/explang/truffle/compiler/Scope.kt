@@ -115,7 +115,7 @@ class Scope(ctx: ParseTree) {
   }
 
   /** Resolves a name in an enclosing function or local scope. */
-  fun resolve(ctx: ExplParser.SymbolContext): Resolution? {
+  fun resolve(ctx: ExplParser.SymbolExContext): Resolution? {
     val name = ctx.text
     val itr = stack.iterator()
     // First, resolve only up to the directly enclosing function scope.

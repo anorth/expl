@@ -4,9 +4,7 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
-import org.antlr.v4.runtime.tree.TerminalNode
 import org.explang.parser.ExplBaseVisitor
-import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.truffle.Discloser
 import org.explang.truffle.Encloser
@@ -17,8 +15,8 @@ import org.explang.truffle.Type
 import org.explang.truffle.nodes.ArgReadNode
 import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.CallRootNode
+import org.explang.truffle.nodes.ExponentiationNode
 import org.explang.truffle.nodes.ExpressionNode
-import org.explang.truffle.nodes.FactorNode
 import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.FunctionDefinitionNode
 import org.explang.truffle.nodes.LetNode
@@ -60,12 +58,70 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
 
   private val scope: Scope = Scope(tree)
 
-  override fun visitExpression(ctx: ExplParser.ExpressionContext): ExpressionNode = when {
-    ctx.let() != null -> visitLet(ctx.let())
-    else -> visitSum(ctx.sum())
+  override fun visitCallEx(ctx: ExplParser.CallExContext): ExpressionNode {
+    val fn = visit(ctx.expression())
+    val args = ctx.arguments().expression().map(::visit).toTypedArray()
+    check(ctx, fn.type.isFunction) { "Call to a non-function" }
+    val actualTypes = args.map(ExpressionNode::type).toTypedArray()
+    val declaredTypes = fn.type.arguments()
+    check(ctx, Arrays.equals(declaredTypes, actualTypes)) {
+      "Actual parameters (${actualTypes.joinToString(",")}) don't match " +
+          "declared (${declaredTypes.joinToString(",")})"
+    }
+    return FunctionCallNode(fn, args)
   }
 
-  override fun visitLet(ctx: ExplParser.LetContext): LetNode {
+  override fun visitUnaryPlusEx(ctx: ExplParser.UnaryPlusExContext): ExpressionNode {
+    return visit(ctx.expression())
+  }
+
+  override fun visitUnaryMinusEx(ctx: ExplParser.UnaryMinusExContext): ExpressionNode {
+    return NegationNode(visit(ctx.expression()))
+  }
+
+  override fun visitExponentiationEx(ctx: ExplParser.ExponentiationExContext): ExpressionNode {
+    // Right-associativity is handled by the grammar.
+    val left = visit(ctx.expression(0))
+    val right = visit(ctx.expression(1))
+    return ExponentiationNode.expDouble(left, right)
+  }
+
+  override fun visitMultiplicativeEx(ctx: ExplParser.MultiplicativeExContext): ExpressionNode {
+    val left = visit(ctx.expression(0))
+    val right = visit(ctx.expression(1))
+    return when {
+      ctx.TIMES() != null -> ProductNode.mulDouble(left, right)
+      ctx.DIV() != null -> ProductNode.divDouble(left, right)
+      else -> throw CompileError("No operator for multiplicative", ctx)
+    }
+  }
+
+  override fun visitAdditiveEx(ctx: ExplParser.AdditiveExContext): ExpressionNode {
+    // Left-associativity is handled by the grammar.
+    val left = visit(ctx.expression(0))
+    val right = visit(ctx.expression(1))
+    return when {
+      ctx.PLUS() != null -> SumNode.addDouble(left, right)
+      ctx.MINUS() != null -> SumNode.subDouble(left, right)
+      else -> throw CompileError("No operator for additive", ctx)
+    }
+  }
+
+  override fun visitLiteralEx(ctx: ExplParser.LiteralExContext): ExpressionNode {
+    return visitNumber(ctx.literal().number())
+  }
+
+  override fun visitSymbolEx(ctx: ExplParser.SymbolExContext): ExpressionNode {
+    val name = ctx.text
+    val resolution = scope.resolve(ctx)
+    return when {
+      resolution != null -> resolutionAsNode(resolution, name, ctx)
+      name in BUILT_INS -> StaticBound.builtIn(BUILT_INS[name]!!)
+      else -> throw CompileError("Unbound symbol $name", ctx)
+    }
+  }
+
+  override fun visitLetEx(ctx: ExplParser.LetExContext): ExpressionNode {
     // Let bindings go in the current function scope.
     // Bindings are keyed by frame slots in this frame.
     // Local nodes resolved in the subsequent expression will find those frame slots.
@@ -87,113 +143,61 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
       throw CompileError("Duplicate bindings for ${names.joinToString(",")}", ctx)
     }
 
-    val expressionNode = visitExpression(ctx.expression())
+    val expressionNode = visit(ctx.expression())
     scope.exit()
     return LetNode(bindingNodes.toTypedArray(), expressionNode)
   }
 
+  override fun visitParenthesizedEx(ctx: ExplParser.ParenthesizedExContext): ExpressionNode {
+    return visit(ctx.expression())
+  }
+
+  override fun visitLambdaEx(ctx: ExplParser.LambdaExContext): ExpressionNode {
+    val params = ctx.lambdaParameters().let { p ->
+      if (p.symbol() != null) {
+        listOf(p.symbol())
+      } else {
+        p.formalParameters().symbol()
+      }
+    }
+    return visitLambda(ctx, params, ctx.expression())
+  }
+
   override fun visitBinding(ctx: ExplParser.BindingContext): BindingNode {
     // FIXME make bound symbol visible inside binding expression, for recursive definitions
-    val value = if (ctx.argnames() != null) {
+    val value = if (ctx.formalParameters() != null) {
       // Sugar for lambda definitions.
-      visitLambda(ctx, ctx.argnames(), ctx.expression())
+      visitLambda(ctx, ctx.formalParameters().symbol(), ctx.expression())
     } else {
       // Simple binding.
-      visitExpression(ctx.expression())
+      visit(ctx.expression())
     }
     val binding = scope.defineBinding(value.type, ctx)
     return BindingNode(binding.slot, value)
   }
 
-  override fun visitSum(ctx: ExplParser.SumContext): ExpressionNode {
-    // Build left-associative tree.
-    val itr = ctx.children.iterator()
-    var left = visitProduct(itr.next() as ExplParser.ProductContext)
-    while (itr.hasNext()) {
-      val op = itr.next()
-      val right = visitProduct(itr.next() as ExplParser.ProductContext)
-      left = when ((op as TerminalNode).symbol.type) {
-        ExplLexer.PLUS -> SumNode.addDouble(left, right)
-        else -> SumNode.subDouble(left, right)
-      }
-    }
-    return left
-  }
+  override fun visitNumber(ctx: ExplParser.NumberContext) =
+    LiteralDoubleNode(parseDouble(ctx.text))
 
-  override fun visitProduct(ctx: ExplParser.ProductContext): ExpressionNode {
-    // Build left-associative tree.
-    val itr = ctx.children.iterator()
-    var left = visitFactor(itr.next() as ExplParser.FactorContext)
-    while (itr.hasNext()) {
-      val op = itr.next()
-      val right = visitFactor(itr.next() as ExplParser.FactorContext)
-      left = when ((op as TerminalNode).symbol.type) {
-        ExplLexer.TIMES -> ProductNode.mulDouble(left, right)
-        else -> ProductNode.divDouble(left, right)
-      }
-    }
-    return left
-  }
 
-  override fun visitFactor(ctx: ExplParser.FactorContext): ExpressionNode {
-    // Exponentiation is right-associative.
-    val itr = ctx.children.asReversed().iterator()
-    var rt = visitSigned(itr.next() as ExplParser.SignedContext)
-    while (itr.hasNext()) {
-      val op = itr.next()
-      val left = visitSigned(itr.next() as ExplParser.SignedContext)
-      require((op as TerminalNode).symbol.type == ExplLexer.POW)
-      rt = FactorNode.expDouble(rt, left)
-    }
-    return rt
-  }
+  ///// Internals /////
+  // TODO: move this code somewhere it can be used for building ASTs outside this parser.
 
-  override fun visitSigned(ctx: ExplParser.SignedContext): ExpressionNode = when {
-    ctx.PLUS() != null -> visitSigned(ctx.signed())
-    ctx.MINUS() != null -> NegationNode(visitSigned(ctx.signed()))
-    else -> visitAtom(ctx.atom())
-  }
-
-  override fun visitFcall(ctx: ExplParser.FcallContext): FunctionCallNode {
-    val symbol = visitSymbol(ctx.symbol())
-    val args = ctx.expression().map(this::visitExpression).toTypedArray()
-    check(ctx, symbol.type.isFunction) { "Call to a non-function" }
-    val actualTypes = args.map(ExpressionNode::type).toTypedArray()
-    val declaredTypes = symbol.type.arguments()
-    check(ctx, Arrays.equals(declaredTypes, actualTypes)) {
-      "Actual parameters (${actualTypes.joinToString(",")}) don't match " +
-          "declared (${declaredTypes.joinToString(",")})"
-    }
-    return FunctionCallNode(symbol, args)
-  }
-
-  override fun visitAtom(ctx: ExplParser.AtomContext): ExpressionNode = when {
-    ctx.lambda() != null -> visitLambda(ctx.lambda())
-    ctx.fcall() != null -> visitFcall(ctx.fcall())
-    ctx.number() != null -> visitNumber(ctx.number())
-    ctx.symbol() != null -> visitSymbol(ctx.symbol())
-    else -> visitExpression(ctx.expression())
-  }
-
-  override fun visitLambda(ctx: ExplParser.LambdaContext): FunctionDefinitionNode {
-    return visitLambda(ctx, ctx.argnames(), ctx.expression())
-  }
-
-  private fun visitLambda(ctx: ParserRuleContext, argsCtx: ExplParser.ArgnamesContext,
+  private fun visitLambda(ctx: ParserRuleContext, argCtxs: List<ExplParser.SymbolContext>,
       bodyCtx: ExplParser.ExpressionContext): FunctionDefinitionNode {
     val callDescriptor = FrameDescriptor()
     scope.enterFunction(callDescriptor, ctx)
     // The body expression contains symbol nodes which refer to formal parameters by name.
     // Visit those formal parameter declarations first to define their indices in the scope.
     // Within this scope, matching symbols will resolve to those indices.
-    val argTypes = arrayOfNulls<Type>(argsCtx.symbol().size)
-    argsCtx.symbol().forEachIndexed { i, it ->
+    val argTypes = arrayOfNulls<Type>(argCtxs.size)
+    argCtxs.forEachIndexed { i, it ->
       val type = Type.DOUBLE // FIXME type annotation or inference
       argTypes[i] = type
       scope.defineArgument(type, it)
     }
     // Visit the body of the function.
-    val body = visitExpression(bodyCtx)
+    val body = visit(bodyCtx)
     val closedOver = scope.exit()
 
     // Function bodies can close over non-local values. The references are evaluated at the time
@@ -226,19 +230,6 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
     val callTarget = Truffle.getRuntime().createCallTarget(callRoot)
     val fn = ExplFunction.create(type, callTarget);
     return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))
-  }
-
-  override fun visitNumber(ctx: ExplParser.NumberContext): ExpressionNode =
-      LiteralDoubleNode(parseDouble(ctx.text))
-
-  override fun visitSymbol(ctx: ExplParser.SymbolContext): ExpressionNode {
-    val name = ctx.text
-    val resolution = scope.resolve(ctx)
-    return when {
-      resolution != null -> resolutionAsNode(resolution, name, ctx)
-      name in BUILT_INS -> StaticBound.builtIn(BUILT_INS[name]!!)
-      else -> throw CompileError("Unbound symbol $name", ctx)
-    }
   }
 }
 

@@ -5,42 +5,40 @@ package org.explang.parser;
 
 /* Parse rules */
 
+// Thank goodness ANTLR 4 supports direct left recursion.
 expression
-  : let
-  | sum ;
+   : expression arguments                              # CallEx
+   | PLUS expression                                   # UnaryPlusEx
+   | MINUS expression                                  # UnaryMinusEx
+   | <assoc=right> expression POW expression           # ExponentiationEx
+   | expression (TIMES | DIV) expression               # MultiplicativeEx
+   | expression (PLUS | MINUS) expression              # AdditiveEx
+   | symbol                                            # SymbolEx
+   | literal                                           # LiteralEx
+   | LET binding (COMMA binding)* IN expression        # LetEx
+   | LPAREN expression RPAREN                          # ParenthesizedEx
+   | lambdaParameters ARROW expression                 # LambdaEx
+   ;
 
-let: LET binding (COMMA binding)* IN expression;
+arguments: LPAREN (expression (COMMA expression)*)? RPAREN ;
 
 binding
   : symbol EQ expression
-  | symbol LPAREN argnames RPAREN EQ expression // Sugar for function bindings
+  | symbol formalParameters EQ expression // Sugar for function bindings
   ;
 
-sum: product ((PLUS | MINUS) product)* ;
-product: factor ((TIMES | DIV) factor)* ;
-factor: signed (POW signed)* ;
+lambdaParameters
+  : symbol // Sugar for single-parameter lambdas
+  | formalParameters
+  ;
 
-signed
-   : PLUS signed
-   | MINUS signed
-   | atom ;
+formalParameters: LPAREN (symbol (COMMA symbol)*)? RPAREN ;
 
-atom
-   : lambda
-   | fcall
-   | symbol
-   | number
-   | LPAREN expression RPAREN ;
-
-lambda: LPAREN argnames RPAREN ARROW expression ;
-
-argnames: (symbol (COMMA symbol)*)? ;
+literal
+  : number ;
 
 number: INTEGER | FLOAT ;
 symbol: IDENTIFIER ;
-
-// FIXME function object could alternatively come from (expression), fcall, lambda (i.e. atom)
-fcall: symbol LPAREN (expression (COMMA expression)*)? RPAREN ;
 
 /* Lex rules */
 

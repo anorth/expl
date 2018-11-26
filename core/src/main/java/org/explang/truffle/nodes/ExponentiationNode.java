@@ -6,9 +6,8 @@ import org.explang.truffle.Type;
 /**
  * Strongly typed exponentiation node.
  */
-public final class FactorNode {
-  public static ExpressionNode expDouble(ExpressionNode left,
-      ExpressionNode right) {
+public final class ExponentiationNode {
+  public static ExpressionNode expDouble(ExpressionNode left, ExpressionNode right) {
     return new BinaryNode(Type.DOUBLE, left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
