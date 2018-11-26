@@ -20,7 +20,7 @@ public class FunctionCallNode extends ExpressionNode {
   @Child private IndirectCallNode callNode; // FIXME make a direct call
 
   public FunctionCallNode(ExpressionNode functionNode, ExpressionNode[] argNodes) {
-    super(functionNode.type.result());
+    super(functionNode.type().result());
     this.functionNode = functionNode;
     this.argNodes = argNodes;
     this.callNode = Truffle.getRuntime().createIndirectCallNode();

@@ -9,9 +9,16 @@ import org.explang.truffle.Type;
 //@TypeSystemReference(TruffleTypes.class)
 @NodeInfo(language = "Expl", description = "Abstract base node for all expressions")
 public abstract class ExpressionNode extends Node {
-  public final Type type;
+  private final Type type;
 
   protected ExpressionNode(Type type) { this.type = type; }
+
+  /**
+   * Returns the type provided at construction.
+   *
+   * Override this to return a type that wasn't known at construction.
+   */
+  public Type type() { return type; }
 
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);

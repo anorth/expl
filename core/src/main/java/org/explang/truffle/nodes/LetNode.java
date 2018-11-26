@@ -15,7 +15,7 @@ public final class LetNode extends ExpressionNode {
   @Child private ExpressionNode expression;
 
   public LetNode(BindingNode[] bindings, ExpressionNode expression) {
-    super(expression.type);
+    super(expression.type());
     this.bindings = bindings;
     this.expression = expression;
   }

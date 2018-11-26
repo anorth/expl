@@ -20,12 +20,12 @@ public abstract class BuiltInNode extends ExpressionNode {
    * Creates an function node for a built-in.
    */
   public static ExplFunction createBuiltin(BuiltInNode builtin) {
-    assert builtin.type.isFunction():
-        String.format("Expected built-in to have function type but got %s", builtin.type);
+    assert builtin.type().isFunction():
+        String.format("Expected built-in to have function type but got %s", builtin.type());
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(
         new CallRootNode(builtin, new FrameDescriptor(), Discloser.EMPTY)
     );
-    return ExplFunction.create(builtin.type, callTarget);
+    return ExplFunction.create(builtin.type(), callTarget);
   }
 
   private final String name;

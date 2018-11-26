@@ -39,7 +39,7 @@ class ExplCompiler {
     // Wrap the evaluation in an anonymous function call providing the root frame.
     val entryRoot = CallRootNode(ast, topFrameDescriptor, Discloser.EMPTY)
     val callTarget = Truffle.getRuntime().createCallTarget(entryRoot)
-    val entryPoint = ExplFunction.create(Type.function(ast.type), callTarget);
+    val entryPoint = ExplFunction.create(Type.function(ast.type()), callTarget);
     return FunctionCallNode(StaticBound.function(entryPoint), arrayOfNulls(0))
   }
 }
@@ -61,9 +61,9 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   override fun visitCallEx(ctx: ExplParser.CallExContext): ExpressionNode {
     val fn = visit(ctx.expression())
     val args = ctx.arguments().expression().map(::visit).toTypedArray()
-    check(ctx, fn.type.isFunction) { "Call to a non-function" }
+    check(ctx, fn.type().isFunction) { "Call to a non-function" }
     val actualTypes = args.map(ExpressionNode::type).toTypedArray()
-    val declaredTypes = fn.type.arguments()
+    val declaredTypes = fn.type().arguments()
     check(ctx, Arrays.equals(declaredTypes, actualTypes)) {
       "Actual parameters (${actualTypes.joinToString(",")}) don't match " +
           "declared (${declaredTypes.joinToString(",")})"
@@ -172,7 +172,7 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
       // Simple binding.
       visit(ctx.expression())
     }
-    val binding = scope.defineBinding(value.type, ctx)
+    val binding = scope.defineBinding(value.type(), ctx)
     return BindingNode(binding.slot, value)
   }
 
@@ -225,7 +225,7 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
       calleeBindings[i] = SlotBinding(closureSlot, callDescriptor.findFrameSlot(resolution.name))
     }
 
-    val type = Type.function(body.type, *argTypes)
+    val type = Type.function(body.type(), *argTypes)
     val callRoot = CallRootNode(body, callDescriptor, Discloser(calleeBindings))
     val callTarget = Truffle.getRuntime().createCallTarget(callRoot)
     val fn = ExplFunction.create(type, callTarget);

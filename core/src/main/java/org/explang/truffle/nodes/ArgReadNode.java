@@ -52,6 +52,6 @@ public final class ArgReadNode extends ExpressionNode {
 
   private RuntimeTypeError fail(Throwable cause) {
       throw new RuntimeTypeError(
-          String.format("Failed to read argument %d (%s) of type %s", index, name, type), cause);
+          String.format("Failed to read argument %d (%s) of type %s", index, name, type()), cause);
   }
 }

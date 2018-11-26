@@ -39,7 +39,7 @@ public final class FunctionDefinitionNode extends ExpressionNode {
   @Override
   public String toString() {
     StringJoiner args = new StringJoiner(",");
-    for (Type argType : type.arguments()) {
+    for (Type argType : type().arguments()) {
       args.add(argType.name());
     }
     return "(" + args + ")->" + function.callTarget().getRootNode().toString();

@@ -45,6 +45,6 @@ public final class SymbolNode extends ExpressionNode {
 
   private RuntimeTypeError fail(Throwable cause) {
       throw new RuntimeTypeError(
-          String.format("Failed to find %s of type %s", value.getIdentifier(), type), cause);
+          String.format("Failed to find %s of type %s", value.getIdentifier(), type()), cause);
   }
 }

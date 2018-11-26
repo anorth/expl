@@ -18,7 +18,7 @@ public final class BindingNode extends ExpressionNode {
    * @param valueNode provides the bound value
    */
   public BindingNode(FrameSlot slot, ExpressionNode valueNode) {
-    super(valueNode.type);
+    super(valueNode.type());
     this.slot = slot;
     this.valueNode = valueNode;
   }
