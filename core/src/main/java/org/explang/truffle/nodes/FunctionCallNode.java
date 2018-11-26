@@ -1,9 +1,11 @@
 package org.explang.truffle.nodes;
 
 import java.util.StringJoiner;
+import javax.annotation.Nullable;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
@@ -26,22 +28,34 @@ public class FunctionCallNode extends ExpressionNode {
 
   @Override
   @ExplodeLoop
-  public double executeDouble(VirtualFrame virtualFrame) {
+  public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
-    CompilerAsserts.compilationConstant(this.argNodes.length);
+    return (double) execute(frame);
+  }
 
-    // The function object holds the closure frame, if any, which is passed here to the
-    // callee as the first argument.
-    ExplFunction function = this.functionNode.executeFunction(virtualFrame);
+  @Override
+  @ExplodeLoop
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    assertTypeIsFunction();
+    return (ExplFunction) execute(frame);
+  }
+
+  private Object execute(VirtualFrame frame) {
+    ExplFunction function = this.functionNode.executeFunction(frame);
+    Object[] argValues = buildArgs(frame, function.closure().orElse(null));
+    return this.callNode.call(function.callTarget(), argValues);
+  }
+
+  private Object[] buildArgs(VirtualFrame virtualFrame, @Nullable MaterializedFrame closure) {
+    CompilerAsserts.compilationConstant(this.argNodes.length);
+    // The closure frame, if any, is passed to the callee as the first argument.
     Object[] argValues = new Object[this.argNodes.length + 1];
-    argValues[0] = function.closure().orElse(null);
+    argValues[0] = closure;
     for (int i = 0; i < this.argNodes.length; i++) {
       // I'm not sure whether Truffle avoids boxing primitives passed as arguments.
       argValues[i + 1] = this.argNodes[i].executeDeclaredType(virtualFrame);
     }
-
-    // FIXME handle returns of functions (i.e. higher-order fns)
-    return (double) this.callNode.call(function.callTarget(), argValues);
+    return argValues;
   }
 
   @Override
