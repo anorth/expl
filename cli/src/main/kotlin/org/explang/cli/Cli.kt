@@ -6,6 +6,7 @@ import com.xenomachina.argparser.ArgParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.misc.Interval
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.truffle.compiler.CompileError
@@ -28,10 +29,12 @@ class Cli {
     parser.buildParseTree = true // For visiting in in compiler
     parser.isTrace = args.trace
 
+    // Complete lex up-front so we can detect trailing tokens. Note that the last token is an EOF.
+    tokens.fill()
+
     // Show tokens
     if (args.showTokens) {
       println("*Tokens*")
-      tokens.fill()
       for (tok in tokens.tokens) {
         if (tok is CommonToken) {
           println(tok.toString(lexer))
@@ -42,6 +45,12 @@ class Cli {
     }
 
     val parse = parser.expression()
+    if (parse.sourceInterval != Interval(0, tokens.size() - 2)) {
+      println("${parse.sourceInterval}, ${tokens.size()}")
+      val trailing = tokens.get(parse.sourceInterval.b + 1, tokens.size() - 2)
+      println("Parse failed with trailing tokens: ${trailing.joinToString(" ") { it.text }}")
+      return
+    }
     if (args.showParse) {
       println("*Parse*")
       println(parse.toStringTree(parser))
