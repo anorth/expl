@@ -30,7 +30,7 @@ public class ExplFunction {
   }
 
   private ExplFunction(Type type, RootCallTarget callTarget, @Nullable MaterializedFrame closure) {
-    assert type.isFunction() : "Expected a function type, got" + type;
+    assert type.isFunction() : "Expected a function type, got " + type;
     this.type = type;
     this.callTarget = callTarget;
     this.closure = closure;

@@ -26,7 +26,7 @@ public abstract class ExpressionNode extends Node {
   /**
    * Executes a node according to its declared type.
    */
-  final Object executeDeclaredType(VirtualFrame frame) {
+  public final Object executeDeclaredType(VirtualFrame frame) {
     if (type == Type.DOUBLE) {
       return executeDouble(frame);
     } else {

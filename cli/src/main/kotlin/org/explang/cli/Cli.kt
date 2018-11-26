@@ -8,11 +8,8 @@ import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
-import org.explang.truffle.Discloser
 import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.ExplCompiler
-import org.explang.truffle.nodes.CallRootNode
-import org.explang.truffle.nodes.ExpressionNode
 
 // See https://github.com/xenomachina/kotlin-argparser
 class Args(parser: ArgParser) {
@@ -52,13 +49,14 @@ class Cli {
 
     val compiler = ExplCompiler()
     try {
-      val (ast, topFrameDescriptor) = compiler.compile(parse)
+      val ast = compiler.compile(parse)
       if (args.showAst) {
         println("*AST*")
         println(ast)
       }
 
-      val result = evaluate(ast, topFrameDescriptor)
+      val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
+      val result = ast.executeDeclaredType(topFrame)
       println("*Result*")
       println(result)
     } catch (e: CompileError) {
@@ -67,16 +65,6 @@ class Cli {
       println(" ".repeat(e.context.getStart().startIndex) + "^")
       println(e.message)
     }
-  }
-
-  private fun evaluate(expr: ExpressionNode, topFrameDescriptor: FrameDescriptor): Any {
-    // Evaluate the expression
-    // TODO: wrap the evaluation in an anon function call and avoid passing the top frame
-    // descriptor around here.
-    val rootNode = CallRootNode(expr, topFrameDescriptor, Discloser.EMPTY)
-    val target = Truffle.getRuntime().createCallTarget(rootNode)
-    val rootClosure = null
-    return target.call(rootClosure)
   }
 }
 

@@ -35,14 +35,21 @@ class CompileError(msg: String, val context: ParserRuleContext): Exception(msg)
 
 class ExplCompiler {
   @Throws(CompileError::class)
-  fun compile(parse: ExplParser.ExpressionContext) : Pair<ExpressionNode, FrameDescriptor> {
-    return AstBuilder.build(parse)
+  fun compile(parse: ExplParser.ExpressionContext): ExpressionNode {
+    val (ast, topFrameDescriptor) = AstBuilder.build(parse)
+
+    // Wrap the evaluation in an anonymous function call providing the root frame.
+    val entryRoot = CallRootNode(ast, topFrameDescriptor, Discloser.EMPTY)
+    val callTarget = Truffle.getRuntime().createCallTarget(entryRoot)
+    val entryPoint = ExplFunction.create(Type.function(ast.type), callTarget);
+    return FunctionCallNode(StaticBound.function(entryPoint), arrayOfNulls(0))
   }
 }
 
 /** A parse tree visitor that constructs an AST */
 private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<ExpressionNode>() {
   companion object {
+    /** Builds an AST from a parse tree. */
     fun build(tree: ParseTree): Pair<ExpressionNode, FrameDescriptor> {
       val builder = AstBuilder(tree)
       val ast = tree.accept(builder)
