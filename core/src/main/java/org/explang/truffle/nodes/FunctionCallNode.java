@@ -30,19 +30,14 @@ public class FunctionCallNode extends ExpressionNode {
     assertType(Type.DOUBLE);
     CompilerAsserts.compilationConstant(this.argNodes.length);
 
+    // The function object holds the closure frame, if any, which is passed here to the
+    // callee as the first argument.
     ExplFunction function = this.functionNode.executeFunction(virtualFrame);
-
-    // The function object has the closure, if any, which is passed here to the "inside" of the
-    // call as a reference on the call root node.
-    // An alternative way to pass it would be as an arg, which is probably much safer, e.g.
-    // with multiple threads..
-    function.closure().ifPresent(c ->
-        ((CallRootNode) function.callTarget().getRootNode()).setClosure(c));
-
-    Object[] argValues = new Object[this.argNodes.length];
+    Object[] argValues = new Object[this.argNodes.length + 1];
+    argValues[0] = function.closure().orElse(null);
     for (int i = 0; i < this.argNodes.length; i++) {
-      // FIXME need type information to invoke the right execute call.
-      argValues[i] = this.argNodes[i].executeDouble(virtualFrame);
+      // I'm not sure whether Truffle avoids boxing primitives passed as arguments.
+      argValues[i + 1] = this.argNodes[i].executeDeclaredType(virtualFrame);
     }
 
     // FIXME handle returns of functions (i.e. higher-order fns)

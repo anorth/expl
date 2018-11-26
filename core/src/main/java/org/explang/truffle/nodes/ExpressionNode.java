@@ -24,15 +24,14 @@ public abstract class ExpressionNode extends Node {
   }
 
   /**
-   * Executes a node according to its declared type, discarding any result.
-   *
-   * TODO: delete when let nodes return a record of bindings.
+   * Executes a node according to its declared type.
    */
-  final void executeSideEffect(VirtualFrame frame) {
+  final Object executeDeclaredType(VirtualFrame frame) {
     if (type == Type.DOUBLE) {
-      executeDouble(frame);
+      return executeDouble(frame);
     } else {
-      executeFunction(frame);
+      assert type.isFunction();
+      return executeFunction(frame);
     }
   }
 

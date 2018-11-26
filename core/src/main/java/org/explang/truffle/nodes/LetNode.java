@@ -34,7 +34,8 @@ public final class LetNode extends ExpressionNode {
 
   private void executeBindings(VirtualFrame frame) {
     for (BindingNode binding : bindings) {
-      binding.executeSideEffect(frame);
+      // Execute for the side-effect on the frame.
+      binding.executeDeclaredType(frame);
     }
   }
 

@@ -1,7 +1,5 @@
 package org.explang.truffle.nodes;
 
-import javax.annotation.Nullable;
-
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -18,13 +16,11 @@ public class CallRootNode extends RootNode {
   @Child private ExpressionNode body;
   // Binds closure values to the call frame.
   private final Discloser discloser;
-  // Closure in which the function evaluates. This is set at runtime before the node is
-  // executed.
-  private @Nullable MaterializedFrame closure = null;
 
   /**
    * @param body the expression body node, the result of which forms the result of this node
    * @param frameDescriptor descriptor of the frame for the evaluation
+   * @param discloser copies captured any values into the call frame before the body is executed
    */
   public CallRootNode(ExpressionNode body, FrameDescriptor frameDescriptor, Discloser discloser) {
     super(null, frameDescriptor);
@@ -32,17 +28,13 @@ public class CallRootNode extends RootNode {
     this.discloser = discloser;
   }
 
-  /** Sets the call's closure. Call this immediately before execution. */
-  void setClosure(MaterializedFrame closure) {
-    this.closure = closure;
-  }
-
   /** Called by the truffle framework to begin execution. */
   @Override
   public Object execute(VirtualFrame frame) {
     // Copy values from closure frame into the call frame.
+    MaterializedFrame closure = (MaterializedFrame) frame.getArguments()[0];
     discloser.disclose(closure, frame);
-    return body.executeDouble(frame); // FIXME choose correct type
+    return body.executeDeclaredType(frame);
   }
 
   @Override

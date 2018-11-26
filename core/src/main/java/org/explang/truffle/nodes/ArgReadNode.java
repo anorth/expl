@@ -8,10 +8,15 @@ import org.explang.truffle.Type;
 
 /**
  * A reference to a positional argument, resolved at runtime in the executing frame.
+ *
+ * The first argument slot is reserved for a closure reference, so arguments are resolved
+ * one slot higher than their declared index.
+ *
+ * @see FunctionCallNode
  */
 @NodeInfo(shortName = "Argument")
 public final class ArgReadNode extends ExpressionNode {
-  private final int index;
+  private final int index; // Declared parameter index
   private final String name; // For inspection
 
   public ArgReadNode(Type t, int index, String name) {
@@ -24,7 +29,7 @@ public final class ArgReadNode extends ExpressionNode {
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     try {
-      return (ExplFunction) frame.getArguments()[index];
+      return (ExplFunction) frame.getArguments()[index + 1];
     } catch (ClassCastException | IndexOutOfBoundsException e) {
       throw fail(e);
     }
@@ -34,7 +39,7 @@ public final class ArgReadNode extends ExpressionNode {
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
     try {
-      return (double) frame.getArguments()[index];
+      return (double) frame.getArguments()[index + 1];
     } catch (ClassCastException | IndexOutOfBoundsException e) {
       throw fail(e);
     }

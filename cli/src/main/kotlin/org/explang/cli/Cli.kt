@@ -75,7 +75,8 @@ class Cli {
     // descriptor around here.
     val rootNode = CallRootNode(expr, topFrameDescriptor, Discloser.EMPTY)
     val target = Truffle.getRuntime().createCallTarget(rootNode)
-    return target.call()
+    val rootClosure = null
+    return target.call(rootClosure)
   }
 }
 
