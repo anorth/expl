@@ -17,6 +17,7 @@ expression
    | expression (EQ | NEQ) expression                  # EqualityEx
    | literal                                           # LiteralEx
    | symbol                                            # SymbolEx
+   | IF expression THEN expression ELSE expression     # IfEx
    | LET binding (COMMA binding)* IN expression        # LetEx
    | LPAREN expression RPAREN                          # ParenthesizedEx
    | lambdaParameters ARROW expression                 # LambdaEx
@@ -52,6 +53,9 @@ bool: TRUE | FALSE ;
 
 LET: 'let';
 IN: 'in';
+IF: 'if';
+THEN: 'then';
+ELSE: 'else';
 
 ASSIGN: '=';
 ARROW: '->';

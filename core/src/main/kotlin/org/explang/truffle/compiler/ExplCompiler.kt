@@ -20,6 +20,7 @@ import org.explang.truffle.nodes.Doubles
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.FunctionDefinitionNode
+import org.explang.truffle.nodes.IfNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.NegationNode
 import org.explang.truffle.nodes.SymbolNode
@@ -153,6 +154,10 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
       name in BUILT_INS -> StaticBound.builtIn(BUILT_INS[name]!!)
       else -> throw CompileError("Unbound symbol $name", ctx)
     }
+  }
+
+  override fun visitIfEx(ctx: ExplParser.IfExContext): ExpressionNode {
+    return IfNode(visit(ctx.expression(0)), visit(ctx.expression(1)), visit(ctx.expression(2)))
   }
 
   override fun visitLetEx(ctx: ExplParser.LetExContext): ExpressionNode {
