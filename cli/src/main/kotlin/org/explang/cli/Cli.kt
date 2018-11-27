@@ -9,6 +9,7 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.misc.Interval
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
+import org.explang.syntax.Parser
 import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.ExplCompiler
 
@@ -25,6 +26,7 @@ class Cli {
   fun run(args: Args) {
     val lexer = ExplLexer(CharStreams.fromString(args.expression))
     val tokens = CommonTokenStream(lexer)
+
     val parser = ExplParser(tokens)
     parser.buildParseTree = true // For visiting in in compiler
     parser.isTrace = args.trace
@@ -54,6 +56,12 @@ class Cli {
     if (args.showParse) {
       println("*Parse*")
       println(parse.toStringTree(parser))
+    }
+
+    if (args.showAst) {
+      val synParser = Parser()
+      val syntax = synParser.parse(parse)
+      println(syntax)
     }
 
     val compiler = ExplCompiler()
