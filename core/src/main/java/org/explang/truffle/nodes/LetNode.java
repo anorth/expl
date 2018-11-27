@@ -21,6 +21,12 @@ public final class LetNode extends ExpressionNode {
   }
 
   @Override
+  public boolean executeBoolean(VirtualFrame frame) {
+    executeBindings(frame);
+    return expression.executeBoolean(frame);
+  }
+
+  @Override
   public double executeDouble(VirtualFrame frame) {
     executeBindings(frame);
     return expression.executeDouble(frame);

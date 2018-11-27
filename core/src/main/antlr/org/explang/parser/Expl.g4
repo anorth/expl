@@ -13,6 +13,8 @@ expression
    | <assoc=right> expression POW expression           # ExponentiationEx
    | expression (TIMES | DIV) expression               # MultiplicativeEx
    | expression (PLUS | MINUS) expression              # AdditiveEx
+   | expression (LT | LE | GT | GE) expression         # ComparativeEx
+   | expression (EQ | NEQ) expression                  # EqualityEx
    | symbol                                            # SymbolEx
    | literal                                           # LiteralEx
    | LET binding (COMMA binding)* IN expression        # LetEx
@@ -23,8 +25,8 @@ expression
 arguments: LPAREN (expression (COMMA expression)*)? RPAREN ;
 
 binding
-  : symbol EQ expression
-  | symbol formalParameters EQ expression // Sugar for function bindings
+  : symbol ASSIGN expression
+  | symbol formalParameters ASSIGN expression // Sugar for function bindings
   ;
 
 lambdaParameters
@@ -35,7 +37,8 @@ lambdaParameters
 formalParameters: LPAREN (symbol (COMMA symbol)*)? RPAREN ;
 
 literal
-  : number ;
+  : number
+  ;
 
 number: INTEGER | FLOAT ;
 symbol: IDENTIFIER ;
@@ -45,18 +48,24 @@ symbol: IDENTIFIER ;
 LET: 'let';
 IN: 'in';
 
-EQ: '=';
+ASSIGN: '=';
 ARROW: '->';
 
 LPAREN: '(' ;
 RPAREN: ')' ;
 COMMA: ',' ;
 
-PLUS: '+' ;
-MINUS: '-' ;
+POW: '^' ;
 TIMES: '*' ;
 DIV: '/' ;
-POW: '^' ;
+PLUS: '+' ;
+MINUS: '-' ;
+LT: '<';
+LE: '<=';
+GT: '>';
+GE: '>=';
+EQ: '==';
+NEQ: '<>';
 
 IDENTIFIER: IDENT_START IDENT_CHAR* ;
 

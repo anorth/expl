@@ -14,16 +14,15 @@ import org.explang.truffle.FrameBinding.SlotBinding
 import org.explang.truffle.Type
 import org.explang.truffle.nodes.ArgReadNode
 import org.explang.truffle.nodes.BindingNode
+import org.explang.truffle.nodes.Booleans
 import org.explang.truffle.nodes.CallRootNode
-import org.explang.truffle.nodes.ExponentiationNode
+import org.explang.truffle.nodes.Doubles
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.FunctionDefinitionNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.LiteralDoubleNode
 import org.explang.truffle.nodes.NegationNode
-import org.explang.truffle.nodes.ProductNode
-import org.explang.truffle.nodes.SumNode
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.lang.Double.parseDouble
@@ -83,15 +82,15 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
     // Right-associativity is handled by the grammar.
     val left = visit(ctx.expression(0))
     val right = visit(ctx.expression(1))
-    return ExponentiationNode.expDouble(left, right)
+    return Doubles.exp(left, right)
   }
 
   override fun visitMultiplicativeEx(ctx: ExplParser.MultiplicativeExContext): ExpressionNode {
     val left = visit(ctx.expression(0))
     val right = visit(ctx.expression(1))
     return when {
-      ctx.TIMES() != null -> ProductNode.mulDouble(left, right)
-      ctx.DIV() != null -> ProductNode.divDouble(left, right)
+      ctx.TIMES() != null -> Doubles.mul(left, right)
+      ctx.DIV() != null -> Doubles.div(left, right)
       else -> throw CompileError("No operator for multiplicative", ctx)
     }
   }
@@ -101,9 +100,46 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
     val left = visit(ctx.expression(0))
     val right = visit(ctx.expression(1))
     return when {
-      ctx.PLUS() != null -> SumNode.addDouble(left, right)
-      ctx.MINUS() != null -> SumNode.subDouble(left, right)
+      ctx.PLUS() != null -> Doubles.add(left, right)
+      ctx.MINUS() != null -> Doubles.sub(left, right)
       else -> throw CompileError("No operator for additive", ctx)
+    }
+  }
+
+  override fun visitComparativeEx(ctx: ExplParser.ComparativeExContext): ExpressionNode {
+    val left = visit(ctx.expression(0))
+    val right = visit(ctx.expression(1))
+    return when {
+      ctx.LT() != null -> Doubles.lt(left, right)
+      ctx.LE() != null -> Doubles.le(left, right)
+      ctx.GT() != null -> Doubles.gt(left, right)
+      ctx.GE() != null -> Doubles.ge(left, right)
+      else -> throw CompileError("No operator for comparative", ctx)
+    }
+  }
+
+  override fun visitEqualityEx(ctx: ExplParser.EqualityExContext): ExpressionNode {
+    val left = visit(ctx.expression(0))
+    val right = visit(ctx.expression(1))
+    assert(left.type() == right.type()) {
+      "Mismatched types for equality: ${left.type()}, ${right.type()}"
+    }
+    return when {
+      ctx.EQ() != null -> {
+        when (left.type()) {
+          Type.DOUBLE -> Doubles.eq(left, right)
+          Type.BOOL -> Booleans.eq(left, right)
+          else -> throw CompileError("Can't compare ${left.type()} for equality", ctx)
+        }
+      }
+      ctx.NEQ() != null -> {
+        when (left.type()) {
+          Type.DOUBLE -> Doubles.ne(left, right)
+          Type.BOOL -> Booleans.ne(left, right)
+          else -> throw CompileError("Can't compare ${left.type()} for equality", ctx)
+        }
+      }
+      else -> throw CompileError("No operator for equality", ctx)
     }
   }
 
@@ -241,12 +277,6 @@ private fun resolutionAsNode(resolution: Scope.Resolution?, name: String,
     null -> throw CompileError("Unbound symbol $name", ctx)
   }
 }
-
-private fun FrameDescriptor.findOrAddSlot(identifier: String, type: Type) =
-    this.findOrAddFrameSlot(identifier, type, type.asSlotKind())
-
-private fun FrameDescriptor.addSlot(identifier: String, type: Type) =
-    this.addFrameSlot(identifier, type, type.asSlotKind())
 
 private inline fun check(ctx: ParserRuleContext, predicate: Boolean, msg: () -> String) {
   if (!predicate) {

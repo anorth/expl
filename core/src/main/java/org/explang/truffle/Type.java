@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class Type {
   public static final Type NONE = new Type("none", null, null);
+  public static final Type BOOL = new Type("boolean", null, null);
   public static final Type DOUBLE = new Type("double", null, null);
 
   public static Type function(Type result, Type... arguments) {
