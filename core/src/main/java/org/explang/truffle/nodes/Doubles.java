@@ -7,6 +7,19 @@ import org.explang.truffle.Type;
  * Operator nodes for double arguments.
  */
 public final class Doubles {
+  public static ExpressionNode literal(double v) {
+    return new ExpressionNode(Type.DOUBLE) {
+      @Override
+      public double executeDouble(VirtualFrame frame) {
+        return v;
+      }
+      @Override
+      public String toString() {
+        return Double.toString(v);
+      }
+    };
+  }
+
   // Arithmetic
   public static ExpressionNode exp(ExpressionNode left, ExpressionNode right) {
     return new BinaryNode(Type.DOUBLE, "^", left, right) {

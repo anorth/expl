@@ -21,11 +21,9 @@ import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.FunctionDefinitionNode
 import org.explang.truffle.nodes.LetNode
-import org.explang.truffle.nodes.LiteralDoubleNode
 import org.explang.truffle.nodes.NegationNode
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
-import java.lang.Double.parseDouble
 import java.util.Arrays
 
 class CompileError(msg: String, val context: ParserRuleContext): Exception(msg)
@@ -144,7 +142,7 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
   }
 
   override fun visitLiteralEx(ctx: ExplParser.LiteralExContext): ExpressionNode {
-    return visitNumber(ctx.literal().number())
+    return visit(ctx.literal())
   }
 
   override fun visitSymbolEx(ctx: ExplParser.SymbolExContext): ExpressionNode {
@@ -212,9 +210,8 @@ private class AstBuilder private constructor(tree: ParseTree) : ExplBaseVisitor<
     return BindingNode(binding.slot, value)
   }
 
-  override fun visitNumber(ctx: ExplParser.NumberContext) =
-    LiteralDoubleNode(parseDouble(ctx.text))
-
+  override fun visitBool(ctx: ExplParser.BoolContext) = Booleans.literal(ctx.text!!.toBoolean())!!
+  override fun visitNumber(ctx: ExplParser.NumberContext) = Doubles.literal(ctx.text.toDouble())!!
 
   ///// Internals /////
   // TODO: move this code somewhere it can be used for building ASTs outside this parser.

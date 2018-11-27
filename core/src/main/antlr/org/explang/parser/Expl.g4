@@ -15,8 +15,8 @@ expression
    | expression (PLUS | MINUS) expression              # AdditiveEx
    | expression (LT | LE | GT | GE) expression         # ComparativeEx
    | expression (EQ | NEQ) expression                  # EqualityEx
-   | symbol                                            # SymbolEx
    | literal                                           # LiteralEx
+   | symbol                                            # SymbolEx
    | LET binding (COMMA binding)* IN expression        # LetEx
    | LPAREN expression RPAREN                          # ParenthesizedEx
    | lambdaParameters ARROW expression                 # LambdaEx
@@ -38,12 +38,17 @@ formalParameters: LPAREN (symbol (COMMA symbol)*)? RPAREN ;
 
 literal
   : number
+  | bool
   ;
 
-number: INTEGER | FLOAT ;
 symbol: IDENTIFIER ;
+number: INTEGER | FLOAT ;
+bool: TRUE | FALSE ;
 
 /* Lex rules */
+
+// N.B. Order of lex rules affects precedence so, keywords and literals must come before
+// identifiers.
 
 LET: 'let';
 IN: 'in';
@@ -67,10 +72,8 @@ GE: '>=';
 EQ: '==';
 NEQ: '<>';
 
-IDENTIFIER: IDENT_START IDENT_CHAR* ;
-
-fragment IDENT_START: ('a' .. 'z') | ('A' .. 'Z') | '_' ;
-fragment IDENT_CHAR: IDENT_START | ('0' .. '9') ;
+TRUE: 'true';
+FALSE: 'false';
 
 INTEGER: DIGITS ;
 FLOAT: DIGITS ('.' [0-9]*)? (E SIGN? DIGITS)? ;
@@ -78,5 +81,10 @@ FLOAT: DIGITS ('.' [0-9]*)? (E SIGN? DIGITS)? ;
 fragment E: ('e' | 'E') ;
 fragment SIGN: ('+' | '-') ;
 fragment DIGITS: [0-9]+ ;
+
+IDENTIFIER: IDENT_START IDENT_CHAR* ;
+
+fragment IDENT_START: ('a' .. 'z') | ('A' .. 'Z') | '_' ;
+fragment IDENT_CHAR: IDENT_START | ('0' .. '9') ;
 
 WHITESPACE: [ \r\n\t]+ -> skip ;

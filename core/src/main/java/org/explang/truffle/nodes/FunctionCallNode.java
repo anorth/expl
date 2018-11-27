@@ -21,7 +21,7 @@ public class FunctionCallNode extends ExpressionNode {
 
   public FunctionCallNode(ExpressionNode functionNode, ExpressionNode[] argNodes) {
     super(functionNode.type().result());
-    assert argsMatch(functionNode.type(), argNodes) : "Mismatched argument type";
+    assert argsMatch(functionNode.type(), argNodes);
     this.functionNode = functionNode;
     this.argNodes = argNodes;
     this.callNode = Truffle.getRuntime().createIndirectCallNode();
@@ -69,9 +69,11 @@ public class FunctionCallNode extends ExpressionNode {
 
   private boolean argsMatch(Type type, ExpressionNode[] argNodes) {
     Type[] argTypes = type.arguments();
-    if (argTypes.length != argNodes.length) return false;
+    assert (argTypes.length == argNodes.length) :
+        "Mismatched arguments, expected " + argTypes.length + " got " + argNodes.length + " args";
     for (int i = 0; i < argTypes.length; i++) {
-      if (argTypes[i] != argNodes[i].type()) return false;
+      assert (argTypes[i] == argNodes[i].type()) :
+          "Mismatched argument " + i + ", expected " + argTypes[i] + " got " + argNodes[i].type();
     }
     return true;
   }
