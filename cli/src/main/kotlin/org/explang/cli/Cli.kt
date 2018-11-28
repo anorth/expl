@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.misc.Interval
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.syntax.Parser
+import org.explang.truffle.compiler.Analyzer
 import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.ExplCompiler
 
@@ -58,12 +59,20 @@ class Cli {
       println(parse.toStringTree(parser))
     }
 
+    // V2 parser/analysis
     if (args.showAst) {
       val synParser = Parser()
-      val syntax = synParser.parse(parse)
-      println(syntax)
+      val tree = synParser.parse(parse)
+      println("*AST*")
+      println(tree)
+
+      val analysis = Analyzer().analyze(tree)
+      println("*Analysis*")
+      println(analysis)
     }
 
+
+    // Back to V1 here
     val compiler = ExplCompiler()
     try {
       val ast = compiler.compile(parse)
