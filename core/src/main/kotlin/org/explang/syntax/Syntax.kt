@@ -97,7 +97,7 @@ class ExBinding(
 ): ExTree() {
   override val children get() = listOf(symbol, value)
   override fun <T> accept(v: Visitor<T>) = v.visitBinding(this)
-  override fun toString() = "$symbol = $value)"
+  override fun toString() = "$symbol = $value"
 }
 
 class ExLambda(

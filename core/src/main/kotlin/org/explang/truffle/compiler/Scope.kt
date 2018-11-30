@@ -28,7 +28,7 @@ sealed class Scope {
         override val type: Type,
         val index: Int
     ) : Resolution() {
-      override fun toString() = "Argument[$symbol=$index]"
+      override fun toString() = "Argument[$symbol=$index: $type]"
     }
 
     data class Local(
@@ -36,7 +36,7 @@ sealed class Scope {
         override val scope: BindingScope,
         override val type: Type
     ) : Resolution() {
-      override fun toString() = "Local[$symbol]"
+      override fun toString() = "Local[$symbol: $type]"
     }
 
     data class Closure(

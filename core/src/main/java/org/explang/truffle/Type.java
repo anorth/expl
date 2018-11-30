@@ -8,6 +8,9 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Describes a guest language type.
+ *
+ * Primitive types compare equal on identity. Function types compare equal on argument and
+ * result types.
  */
 public final class Type {
   public static final Type NONE = new Type("none", null, null);
@@ -47,16 +50,24 @@ public final class Type {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Type type = (Type) o;
-    return Objects.equals(result, type.result) &&
-        Arrays.equals(arguments, type.arguments);
+    if (this.isFunction()) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      Type type = (Type) o;
+      return Objects.equals(result, type.result) &&
+          Arrays.equals(arguments, type.arguments);
+
+    } else {
+      return this == o;
+    }
   }
+
   @Override
   public int hashCode() {
-    int result1 = Objects.hash(result);
-    result1 = 31 * result1 + Arrays.hashCode(arguments);
-    return result1;
+    if (this.isFunction()) {
+      return Objects.hash(result, arguments);
+    } else {
+      return super.hashCode();
+    }
   }
 }

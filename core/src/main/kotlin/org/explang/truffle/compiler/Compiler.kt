@@ -79,8 +79,8 @@ private class TruffleBuilder private constructor(
 
   override fun visitCall(call: ExCall): ExpressionNode {
     val fn = visit(call.callee)
-    val args = call.args.map(::visit).toTypedArray()
     check(call, fn.type().isFunction) { "Call to a non-function" }
+    val args = call.args.map(::visit).toTypedArray()
     val actualTypes = args.map(ExpressionNode::type).toTypedArray()
     val declaredTypes = fn.type().arguments()
     check(call, Arrays.equals(declaredTypes, actualTypes)) {
