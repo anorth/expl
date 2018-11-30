@@ -36,12 +36,19 @@ class CompileError(msg: String, val tree: ExTree) : Exception(msg)
 /**
  * Compiles an AST to Truffle node tree for interpretation/JIT.
  */
-class Compiler {
+class Compiler(
+    private val printAnalysis: Boolean = false
+) {
   private val analyzer = Analyzer()
 
   @Throws(CompileError::class)
   fun compile(tree: ExTree): ExpressionNode {
     val analysis = analyzer.analyze(tree)
+    if (printAnalysis) {
+      println("*Analysis*")
+      println(analysis)
+    }
+
     val (ast, topFrameDescriptor) = TruffleBuilder.build(tree, analysis)
 
     // Wrap the evaluation in an anonymous function call providing the root frame.

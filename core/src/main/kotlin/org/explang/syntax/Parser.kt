@@ -1,8 +1,14 @@
 package org.explang.syntax
 
+import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.CommonToken
+import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.Token
+import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.ParseTree
 import org.explang.parser.ExplBaseVisitor
+import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 
 
@@ -11,15 +17,69 @@ import org.explang.parser.ExplParser
  *
  * The parser doesn't do any name resolution or type analysis, just syntax.
  */
-class Parser {
-  fun parse(tree: ParseTree): ExTree {
-    val builder = AstBuilder()
-    return tree.accept(builder)
+class Parser(
+    private val printTokens: Boolean = false,
+    private val printParse: Boolean = false,
+    private val printAst: Boolean = false,
+    private val trace: Boolean = false
+) {
+  class Result(
+    val tokens: List<Token>,
+    val parse: ExplParser.ExpressionContext,
+    val tree: ExTree,
+    val error: String? = null
+  )
+
+  fun parse(s: String): Result {
+    val lexer = ExplLexer(CharStreams.fromString(s))
+    val tokens = CommonTokenStream(lexer)
+
+    val parser = ExplParser(tokens)
+    parser.buildParseTree = true
+    parser.isTrace = trace
+
+    // Complete lex up-front so we can detect trailing tokens. Note that the last token is an EOF.
+    tokens.fill()
+
+    if (printTokens) {
+      println("*Tokens*")
+      for (tok in tokens.tokens) {
+        if (tok is CommonToken) {
+          println(tok.toString(lexer))
+        } else {
+          println(tok)
+        }
+      }
+    }
+
+    val parseTree = parser.expression()
+    var error: String? = null
+    if (parseTree.sourceInterval != Interval(0, tokens.size() - 2)) {
+      println("${parseTree.sourceInterval}, ${tokens.size()}")
+      val trailing = tokens.get(parseTree.sourceInterval.b + 1, tokens.size() - 2)
+      error = "Parse failed with trailing tokens: ${trailing.joinToString(" ") { it.text }}"
+    }
+
+    if (printParse) {
+      println("*Parse*")
+      println(parseTree.toStringTree(parser))
+    }
+
+    val ast = toSyntax(parseTree)
+    if (printAst) {
+      println("*AST*")
+      println(ast)
+    }
+
+    return Result(tokens.tokens, parseTree, ast, error)
   }
+
+  fun toSyntax(tree: ParseTree) = AstBuilder().visit(tree)
 }
 
 /** A parse tree visitor that constructs an AST */
 private class AstBuilder : ExplBaseVisitor<ExTree>() {
+  override fun visit(tree: ParseTree) = super.visit(tree)!!
 
   override fun visitCallEx(ctx: ExplParser.CallExContext): ExCall {
     val fn = visit(ctx.expression())

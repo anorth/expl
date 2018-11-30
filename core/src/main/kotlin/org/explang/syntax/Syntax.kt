@@ -31,7 +31,7 @@ sealed class ExTree {
   }
 
   // Range of tokens which this syntax object represents
-  abstract val range: IntRange
+  abstract val tokenRange: IntRange
 
   abstract val children: Iterable<ExTree>
 
@@ -39,7 +39,7 @@ sealed class ExTree {
 }
 
 class ExCall(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val callee: ExTree,
     val args: List<ExTree>
 ) : ExTree() {
@@ -49,7 +49,7 @@ class ExCall(
 }
 
 class ExUnaryOp(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val operator: String,
     val operand: ExTree
 ) : ExTree() {
@@ -59,7 +59,7 @@ class ExUnaryOp(
 }
 
 class ExBinaryOp(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val operator: String,
     val left: ExTree,
     val right: ExTree
@@ -70,7 +70,7 @@ class ExBinaryOp(
 }
 
 class ExIf(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val test: ExTree,
     val left: ExTree,
     val right: ExTree
@@ -81,7 +81,7 @@ class ExIf(
 }
 
 class ExLet(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val bindings: List<ExBinding>,
     val bound: ExTree
 ): ExTree() {
@@ -91,7 +91,7 @@ class ExLet(
 }
 
 class ExBinding(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val symbol: ExSymbol,
     val value: ExTree
 ): ExTree() {
@@ -101,7 +101,7 @@ class ExBinding(
 }
 
 class ExLambda(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val parameters: List<ExSymbol>,
     val body: ExTree
 ): ExTree() {
@@ -111,7 +111,7 @@ class ExLambda(
 }
 
 class ExLiteral<T>(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val type: Class<T>,
     val value: T
 ) : ExTree() {
@@ -121,7 +121,7 @@ class ExLiteral<T>(
 }
 
 class ExSymbol(
-    override val range: IntRange,
+    override val tokenRange: IntRange,
     val name: String
 ) : ExTree() {
   override val children get() = listOf<ExTree>()

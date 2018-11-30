@@ -15,7 +15,7 @@ import org.explang.truffle.Type
 /**
  * Analyses a syntax tree for binding and type information.
  */
-class Analyzer() {
+class Analyzer {
   class Analysis(
       val rootScope: RootScope,
       // Scopes introduced by syntax elements.
