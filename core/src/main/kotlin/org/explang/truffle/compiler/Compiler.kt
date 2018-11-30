@@ -31,13 +31,15 @@ import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.util.Arrays
 
-class CompileError2(msg: String, val tree: ExTree) : Exception(msg)
+class CompileError(msg: String, val tree: ExTree) : Exception(msg)
 
-
-class Compiler2 {
+/**
+ * Compiles an AST to Truffle node tree for interpretation/JIT.
+ */
+class Compiler {
   private val analyzer = Analyzer()
 
-  @Throws(CompileError2::class)
+  @Throws(CompileError::class)
   fun compile(tree: ExTree): ExpressionNode {
     val analysis = analyzer.analyze(tree)
     val (ast, topFrameDescriptor) = TruffleBuilder.build(tree, analysis)
@@ -45,27 +47,27 @@ class Compiler2 {
     // Wrap the evaluation in an anonymous function call providing the root frame.
     val entryRoot = CallRootNode(ast, topFrameDescriptor, Discloser.EMPTY)
     val callTarget = Truffle.getRuntime().createCallTarget(entryRoot)
-    val entryPoint = ExplFunction.create(Type.function(ast.type()), callTarget);
+    val entryPoint = ExplFunction.create(Type.function(ast.type()), callTarget)
     return FunctionCallNode(StaticBound.function(entryPoint), arrayOfNulls(0))
   }
 }
 
+/**
+ * Converts an AST with analysis into a Truffle node tree.
+ */
 private class TruffleBuilder private constructor(
-    val analysis: Analyzer.Analysis,
-    rootScope: Scope2?
+    val analysis: Analyzer.Analysis
 ) : ExTree.Visitor<ExpressionNode> {
   companion object {
     fun build(tree: ExTree, analysis: Analyzer.Analysis): Pair<ExpressionNode, FrameDescriptor> {
-      val rootScope = analysis.rootScope
-
-      val b = TruffleBuilder(analysis, rootScope)
+      val b = TruffleBuilder(analysis)
       val node = b.visit(tree)
       val topFrameDescriptor = b.frame
       return node to topFrameDescriptor
     }
   }
 
-  private var scope = rootScope
+  private var scope: Scope = analysis.rootScope
   private var frame = FrameDescriptor()
 
   override fun visitCall(call: ExCall): ExpressionNode {
@@ -131,9 +133,9 @@ private class TruffleBuilder private constructor(
     // Visit those formal parameter declarations first to define their indices in the scope.
     // Within this scope, matching symbols will resolve to those indices.
     val argResolutions = lambda.parameters.map {
-      (scope as FunctionScope).resolve(it) as Scope2.Resolution.Argument
+      (scope as FunctionScope).resolve(it) as Scope.Resolution.Argument
     }
-    val argTypes = argResolutions.map(Scope2.Resolution.Argument::type).toTypedArray()
+    val argTypes = argResolutions.map(Scope.Resolution.Argument::type).toTypedArray()
 
     // Function bodies can capture non-local values. The references are evaluated at the time
     // the function is defined. The value is closed over, not the reference.
@@ -149,13 +151,13 @@ private class TruffleBuilder private constructor(
     captured.forEachIndexed { i, resolution ->
       val closureSlot = closureDescriptor.addSlot(resolution.identifier, resolution.type)
       closureBindings[i] = when (resolution) {
-        is Scope2.Resolution.Local ->
+        is Scope.Resolution.Local ->
           FrameBinding.SlotBinding(prevFrame.findSlot(resolution.identifier), closureSlot)
-        is Scope2.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
-        is Scope2.Resolution.Closure ->
+        is Scope.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
+        is Scope.Resolution.Closure ->
           FrameBinding.SlotBinding(prevFrame.findSlot(resolution.identifier), closureSlot)
-        is Scope2.Resolution.Unresolved ->
-          throw CompileError2("Unbound capture ${resolution.symbol}", lambda)
+        is Scope.Resolution.Unresolved ->
+          throw CompileError("Unbound capture ${resolution.symbol}", lambda)
       }
       calleeBindings[i] =
           FrameBinding.SlotBinding(closureSlot, frame.addSlot(resolution.identifier, resolution.type))
@@ -166,7 +168,7 @@ private class TruffleBuilder private constructor(
     val type = Type.function(body.type(), *argTypes)
     val callRoot = CallRootNode(body, frame, Discloser(calleeBindings))
     val callTarget = Truffle.getRuntime().createCallTarget(callRoot)
-    val fn = ExplFunction.create(type, callTarget);
+    val fn = ExplFunction.create(type, callTarget)
 
     frame = prevFrame
     scope = prevScope
@@ -176,24 +178,24 @@ private class TruffleBuilder private constructor(
     return when {
       literal.type == Boolean::class.java -> Booleans.literal(literal.value as Boolean)
       literal.type == Double::class.java-> Doubles.literal(literal.value as Double)
-      else -> throw CompileError2("Unrecognized literal", literal)
+      else -> throw CompileError("Unrecognized literal", literal)
     }
   }
 
   override fun visitSymbol(symbol: ExSymbol): ExpressionNode {
-    val resolution = scope!!.resolve(symbol)
+    val resolution = scope.resolve(symbol)
     val id = resolution.identifier
     return when (resolution) {
-      is Scope2.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, id)
-      is Scope2.Resolution.Local ->
+      is Scope.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, id)
+      is Scope.Resolution.Local ->
         SymbolNode(resolution.type, frame.findFrameSlot(id))
-      is Scope2.Resolution.Closure ->
+      is Scope.Resolution.Closure ->
         SymbolNode(resolution.type, frame.findFrameSlot(id))
-      is Scope2.Resolution.Unresolved -> {
+      is Scope.Resolution.Unresolved -> {
         if (id in BUILT_INS) {
           StaticBound.builtIn(BUILT_INS[id]!!)
         } else {
-          throw CompileError2("Unbound symbol ${resolution.symbol}", symbol)
+          throw CompileError("Unbound symbol ${resolution.symbol}", symbol)
         }
       }
     }
@@ -211,7 +213,7 @@ private class TruffleBuilder private constructor(
       }
     }
     if (duplicated.isNotEmpty()) {
-      throw CompileError2("Duplicate bindings for ${duplicated.joinToString(",")}", let)
+      throw CompileError("Duplicate bindings for ${duplicated.joinToString(",")}", let)
     }
   }
 }
@@ -244,6 +246,6 @@ private val BINOPS = mapOf(
 
 private inline fun check(tree: ExTree, predicate: Boolean, msg: () -> String) {
   if (!predicate) {
-    throw CompileError2(msg(), tree)
+    throw CompileError(msg(), tree)
   }
 }

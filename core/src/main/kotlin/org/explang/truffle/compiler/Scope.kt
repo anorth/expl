@@ -1,101 +1,122 @@
 package org.explang.truffle.compiler
 
-import com.oracle.truffle.api.frame.FrameDescriptor
-import com.oracle.truffle.api.frame.FrameSlot
-import com.oracle.truffle.api.frame.FrameSlotKind
-import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.tree.ParseTree
-import org.explang.parser.ExplParser
+import org.explang.syntax.ExLambda
+import org.explang.syntax.ExLet
+import org.explang.syntax.ExSymbol
+import org.explang.syntax.ExTree
 import org.explang.truffle.Type
-import java.util.Deque
-import java.util.LinkedList
+
+class NameError(msg: String, val tree: ExTree) : RuntimeException(msg)
 
 /**
- * Compile-time stack of symbol scopes, resolving to arguments and bindings.
+ * Compile-time scopes, resolving to arguments or bindings.
  */
-class Scope(ctx: ParseTree) {
+sealed class Scope {
+  /** The syntax tree introducing the scope. */
+  abstract val tree: ExTree
+
   /** The result of resolving a name in some scope. */
   sealed class Resolution {
-    abstract val ctx: ParserRuleContext
-    abstract val type: Type
-    abstract val name: String // For inspection
+    abstract val symbol: ExSymbol // The symbol resolved
+    abstract val scope: Scope // The scope in which it was resolved, out to the immediate function
+    abstract val type: Type // The resolved type (which may be NONE)
+    val identifier get() = symbol.name // Frame identifier
 
     data class Argument(
-        override val ctx: ParserRuleContext,
+        override val symbol: ExSymbol,
+        override val scope: FunctionScope,
         override val type: Type,
-        override val name: String,
-        val index: Int) :
-        Resolution()
+        val index: Int
+    ) : Resolution() {
+      override fun toString() = "Argument[$symbol=$index]"
+    }
 
     data class Local(
-        override val ctx: ParserRuleContext,
-        override val type: Type,
-        override val name: String,
-        val slot: FrameSlot) :
-        Resolution()
+        override val symbol: ExSymbol,
+        override val scope: BindingScope,
+        override val type: Type
+    ) : Resolution() {
+      override fun toString() = "Local[$symbol]"
+    }
+
+    data class Closure(
+        override val scope: FunctionScope, // The immediately enclosing function scope
+        val capture: Resolution // The outer resolution (which might chain more than once)
+    ) : Resolution() {
+      override val symbol get() = capture.symbol
+      override val type get() = capture.type
+      override fun toString() = "Closure[$symbol=$capture]"
+    }
+
+    data class Unresolved(
+        override val symbol: ExSymbol,
+        override val scope: RootScope,
+        override val type: Type = Type.NONE
+    ) : Resolution() {
+      override fun toString() = "Unresolved[$symbol]"
+    }
   }
 
-  private class ScopeLevel(
-      // The parse tree forming this scope.
-      val ctx: ParseTree,
-      // Frame descriptor for new function scopes.
-      val descriptor: FrameDescriptor? = null,
-      // Variables from higher scopes closed over by a function scope.
-      val closedOver: MutableSet<Resolution> = mutableSetOf(),
+  /** The parent of this scope (self for root scope) */
+  abstract val parent: Scope
 
-      // A level will have only one of these non-empty, args for a function scope or
-      // bindings for a let/where scope.
-      val args: MutableMap<String, Resolution.Argument> = mutableMapOf(),
-      val bindings: MutableMap<String, Resolution.Local> = mutableMapOf()
-  )
+  fun isRoot() = parent == this
 
-  private val stack: Deque<ScopeLevel> = LinkedList<ScopeLevel>() // Front is top of stack
+  /**
+   * Resolves a symbol in this scope, otherwise falls back to the parent scope.
+   */
+  abstract fun resolve(symbol: ExSymbol): Resolution
+}
 
-  init {
-    // The top level is an anonymous function scope.
-    enterFunction(FrameDescriptor(), ctx)
-  }
+/**
+ * Anonymous scope enclosing the entry point. Nothing can resolve here.
+ */
+class RootScope(override val tree: ExTree) : Scope() {
+  override fun resolve(symbol: ExSymbol): Resolution = Resolution.Unresolved(symbol, this)
 
-  /** Pushes a new function definition scope onto the stack. */
-  fun enterFunction(descriptor: FrameDescriptor, ctx: ParseTree) {
-    stack.push(ScopeLevel(ctx, descriptor))
-  }
+  override val parent: Scope get() = this
+  override fun toString() = "RootScope"
+}
 
-  /** Pushes a new binding scope onto the stack. */
-  fun enterBinding(ctx: ParseTree) {
-    stack.push(ScopeLevel(ctx))
+/**
+ * A scope for a new function, which can resolve arguments.
+ */
+class FunctionScope(override val tree: ExLambda, override val parent: Scope) : Scope() {
+  private val args: MutableMap<String, Resolution.Argument> = mutableMapOf()
+
+  override fun resolve(symbol: ExSymbol): Resolution {
+    val argument = args[symbol.name]
+    return if (argument != null) {
+      argument
+    } else {
+      val capture = parent.resolve(symbol)
+      capture as? Resolution.Unresolved ?: Resolution.Closure(this, capture)
+    }
   }
 
   /**
-   * Pops the top level off the stack.
-   *
-   * @return resolutions made within the scope that resolved outside it
+   * Defines an argument name in this scope. Names resolve to indices in the order they
+   * are defined.
    */
-  fun exit(): Set<Resolution> {
-    return stack.pop().closedOver
-  }
-
-  /**
-   * Pops a level off the stack and asserts that it was the only level, returning that
-   * level's frame descriptor.
-   */
-  fun popTopFrame(): FrameDescriptor {
-    val level = stack.pop()
-    require(stack.isEmpty()) { "Scope stack corrupted" }
-    return level.descriptor!!
-  }
-
-  /**
-   * Defines an argument name in the current level (which must be a function scope). Resolve
-   * to indices in the order they are defined.
-   */
-  fun defineArgument(type: Type, ctx: ExplParser.SymbolContext): Resolution.Argument {
-    val name = ctx.text
-    assert(top.bindings.isEmpty()) { "Can't add argument to binding scope" }
-    if (name in top.args) throw CompileError("Duplicate argument name $name", ctx)
-    val arg = Resolution.Argument(ctx, type, name, top.args.size)
-    top.args[name] = arg
+  fun defineArgument(type: Type, symbol: ExSymbol): Resolution.Argument {
+    val name = symbol.name
+    if (name in args) throw NameError("Duplicate argument name $name", symbol)
+    val arg = Resolution.Argument(symbol, this, type, args.size)
+    args[name] = arg
     return arg
+  }
+
+  override fun toString() = "FunctionScope"
+}
+
+/**
+ * A scope for bindings.
+ */
+class BindingScope(override val tree: ExLet, override val parent: Scope) : Scope() {
+  private val bindings: MutableMap<String, Resolution.Local> = mutableMapOf()
+
+  override fun resolve(symbol: ExSymbol): Resolution {
+    return bindings[symbol.name] ?: parent.resolve(symbol)
   }
 
   /**
@@ -104,53 +125,13 @@ class Scope(ctx: ParseTree) {
    *
    * TODO: resolve colliding names for different bindings in the same function (shadowing).
    */
-  fun defineBinding(type: Type, ctx: ExplParser.BindingContext): Resolution.Local {
-    val name = ctx.symbol().text
-    assert(top.args.isEmpty()) { "Can't add binding to function scope" }
-    if (name in top.bindings) throw CompileError("Duplicate binding for $name", ctx)
-    val slot = topDescriptor.findOrAddFrameSlot(name, type, type.asSlotKind())
-    val binding = Resolution.Local(ctx, type, name, slot)
-    top.bindings[name] = binding
+  fun defineBinding(type: Type, symbol: ExSymbol): Resolution.Local {
+    val name = symbol.name
+    if (name in bindings) throw NameError("Duplicate binding for $name", symbol)
+    val binding = Resolution.Local(symbol, this, type)
+    bindings[name] = binding
     return binding
   }
 
-  /** Resolves a name in an enclosing function or local scope. */
-  fun resolve(ctx: ExplParser.SymbolExContext): Resolution? {
-    val name = ctx.text
-    val itr = stack.iterator()
-    // First, resolve only up to the directly enclosing function scope.
-    var level: ScopeLevel
-    do {
-      level = itr.next()
-      val r = level.bindings[name] ?: level.args[name]
-      if (r != null) return r
-    } while (level.descriptor == null && itr.hasNext())
-
-    val closure = level
-    val descriptor = level.descriptor!!
-
-    // Now resolve in enclosing scopes.
-    while (itr.hasNext()) {
-      val scope = itr.next()
-      val r = scope.bindings[name] ?: scope.args[name]
-      if (r != null) {
-        // Record that this symbol was closed over.
-        closure.closedOver.add(r)
-        // Add a slot in the immediately enclosing function frame where the name will be resolved
-        // inside the function call. A call preamble will copy values here.
-        val slot = descriptor.findOrAddFrameSlot(name, r.type, r.type.asSlotKind())
-        return Resolution.Local(r.ctx, r.type, r.name, slot)
-      }
-    }
-    return null
-  }
-
-  private val top get() = stack.first
-
-  private val topDescriptor get() = stack.find { it.descriptor != null }!!.descriptor!!
-}
-
-fun Type.asSlotKind() = when (this) {
-  Type.DOUBLE -> FrameSlotKind.Double
-  else -> FrameSlotKind.Object
+  override fun toString() = "BindingScope"
 }

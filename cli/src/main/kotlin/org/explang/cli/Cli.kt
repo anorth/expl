@@ -11,8 +11,8 @@ import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.syntax.Parser
 import org.explang.truffle.compiler.Analyzer
-import org.explang.truffle.compiler.CompileError2
-import org.explang.truffle.compiler.Compiler2
+import org.explang.truffle.compiler.CompileError
+import org.explang.truffle.compiler.Compiler
 
 // See https://github.com/xenomachina/kotlin-argparser
 class Args(parser: ArgParser) {
@@ -69,7 +69,7 @@ class Cli {
       println("*Analysis*")
       println(analysis)
 
-      val compiler = Compiler2()
+      val compiler = Compiler()
       try {
         val ast = compiler.compile(tree)
         if (args.showAst) {
@@ -81,7 +81,7 @@ class Cli {
         val result = ast.executeDeclaredType(topFrame)
         println("*Result*")
         println(result)
-      } catch (e: CompileError2) {
+      } catch (e: CompileError) {
         println("*Compile failed*")
         println(args.expression)
         // TODO: plumb source location through tree

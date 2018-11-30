@@ -2,6 +2,7 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.frame.FrameDescriptor
 import com.oracle.truffle.api.frame.FrameSlot
+import com.oracle.truffle.api.frame.FrameSlotKind
 import org.explang.truffle.Type
 
 fun FrameDescriptor.addSlot(identifier: String, type: Type) =
@@ -12,3 +13,9 @@ fun FrameDescriptor.findSlot(identifier: String): FrameSlot =
 
 fun FrameDescriptor.findOrAddSlot(identifier: String, type: Type) =
     this.findOrAddFrameSlot(identifier, type, type.asSlotKind())!!
+
+fun Type.asSlotKind() = when (this) {
+  Type.BOOL -> FrameSlotKind.Boolean
+  Type.DOUBLE -> FrameSlotKind.Double
+  else -> FrameSlotKind.Object
+}

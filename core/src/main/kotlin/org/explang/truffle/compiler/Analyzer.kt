@@ -19,12 +19,12 @@ class Analyzer() {
   class Analysis(
       val rootScope: RootScope,
       // Scopes introduced by syntax elements.
-      val scopes: Map<ExTree, Scope2>,
+      val scopes: Map<ExTree, Scope>,
       // Maps symbols to resolutions.
-      val resolutions: Map<ExSymbol, Scope2.Resolution>,
+      val resolutions: Map<ExSymbol, Scope.Resolution>,
       // Maps function definitions to a collection of symbols which resolved outside the
       // function's scope, so must be captured in a closure at function definition.
-      val captured: Map<ExLambda, Set<Scope2.Resolution>>
+      val captured: Map<ExLambda, Set<Scope.Resolution>>
   ) {
     override fun toString(): String {
       return """Resolutions: ${resolutions.values}
@@ -45,11 +45,11 @@ class Analyzer() {
   }
 
   private fun computeCapturedSymbols(
-      resolutions: Iterable<Scope2.Resolution>): Map<ExLambda, Set<Scope2.Resolution>> {
-    val captured = mutableMapOf<ExLambda, MutableSet<Scope2.Resolution>>()
+      resolutions: Iterable<Scope.Resolution>): Map<ExLambda, Set<Scope.Resolution>> {
+    val captured = mutableMapOf<ExLambda, MutableSet<Scope.Resolution>>()
     resolutions.forEach {
       var res = it
-      while (res is Scope2.Resolution.Closure) {
+      while (res is Scope.Resolution.Closure) {
         captured.getOrPut(res.scope.tree) { mutableSetOf() }.add(res)
         res = res.capture
       }
@@ -63,11 +63,11 @@ class Analyzer() {
  */
 private class ScopeVisitor(val rootScope: RootScope) : ExTree.Visitor<Unit> {
   // Scopes introduced by syntactic trees (functions and bindings)
-  val scopes = mutableMapOf<ExTree, Scope2>()
+  val scopes = mutableMapOf<ExTree, Scope>()
   // Maps symbols to resolutions. The "same" symbol string may occur multiple times with the
   // same resolution if it occurs multiple times in the tree.
-  val resolutions = mutableMapOf<ExSymbol, Scope2.Resolution>()
-  private var currentScope: Scope2 = rootScope
+  val resolutions = mutableMapOf<ExSymbol, Scope.Resolution>()
+  private var currentScope: Scope = rootScope
 
   fun scope() = currentScope
 
