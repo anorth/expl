@@ -11,8 +11,8 @@ import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 import org.explang.syntax.Parser
 import org.explang.truffle.compiler.Analyzer
-import org.explang.truffle.compiler.CompileError
-import org.explang.truffle.compiler.ExplCompiler
+import org.explang.truffle.compiler.CompileError2
+import org.explang.truffle.compiler.Compiler2
 
 // See https://github.com/xenomachina/kotlin-argparser
 class Args(parser: ArgParser) {
@@ -59,7 +59,6 @@ class Cli {
       println(parse.toStringTree(parser))
     }
 
-    // V2 parser/analysis
     if (args.showAst) {
       val synParser = Parser()
       val tree = synParser.parse(parse)
@@ -69,29 +68,29 @@ class Cli {
       val analysis = Analyzer().analyze(tree)
       println("*Analysis*")
       println(analysis)
-    }
 
+      val compiler = Compiler2()
+      try {
+        val ast = compiler.compile(tree)
+        if (args.showAst) {
+          println("*AST*")
+          println(ast)
+        }
 
-    // Back to V1 here
-    val compiler = ExplCompiler()
-    try {
-      val ast = compiler.compile(parse)
-      if (args.showAst) {
-        println("*AST*")
-        println(ast)
+        val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
+        val result = ast.executeDeclaredType(topFrame)
+        println("*Result*")
+        println(result)
+      } catch (e: CompileError2) {
+        println("*Compile failed*")
+        println(args.expression)
+        // TODO: plumb source location through tree
+//        println(" ".repeat(e.tree.range.start) + "^")
+        println(e.message)
       }
-
-      val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
-      val result = ast.executeDeclaredType(topFrame)
-      println("*Result*")
-      println(result)
-    } catch (e: CompileError) {
-      println("*Compile failed*")
-      println(args.expression)
-      println(" ".repeat(e.context.getStart().startIndex) + "^")
-      println(e.message)
     }
   }
+
 }
 
 fun main(args: Array<String>) {

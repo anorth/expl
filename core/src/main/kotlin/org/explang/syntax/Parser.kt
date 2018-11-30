@@ -13,13 +13,13 @@ import org.explang.parser.ExplParser
  */
 class Parser {
   fun parse(tree: ParseTree): ExTree {
-    val builder = AstBuilder(tree)
+    val builder = AstBuilder()
     return tree.accept(builder)
   }
 }
 
 /** A parse tree visitor that constructs an AST */
-private class AstBuilder constructor(tree: ParseTree) : ExplBaseVisitor<ExTree>() {
+private class AstBuilder : ExplBaseVisitor<ExTree>() {
 
   override fun visitCallEx(ctx: ExplParser.CallExContext): ExCall {
     val fn = visit(ctx.expression())

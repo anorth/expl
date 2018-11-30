@@ -21,6 +21,9 @@ public final class Doubles {
   }
 
   // Arithmetic
+  public static ExpressionNode negate(ExpressionNode child) {
+    return new NegationNode(child);
+  }
   public static ExpressionNode exp(ExpressionNode left, ExpressionNode right) {
     return new BinaryNode(Type.DOUBLE, "^", left, right) {
       @Override

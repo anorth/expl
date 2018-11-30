@@ -20,6 +20,7 @@ sealed class Scope2() {
     abstract val symbol: ExSymbol // The symbol resolved
     abstract val scope: Scope2 // The scope in which it was resolved, out to the immediate function
     abstract val type: Type // The resolved type (which may be NONE)
+    val identifier get() = symbol.name // Frame identifier
 
     data class Argument(
         override val symbol: ExSymbol,

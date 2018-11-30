@@ -17,9 +17,10 @@ import org.explang.truffle.Type
  */
 class Analyzer() {
   class Analysis(
-      // Maps scope-introducing nodes to their scope
+      val rootScope: RootScope,
+      // Scopes introduced by syntax elements.
       val scopes: Map<ExTree, Scope2>,
-      // Maps symbols to resolutions
+      // Maps symbols to resolutions.
       val resolutions: Map<ExSymbol, Scope2.Resolution>,
       // Maps function definitions to a collection of symbols which resolved outside the
       // function's scope, so must be captured in a closure at function definition.
@@ -40,7 +41,7 @@ class Analyzer() {
 
     val captured = computeCapturedSymbols(v.resolutions.values)
 
-    return Analysis(v.scopes, v.resolutions, captured)
+    return Analysis(v.rootScope, v.scopes, v.resolutions, captured)
   }
 
   private fun computeCapturedSymbols(
@@ -60,7 +61,8 @@ class Analyzer() {
 /**
  * Resolves symbols to scopes in which they are defined.
  */
-private class ScopeVisitor(rootScope: Scope2) : ExTree.Visitor<Unit> {
+private class ScopeVisitor(val rootScope: RootScope) : ExTree.Visitor<Unit> {
+  // Scopes introduced by syntactic trees (functions and bindings)
   val scopes = mutableMapOf<ExTree, Scope2>()
   // Maps symbols to resolutions. The "same" symbol string may occur multiple times with the
   // same resolution if it occurs multiple times in the tree.

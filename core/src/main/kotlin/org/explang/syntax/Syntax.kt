@@ -19,6 +19,8 @@ sealed class ExTree {
     fun visitLiteral(literal: ExLiteral<*>): T
     fun visitSymbol(symbol: ExSymbol): T
 
+    fun visit(tree: ExTree) = tree.accept(this)
+
     fun visitChildren(tree: ExTree, initial: T, agg: (T, T) -> T = { _, next -> next }): T {
       var res = initial
       tree.children.forEach {
