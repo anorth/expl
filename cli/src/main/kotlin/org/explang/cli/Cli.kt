@@ -42,8 +42,7 @@ class Cli {
     } catch (e: CompileError) {
       println("*Compile failed*")
       println(args.expression)
-      // TODO: plumb source location through tree
-//        println(" ".repeat(e.tree.tokens.start) + "^")
+      println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
       println(e.message)
     }
   }
