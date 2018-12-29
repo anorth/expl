@@ -96,7 +96,7 @@ class FunctionScope(override val tree: ExLambda<*>, override val parent: Scope) 
    * Defines an argument name in this scope. Names resolve to indices in the order they
    * are defined.
    */
-  fun defineArgument(type: Type, symbol: ExSymbol<*>): Resolution.Argument {
+  fun defineArgument(symbol: ExSymbol<*>, type: Type): Resolution.Argument {
     val name = symbol.name
     if (name in args) throw NameError("Duplicate argument name $name", symbol)
     val arg = Resolution.Argument(symbol, this, type, args.size)
@@ -123,9 +123,21 @@ class BindingScope(override val tree: ExLet<*>, override val parent: Scope) : Sc
    *
    * TODO: resolve colliding names for different bindings in the same function (shadowing).
    */
-  fun defineBinding(type: Type, symbol: ExSymbol<*>): Resolution.Local {
+  fun defineBinding(symbol: ExSymbol<*>, type: Type): Resolution.Local {
     val name = symbol.name
     if (name in bindings) throw NameError("Duplicate binding for $name", symbol)
+    val binding = Resolution.Local(symbol, this, type)
+    bindings[name] = binding
+    return binding
+  }
+
+  /**
+   * Replaces type information for a binding in the current level.
+   */
+  fun replaceBinding(symbol: ExSymbol<*>, type: Type): Resolution.Local {
+    val name = symbol.name
+    if (name !in bindings) throw NameError("No binding for $name", symbol)
+    assert(bindings[name]!!.type == Type.NONE) { "Replacing non-NONE type" }
     val binding = Resolution.Local(symbol, this, type)
     bindings[name] = binding
     return binding

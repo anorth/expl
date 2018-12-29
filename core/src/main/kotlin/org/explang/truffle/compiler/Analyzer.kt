@@ -16,7 +16,9 @@ import org.explang.truffle.Type
  * Analyses a syntax tree for binding and type information.
  */
 class Analyzer {
-  class Tag
+  class Tag(
+      var type: Type = Type.NONE
+  )
 
   class Analysis(
       val rootScope: RootScope,
@@ -98,15 +100,21 @@ private class ScopeVisitor(val rootScope: RootScope) : ExTree.Visitor<Analyzer.T
   }
 
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>) {
+    val scope = currentScope as BindingScope
     // Define the binding before visiting the value, thus supporting recursive resolution.
-    (currentScope as BindingScope).defineBinding(Type.NONE, binding.symbol)
+    // An alternative would be to have the function's name resolve in the new function scope,
+    // rather than the containing binding scope.
+    scope.defineBinding(binding.symbol, Type.NONE)
     binding.value.accept(this)
+    // Propagate value's type to binding.
+    binding.tag.type = binding.value.tag.type
+    scope.replaceBinding(binding.symbol, binding.tag.type)
   }
 
   override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
     val scope = FunctionScope(lambda, currentScope)
     lambda.parameters.forEach {
-      scope.defineArgument(Type.NONE, it)
+      scope.defineArgument(it, Type.NONE)
     }
 
     scopes[lambda] = scope
@@ -116,6 +124,11 @@ private class ScopeVisitor(val rootScope: RootScope) : ExTree.Visitor<Analyzer.T
   }
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>) {
+    when (literal.type) {
+      Boolean::class.java -> literal.tag.type = Type.BOOL
+      Double::class.java -> literal.tag.type = Type.DOUBLE
+      else -> throw CompileError("Unrecognized literal type ${literal.type}", literal)
+    }
     visitChildren(literal, Unit)
   }
 

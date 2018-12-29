@@ -32,7 +32,7 @@ class Cli {
         printAnalysis = args.showAnalysis || args.showAll
     )
 
-    val parse = parser.parse(args.expression, Analyzer::Tag)
+    val parse = parser.parse(args.expression) { Analyzer.Tag() }
     try {
       val truffleEntry = compiler.compile(parse.tree)
       val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())

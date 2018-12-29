@@ -184,10 +184,10 @@ private class TruffleBuilder private constructor(
     return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))  }
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>): ExpressionNode {
-    return when {
-      literal.type == Boolean::class.java -> Booleans.literal(literal.value as Boolean)
-      literal.type == Double::class.java-> Doubles.literal(literal.value as Double)
-      else -> throw CompileError("Unrecognized literal", literal)
+    return when (literal.tag.type) {
+      Type.BOOL -> Booleans.literal(literal.value as Boolean)
+      Type.DOUBLE -> Doubles.literal(literal.value as Double)
+      else -> throw CompileError("Invalid literal type ${literal.tag.type}", literal)
     }
   }
 
