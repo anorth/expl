@@ -1,27 +1,37 @@
 package org.explang.syntax
 
 /**
- * Pure syntax tree representation, with no type information, scoping or reference to Graal/Truffle.
- * This corresponds closely to the grammar, de-sugared.
+} * Pure syntax tree representation with a generic tag object for metadata. Nodes are immutable.
+ * This corresponds closely to the grammar (de-sugared).
  *
- * Note: instances intentionally do not override equals or hashcode so that instances used as
- * container keys use fast identity-based implementations.
+ * No explicit type information, scoping or reference to Graal/Truffle, but these may be stored
+ * in the tag (which might be internally mutable).
+ *
+ * Note: subtypes intentionally use identity-based equals and hashcode for efficient use
+ * as container keys.
+ *
+ * @param <T> type of tag object attached to each node
  */
-sealed class ExTree {
-  interface Visitor<T> {
-    fun visitCall(call: ExCall): T
-    fun visitUnaryOp(unop: ExUnaryOp): T
-    fun visitBinaryOp(binop: ExBinaryOp): T
-    fun visitIf(iff: ExIf): T
-    fun visitLet(let: ExLet): T
-    fun visitBinding(binding: ExBinding): T
-    fun visitLambda(lambda: ExLambda): T
-    fun visitLiteral(literal: ExLiteral<*>): T
-    fun visitSymbol(symbol: ExSymbol): T
+sealed class ExTree<T> {
+  /**
+   * A visitor for trees.
+   *
+   * @param <V> type of the value returned by each visit method
+   */
+  interface Visitor<T, V> {
+    fun visitCall(call: ExCall<T>): V
+    fun visitUnaryOp(unop: ExUnaryOp<T>): V
+    fun visitBinaryOp(binop: ExBinaryOp<T>): V
+    fun visitIf(iff: ExIf<T>): V
+    fun visitLet(let: ExLet<T>): V
+    fun visitBinding(binding: ExBinding<T>): V
+    fun visitLambda(lambda: ExLambda<T>): V
+    fun visitLiteral(literal: ExLiteral<T, *>): V
+    fun visitSymbol(symbol: ExSymbol<T>): V
 
-    fun visit(tree: ExTree) = tree.accept(this)
+    fun visit(tree: ExTree<T>) = tree.accept(this)
 
-    fun visitChildren(tree: ExTree, initial: T, agg: (T, T) -> T = { _, next -> next }): T {
+    fun visitChildren(tree: ExTree<T>, initial: V, agg: (V, V) -> V = { _, next -> next }): V {
       var res = initial
       tree.children.forEach {
         res = agg(res, it.accept(this))
@@ -32,99 +42,110 @@ sealed class ExTree {
 
   // Range of tokens which this syntax object represents
   abstract val tokenRange: IntRange
+  // Opaque tag data
+  abstract val tag: T
 
-  abstract val children: Iterable<ExTree>
+  abstract val children: Iterable<ExTree<T>>
 
-  abstract fun <T> accept(v: Visitor<T>): T
+  abstract fun <V> accept(v: Visitor<T, V>): V
 }
 
-class ExCall(
+class ExCall<T>(
     override val tokenRange: IntRange,
-    val callee: ExTree,
-    val args: List<ExTree>
-) : ExTree() {
+    override val tag: T,
+    val callee: ExTree<T>,
+    val args: List<ExTree<T>>
+) : ExTree<T>() {
   override val children get() = listOf(callee) + args
-  override fun <T> accept(v: Visitor<T>) = v.visitCall(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitCall(this)
   override fun toString() = "call($callee, ${args.joinToString(",")})"
 }
 
-class ExUnaryOp(
+class ExUnaryOp<T>(
     override val tokenRange: IntRange,
+    override val tag: T,
     val operator: String,
-    val operand: ExTree
-) : ExTree() {
+    val operand: ExTree<T>
+) : ExTree<T>() {
   override val children get() = listOf(operand)
-  override fun <T> accept(v: Visitor<T>) = v.visitUnaryOp(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitUnaryOp(this)
   override fun toString() = "$operator($operand)"
 }
 
-class ExBinaryOp(
+class ExBinaryOp<T>(
     override val tokenRange: IntRange,
+    override val tag: T,
     val operator: String,
-    val left: ExTree,
-    val right: ExTree
-) : ExTree() {
+    val left: ExTree<T>,
+    val right: ExTree<T>
+) : ExTree<T>() {
   override val children get() = listOf(left, right)
-  override fun <T> accept(v: Visitor<T>) = v.visitBinaryOp(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitBinaryOp(this)
   override fun toString() = "$operator($left, $right)"
 }
 
-class ExIf(
+class ExIf<T>(
     override val tokenRange: IntRange,
-    val test: ExTree,
-    val left: ExTree,
-    val right: ExTree
-) : ExTree() {
+    override val tag: T,
+    val test: ExTree<T>,
+    val left: ExTree<T>,
+    val right: ExTree<T>
+) : ExTree<T>() {
   override val children get() = listOf(test, left, right)
-  override fun <T> accept(v: Visitor<T>) = v.visitIf(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitIf(this)
   override fun toString() = "if($test, $left, $right)"
 }
 
-class ExLet(
+class ExLet<T>(
     override val tokenRange: IntRange,
-    val bindings: List<ExBinding>,
-    val bound: ExTree
-): ExTree() {
+    override val tag: T,
+    val bindings: List<ExBinding<T>>,
+    val bound: ExTree<T>
+): ExTree<T>() {
   override val children get() = bindings + listOf(bound)
-  override fun <T> accept(v: Visitor<T>) = v.visitLet(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitLet(this)
   override fun toString() = "let(${bindings.joinToString(",")}; $bound)"
 }
 
-class ExBinding(
+class ExBinding<T>(
     override val tokenRange: IntRange,
-    val symbol: ExSymbol,
-    val value: ExTree
-): ExTree() {
+    override val tag: T,
+    val symbol: ExSymbol<T>,
+    val value: ExTree<T>
+): ExTree<T>() {
   override val children get() = listOf(symbol, value)
-  override fun <T> accept(v: Visitor<T>) = v.visitBinding(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitBinding(this)
   override fun toString() = "$symbol = $value"
 }
 
-class ExLambda(
+class ExLambda<T>(
     override val tokenRange: IntRange,
-    val parameters: List<ExSymbol>,
-    val body: ExTree
-): ExTree() {
+    override val tag: T,
+    val parameters: List<ExSymbol<T>>,
+    val body: ExTree<T>
+): ExTree<T>() {
   override val children get() = parameters + listOf(body)
-  override fun <T> accept(v: Visitor<T>) = v.visitLambda(this)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitLambda(this)
   override fun toString() = "(${parameters.joinToString(",")} -> $body)"
 }
 
-class ExLiteral<T>(
+class ExLiteral<T, L>(
     override val tokenRange: IntRange,
-    val type: Class<T>,
-    val value: T
-) : ExTree() {
-  override val children get() = listOf<ExTree>()
-  override fun <T> accept(v: Visitor<T>) = v.visitLiteral(this)
+    override val tag: T,
+    val type: Class<L>,
+    val value: L
+) : ExTree<T>() {
+  override val children get() = listOf<ExTree<T>>()
+  override fun <V> accept(v: Visitor<T, V>) = v.visitLiteral(this)
   override fun toString() = "$value"
 }
 
-class ExSymbol(
+class ExSymbol<T>(
     override val tokenRange: IntRange,
+    override val tag: T,
     val name: String
-) : ExTree() {
-  override val children get() = listOf<ExTree>()
-  override fun <T> accept(v: Visitor<T>) = v.visitSymbol(this)
+) : ExTree<T>() {
+  override val children get() = listOf<ExTree<T>>()
+  override fun <V> accept(v: Visitor<T, V>) = v.visitSymbol(this)
   override fun toString() = "#$name"
 }

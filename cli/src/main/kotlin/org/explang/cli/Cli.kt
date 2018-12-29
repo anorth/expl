@@ -4,6 +4,7 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
 import com.xenomachina.argparser.ArgParser
 import org.explang.syntax.Parser
+import org.explang.truffle.compiler.Analyzer
 import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.Compiler
 
@@ -31,12 +32,11 @@ class Cli {
         printAnalysis = args.showAnalysis || args.showAll
     )
 
-    val parse = parser.parse(args.expression)
+    val parse = parser.parse(args.expression, Analyzer::Tag)
     try {
-      val ast = compiler.compile(parse.tree)
-
+      val truffleEntry = compiler.compile(parse.tree)
       val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
-      val result = ast.executeDeclaredType(topFrame)
+      val result = truffleEntry.executeDeclaredType(topFrame)
       println("*Result*")
       println(result)
     } catch (e: CompileError) {

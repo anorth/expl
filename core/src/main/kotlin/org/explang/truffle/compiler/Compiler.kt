@@ -31,7 +31,7 @@ import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.util.Arrays
 
-class CompileError(msg: String, val tree: ExTree) : Exception(msg)
+class CompileError(msg: String, val tree: ExTree<Analyzer.Tag>) : Exception(msg)
 
 /**
  * Compiles an AST to Truffle node tree for interpretation/JIT.
@@ -42,7 +42,7 @@ class Compiler(
   private val analyzer = Analyzer()
 
   @Throws(CompileError::class)
-  fun compile(tree: ExTree): ExpressionNode {
+  fun compile(tree: ExTree<Analyzer.Tag>): ExpressionNode {
     val analysis = analyzer.analyze(tree)
     if (printAnalysis) {
       println("*Analysis*")
@@ -64,9 +64,10 @@ class Compiler(
  */
 private class TruffleBuilder private constructor(
     val analysis: Analyzer.Analysis
-) : ExTree.Visitor<ExpressionNode> {
+) : ExTree.Visitor<Analyzer.Tag, ExpressionNode> {
   companion object {
-    fun build(tree: ExTree, analysis: Analyzer.Analysis): Pair<ExpressionNode, FrameDescriptor> {
+    fun build(tree: ExTree<Analyzer.Tag>,
+        analysis: Analyzer.Analysis): Pair<ExpressionNode, FrameDescriptor> {
       val b = TruffleBuilder(analysis)
       val node = b.visit(tree)
       val topFrameDescriptor = b.frame
@@ -77,7 +78,7 @@ private class TruffleBuilder private constructor(
   private var scope: Scope = analysis.rootScope
   private var frame = FrameDescriptor()
 
-  override fun visitCall(call: ExCall): ExpressionNode {
+  override fun visitCall(call: ExCall<Analyzer.Tag>): ExpressionNode {
     val fn = visit(call.callee)
     check(call, fn.type().isFunction) { "Call to a non-function" }
     val args = call.args.map(::visit).toTypedArray()
@@ -90,20 +91,21 @@ private class TruffleBuilder private constructor(
     return FunctionCallNode(fn, args)
   }
 
-  override fun visitUnaryOp(unop: ExUnaryOp): ExpressionNode {
+  override fun visitUnaryOp(unop: ExUnaryOp<Analyzer.Tag>): ExpressionNode {
     val child = visit(unop.operand)
     return UNOPS[child.type()]!![unop.operator]!!(child)
   }
 
-  override fun visitBinaryOp(binop: ExBinaryOp): ExpressionNode {
+  override fun visitBinaryOp(binop: ExBinaryOp<Analyzer.Tag>): ExpressionNode {
     val left = visit(binop.left)
     val right = visit(binop.right)
     return BINOPS[left.type()]!![binop.operator]!!(left, right)
   }
 
-  override fun visitIf(iff: ExIf) = IfNode(visit(iff.test), visit(iff.left), visit(iff.right))
+  override fun visitIf(iff: ExIf<Analyzer.Tag>) =
+      IfNode(visit(iff.test), visit(iff.left), visit(iff.right))
 
-  override fun visitLet(let: ExLet): LetNode {
+  override fun visitLet(let: ExLet<Analyzer.Tag>): LetNode {
     // Let bindings go in the current function scope.
     // Bindings are keyed by frame slots in this frame.
     // Local nodes resolved in the subsequent expression will find those frame slots.
@@ -120,7 +122,7 @@ private class TruffleBuilder private constructor(
     return LetNode(bindingNodes.toTypedArray(), expressionNode)
   }
 
-  override fun visitBinding(binding: ExBinding): BindingNode {
+  override fun visitBinding(binding: ExBinding<Analyzer.Tag>): BindingNode {
     // Add symbol to frame before visiting bound value (for recursion)
     val resolution = (scope as BindingScope).resolve(binding.symbol)
     val slot = frame.addFrameSlot(resolution.identifier, resolution.type,
@@ -130,7 +132,7 @@ private class TruffleBuilder private constructor(
     return BindingNode(slot, valueNode)
   }
 
-  override fun visitLambda(lambda: ExLambda): ExpressionNode {
+  override fun visitLambda(lambda: ExLambda<Analyzer.Tag>): ExpressionNode {
     val prevFrame = frame
     val prevScope = scope
     frame = FrameDescriptor()
@@ -181,7 +183,7 @@ private class TruffleBuilder private constructor(
     scope = prevScope
     return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))  }
 
-  override fun visitLiteral(literal: ExLiteral<*>): ExpressionNode {
+  override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>): ExpressionNode {
     return when {
       literal.type == Boolean::class.java -> Booleans.literal(literal.value as Boolean)
       literal.type == Double::class.java-> Doubles.literal(literal.value as Double)
@@ -189,7 +191,7 @@ private class TruffleBuilder private constructor(
     }
   }
 
-  override fun visitSymbol(symbol: ExSymbol): ExpressionNode {
+  override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>): ExpressionNode {
     val resolution = scope.resolve(symbol)
     val id = resolution.identifier
     return when (resolution) {
@@ -209,7 +211,7 @@ private class TruffleBuilder private constructor(
   }
 
   ///// Helpers /////
-  private fun checkNameUniqueness(let: ExLet, names: List<String>) {
+  private fun checkNameUniqueness(let: ExLet<Analyzer.Tag>, names: List<String>) {
     val found = mutableSetOf<String>()
     val duplicated = mutableSetOf<String>()
     for (name in names) {
@@ -251,7 +253,7 @@ private val BINOPS = mapOf(
     )
 )
 
-private inline fun check(tree: ExTree, predicate: Boolean, msg: () -> String) {
+private inline fun check(tree: ExTree<Analyzer.Tag>, predicate: Boolean, msg: () -> String) {
   if (!predicate) {
     throw CompileError(msg(), tree)
   }
