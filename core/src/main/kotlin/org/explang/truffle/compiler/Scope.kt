@@ -4,7 +4,7 @@ import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
-import org.explang.truffle.Type
+import org.explang.syntax.Type
 
 class NameError(msg: String, val tree: ExTree<*>) : RuntimeException(msg)
 

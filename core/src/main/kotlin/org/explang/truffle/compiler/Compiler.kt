@@ -12,11 +12,11 @@ import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
+import org.explang.syntax.Type
 import org.explang.truffle.Discloser
 import org.explang.truffle.Encloser
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.FrameBinding
-import org.explang.truffle.Type
 import org.explang.truffle.nodes.ArgReadNode
 import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.Booleans

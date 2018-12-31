@@ -2,7 +2,7 @@ package org.explang.truffle.nodes.builtin;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.truffle.Type;
+import org.explang.syntax.Type;
 
 @NodeInfo(shortName = "sqrt")
 public final class SqrtBuiltIn extends BuiltInNode {

@@ -3,11 +3,11 @@ package org.explang.truffle.nodes.builtin;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
+import org.explang.syntax.Type;
 import org.explang.truffle.Discloser;
 import org.explang.truffle.ExplFunction;
-import org.explang.truffle.Type;
-import org.explang.truffle.nodes.ExpressionNode;
 import org.explang.truffle.nodes.CallRootNode;
+import org.explang.truffle.nodes.ExpressionNode;
 
 /**
  * Abstract base class for all built-in functions implementations.

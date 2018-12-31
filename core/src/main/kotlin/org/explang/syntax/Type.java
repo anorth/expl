@@ -1,4 +1,4 @@
-package org.explang.truffle;
+package org.explang.syntax;
 
 import java.util.Arrays;
 import java.util.Objects;

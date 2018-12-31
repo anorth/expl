@@ -4,9 +4,9 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 import org.explang.truffle.RuntimeTypeError;
-import org.explang.truffle.Type;
 
 /**
  * A symbol to be resolved at runtime in the executing frame.

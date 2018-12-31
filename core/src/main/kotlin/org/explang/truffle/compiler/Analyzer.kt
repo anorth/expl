@@ -3,7 +3,7 @@ package org.explang.truffle.compiler
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
-import org.explang.truffle.Type
+import org.explang.syntax.Type
 
 /**
  * Analyses a syntax tree for binding and type information.

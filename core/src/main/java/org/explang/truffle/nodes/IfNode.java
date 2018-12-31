@@ -1,8 +1,8 @@
 package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
-import org.explang.truffle.Type;
 
 public final class IfNode extends ExpressionNode {
   @Child private ExpressionNode test;

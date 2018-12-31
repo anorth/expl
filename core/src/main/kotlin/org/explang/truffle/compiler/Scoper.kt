@@ -10,7 +10,7 @@ import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
-import org.explang.truffle.Type
+import org.explang.syntax.Type
 
 /**
  * AST visitor which resolves symbols to scopes in which they are defined.

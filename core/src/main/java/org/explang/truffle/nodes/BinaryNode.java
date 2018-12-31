@@ -1,6 +1,6 @@
 package org.explang.truffle.nodes;
 
-import org.explang.truffle.Type;
+import org.explang.syntax.Type;
 
 /**
  * An abstract node with two children of the same type.

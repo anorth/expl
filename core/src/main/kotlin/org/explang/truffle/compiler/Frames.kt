@@ -3,7 +3,7 @@ package org.explang.truffle.compiler
 import com.oracle.truffle.api.frame.FrameDescriptor
 import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.frame.FrameSlotKind
-import org.explang.truffle.Type
+import org.explang.syntax.Type
 
 fun FrameDescriptor.addSlot(identifier: String, type: Type) =
     this.addFrameSlot(identifier, type, type.asSlotKind())!!

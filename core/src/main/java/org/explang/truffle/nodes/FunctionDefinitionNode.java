@@ -6,9 +6,9 @@ import java.util.StringJoiner;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.syntax.Type;
 import org.explang.truffle.Encloser;
 import org.explang.truffle.ExplFunction;
-import org.explang.truffle.Type;
 
 @NodeInfo(shortName = "Function")
 public final class FunctionDefinitionNode extends ExpressionNode {

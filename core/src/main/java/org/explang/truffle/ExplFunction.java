@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import org.explang.syntax.Type;
 
 /**
  * Type object for a function, which includes the call target root of the function

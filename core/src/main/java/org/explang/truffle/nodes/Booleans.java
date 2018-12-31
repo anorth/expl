@@ -1,7 +1,7 @@
 package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.explang.truffle.Type;
+import org.explang.syntax.Type;
 
 /**
  * Strongly typed multiplication nodes.
