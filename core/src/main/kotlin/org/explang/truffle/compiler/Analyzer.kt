@@ -1,15 +1,8 @@
 package org.explang.truffle.compiler
 
-import org.explang.syntax.ExBinaryOp
-import org.explang.syntax.ExBinding
-import org.explang.syntax.ExCall
-import org.explang.syntax.ExIf
 import org.explang.syntax.ExLambda
-import org.explang.syntax.ExLet
-import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
-import org.explang.syntax.ExUnaryOp
 import org.explang.truffle.Type
 
 /**
@@ -38,102 +31,8 @@ class Analyzer {
   }
 
   fun analyze(tree: ExTree<Tag>): Analysis {
-    val rootScope = RootScope(tree)
-    val v = ScopeVisitor(rootScope)
-    tree.accept(v)
-    assert(v.scope() == rootScope) { "Scope visitor corrupt" }
-
-    val captured = computeCapturedSymbols(v.resolutions.values)
-
-    return Analysis(v.rootScope, v.scopes, v.resolutions, captured)
-  }
-
-  private fun computeCapturedSymbols(
-      resolutions: Iterable<Scope.Resolution>): Map<ExLambda<*>, Set<Scope.Resolution>> {
-    val captured = mutableMapOf<ExLambda<*>, MutableSet<Scope.Resolution>>()
-    resolutions.forEach {
-      var res = it
-      while (res is Scope.Resolution.Closure) {
-        captured.getOrPut(res.scope.tree) { mutableSetOf() }.add(res)
-        res = res.capture
-      }
-    }
-    return captured
+    val scopes = Scoper.computeScopes(tree)
+    return Analysis(scopes.rootScope, scopes.scopes, scopes.resolutions, scopes.captured)
   }
 }
 
-/**
- * Resolves symbols to scopes in which they are defined.
- */
-private class ScopeVisitor(val rootScope: RootScope) : ExTree.Visitor<Analyzer.Tag, Unit> {
-  // Scopes introduced by syntactic trees (functions and bindings)
-  val scopes = mutableMapOf<ExTree<*>, Scope>()
-  // Maps symbols to resolutions. The "same" symbol string may occur multiple times with the
-  // same resolution if it occurs multiple times in the tree.
-  val resolutions = mutableMapOf<ExSymbol<*>, Scope.Resolution>()
-  private var currentScope: Scope = rootScope
-
-  fun scope() = currentScope
-
-  override fun visitCall(call: ExCall<Analyzer.Tag>) {
-    visitChildren(call, Unit)
-  }
-
-  override fun visitUnaryOp(unop: ExUnaryOp<Analyzer.Tag>) {
-    visitChildren(unop, Unit)
-  }
-
-  override fun visitBinaryOp(binop: ExBinaryOp<Analyzer.Tag>) {
-    visitChildren(binop, Unit)
-  }
-
-  override fun visitIf(iff: ExIf<Analyzer.Tag>) {
-    visitChildren(iff, Unit)
-  }
-
-  override fun visitLet(let: ExLet<Analyzer.Tag>) {
-    val scope = BindingScope(let, currentScope)
-    scopes[let] = scope
-    currentScope = scope
-    visitChildren(let, Unit) // Visits all the bindings and then the bound expression last
-    currentScope = currentScope.parent
-  }
-
-  override fun visitBinding(binding: ExBinding<Analyzer.Tag>) {
-    val scope = currentScope as BindingScope
-    // Define the binding before visiting the value, thus supporting recursive resolution.
-    // An alternative would be to have the function's name resolve in the new function scope,
-    // rather than the containing binding scope.
-    scope.defineBinding(binding.symbol, Type.NONE)
-    binding.value.accept(this)
-    // Propagate value's type to binding.
-    binding.tag.type = binding.value.tag.type
-    scope.replaceBinding(binding.symbol, binding.tag.type)
-  }
-
-  override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
-    val scope = FunctionScope(lambda, currentScope)
-    lambda.parameters.forEach {
-      scope.defineArgument(it, Type.NONE)
-    }
-
-    scopes[lambda] = scope
-    currentScope = scope
-    lambda.body.accept(this)
-    currentScope = currentScope.parent
-  }
-
-  override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>) {
-    when (literal.type) {
-      Boolean::class.java -> literal.tag.type = Type.BOOL
-      Double::class.java -> literal.tag.type = Type.DOUBLE
-      else -> throw CompileError("Unrecognized literal type ${literal.type}", literal)
-    }
-    visitChildren(literal, Unit)
-  }
-
-  override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>) {
-    val res = currentScope.resolve(symbol)
-    resolutions[symbol] = res
-  }
-}

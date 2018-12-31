@@ -31,8 +31,6 @@ import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.util.Arrays
 
-class CompileError(msg: String, val tree: ExTree<Analyzer.Tag>) : Exception(msg)
-
 /**
  * Compiles an AST to Truffle node tree for interpretation/JIT.
  */
@@ -252,9 +250,3 @@ private val BINOPS = mapOf(
         "!=" to Doubles::ne
     )
 )
-
-private inline fun check(tree: ExTree<Analyzer.Tag>, predicate: Boolean, msg: () -> String) {
-  if (!predicate) {
-    throw CompileError(msg(), tree)
-  }
-}
