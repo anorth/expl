@@ -10,7 +10,6 @@ import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
-import org.explang.syntax.Type
 
 /**
  * AST visitor which resolves symbols to scopes in which they are defined.
@@ -35,12 +34,12 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
     /** Computes scopes and symbol resolutions for a tree. */
     fun <T> computeScopes(tree: ExTree<T>): Result {
       val rootScope = RootScope(tree)
-      val v = Scoper<T>(rootScope)
-      tree.accept(v)
-      assert(v.currentScope == rootScope) { "Scope visitor corrupt" }
+      val scoped = Scoper<T>(rootScope)
+      tree.accept(scoped)
+      assert(scoped.currentScope == rootScope) { "Scope visitor corrupt" }
 
-      val captured = computeCapturedSymbols(v.resolutions.values)
-      return Result(rootScope, v.scopes, v.resolutions, captured)
+      val captured = computeCapturedSymbols(scoped.resolutions.values)
+      return Result(rootScope, scoped.scopes, scoped.resolutions, captured)
     }
 
     private fun computeCapturedSymbols(
@@ -49,13 +48,12 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
       resolutions.forEach {
         var res = it
         while (res is Scope.Resolution.Closure) {
-          captured.getOrPut(res.scope.tree) { mutableSetOf() }.add(res)
+          captured.getOrPut(res.scope.tree) { mutableSetOf() }.add(res.capture)
           res = res.capture
         }
       }
       return captured
     }
-
   }
 
   // Scopes introduced by syntactic trees (functions and bindings)
@@ -91,18 +89,23 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   }
 
   override fun visitBinding(binding: ExBinding<T>) {
-    val scope = currentScope as BindingScope
+    assert(currentScope is BindingScope) { "Encountered binding without enclosing binding scope" }
     // Define the binding before visiting the value, thus supporting recursive resolution.
     // An alternative would be to have the function's name resolve in the new function scope,
     // rather than the containing binding scope.
-    scope.defineBinding(binding.symbol, Type.NONE)
+    val resolution = currentScope.define(binding.symbol)
+    resolutions[binding.symbol] = resolution // Resolve the bound symbol to "itself"
     binding.value.accept(this)
   }
 
   override fun visitLambda(lambda: ExLambda<T>) {
     val scope = FunctionScope(lambda, currentScope)
+
+    // The body expression contains symbol nodes which refer to formal parameters by name.
+    // Visit those formal parameter declarations first to define their indices in the scope.
+    // Within this scope, matching symbols will resolve to those indices.
     lambda.parameters.forEach {
-      scope.defineArgument(it, Type.NONE)
+      scope.define(it)
     }
 
     scopes[lambda] = scope

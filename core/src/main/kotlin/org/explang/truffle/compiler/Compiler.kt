@@ -123,9 +123,10 @@ private class TruffleBuilder private constructor(
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>): BindingNode {
     // Add symbol to frame before visiting bound value (for recursion)
     val resolution = (scope as BindingScope).resolve(binding.symbol)
-    val slot = frame.addFrameSlot(resolution.identifier, resolution.type,
-        resolution.type.asSlotKind())
+    val type = binding.symbol.tag.type
+    val slot = frame.addFrameSlot(resolution.identifier, type, type.asSlotKind())
 
+    // Note: the symbol node is not visited.
     val valueNode = visit(binding.value)
     return BindingNode(slot, valueNode)
   }
@@ -136,13 +137,7 @@ private class TruffleBuilder private constructor(
     frame = FrameDescriptor()
     scope = analysis.scopes[lambda]!!
 
-    // The body expression contains symbol nodes which refer to formal parameters by name.
-    // Visit those formal parameter declarations first to define their indices in the scope.
-    // Within this scope, matching symbols will resolve to those indices.
-    val argResolutions = lambda.parameters.map {
-      (scope as FunctionScope).resolve(it) as Scope.Resolution.Argument
-    }
-    val argTypes = argResolutions.map(Scope.Resolution.Argument::type).toTypedArray()
+    val argTypes = lambda.parameters.map { it.tag.type }.toTypedArray()
 
     // Function bodies can capture non-local values. The references are evaluated at the time
     // the function is defined. The value is closed over, not the reference.
@@ -156,18 +151,24 @@ private class TruffleBuilder private constructor(
     val closureBindings = arrayOfNulls<FrameBinding>(captured.size)
     val calleeBindings = arrayOfNulls<FrameBinding.SlotBinding>(captured.size)
     captured.forEachIndexed { i, resolution ->
-      val closureSlot = closureDescriptor.addSlot(resolution.identifier, resolution.type)
+      // This is the only use for analysis.bindings. It's required only because the symbols
+      // attached to the scope resolutions are not bound in their tag type (<*>).
+      // An alternative of attaching types to resolutions was rejected as it requires
+      // resolutions to be either mutable, or at least replacable in scopes, which breaks
+      // other references to them.
+      // Another alternative is to concretely type ExTrees in the scope objects.
+      val type = analysis.bindings[resolution]!!
+      val closureSlot = closureDescriptor.addSlot(resolution.identifier, type)
       closureBindings[i] = when (resolution) {
-        is Scope.Resolution.Local ->
-          FrameBinding.SlotBinding(prevFrame.findSlot(resolution.identifier), closureSlot)
-        is Scope.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
+        is Scope.Resolution.Local,
         is Scope.Resolution.Closure ->
           FrameBinding.SlotBinding(prevFrame.findSlot(resolution.identifier), closureSlot)
+        is Scope.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
         is Scope.Resolution.Unresolved ->
           throw CompileError("Unbound capture ${resolution.symbol}", lambda)
       }
       calleeBindings[i] =
-          FrameBinding.SlotBinding(closureSlot, frame.addSlot(resolution.identifier, resolution.type))
+          FrameBinding.SlotBinding(closureSlot, frame.addSlot(resolution.identifier, type))
     }
 
     val body = visit(lambda.body)
@@ -192,12 +193,13 @@ private class TruffleBuilder private constructor(
   override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>): ExpressionNode {
     val resolution = scope.resolve(symbol)
     val id = resolution.identifier
+    val type = symbol.tag.type
     return when (resolution) {
-      is Scope.Resolution.Argument -> ArgReadNode(resolution.type, resolution.index, id)
+      is Scope.Resolution.Argument -> ArgReadNode(type, resolution.index, id)
       is Scope.Resolution.Local ->
-        SymbolNode(resolution.type, frame.findFrameSlot(id))
+        SymbolNode(type, frame.findFrameSlot(id))
       is Scope.Resolution.Closure ->
-        SymbolNode(resolution.type, frame.findFrameSlot(id))
+        SymbolNode(type, frame.findFrameSlot(id))
       is Scope.Resolution.Unresolved -> {
         if (id in BUILT_INS) {
           StaticBound.builtIn(BUILT_INS[id]!!)

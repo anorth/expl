@@ -1,42 +1,44 @@
 package org.explang.truffle.compiler
 
 import org.explang.syntax.ExLambda
-import org.explang.syntax.ExLet
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
-import org.explang.syntax.Type
 
 class NameError(msg: String, val tree: ExTree<*>) : RuntimeException(msg)
 
 /**
- * Compile-time scopes, resolving to arguments or bindings.
+ * Compile-time scopes, resolving symbols to to arguments or bindings.
+ *
+ * Multiple symbol instances with the same name may share a resolution.
+ * Once defined, the resolution for a symbol is immutable and constant.
  */
 sealed class Scope {
   /** The syntax tree introducing the scope. */
   abstract val tree: ExTree<*>
 
-  /** The result of resolving a name in some scope. */
+  /**
+   * The result of resolving a name in some scope.
+   *
+   * A resolution is immutable, although the referenced [Scope] is not.
+   */
   sealed class Resolution {
     abstract val symbol: ExSymbol<*> // The symbol resolved
     abstract val scope: Scope // The scope in which it was resolved, out to the immediate function
-    abstract val type: Type // The resolved type (which may be NONE)
     val identifier get() = symbol.name // Frame identifier
 
     data class Argument(
         override val symbol: ExSymbol<*>,
         override val scope: FunctionScope,
-        override val type: Type,
         val index: Int
     ) : Resolution() {
-      override fun toString() = "Argument[$symbol=$index: $type]"
+      override fun toString() = "Argument[$symbol=$index]"
     }
 
     data class Local(
         override val symbol: ExSymbol<*>,
-        override val scope: BindingScope,
-        override val type: Type
+        override val scope: BindingScope
     ) : Resolution() {
-      override fun toString() = "Local[$symbol: $type]"
+      override fun toString() = "Local[$symbol]"
     }
 
     data class Closure(
@@ -44,14 +46,12 @@ sealed class Scope {
         val capture: Resolution // The outer resolution (which might chain more than once)
     ) : Resolution() {
       override val symbol get() = capture.symbol
-      override val type get() = capture.type
       override fun toString() = "Closure[$symbol=$capture]"
     }
 
     data class Unresolved(
         override val symbol: ExSymbol<*>,
-        override val scope: RootScope,
-        override val type: Type = Type.NONE
+        override val scope: RootScope
     ) : Resolution() {
       override fun toString() = "Unresolved[$symbol]"
     }
@@ -60,16 +60,22 @@ sealed class Scope {
   /** The parent of this scope (self for root scope) */
   abstract val parent: Scope
 
+  /** Defines a new binding in this scope. */
+  abstract fun define(symbol: ExSymbol<*>): Scope.Resolution
+
   /**
    * Resolves a symbol in this scope, otherwise falls back to the parent scope.
    */
-  abstract fun resolve(symbol: ExSymbol<*>): Resolution
+  abstract fun resolve(symbol: ExSymbol<*>): Scope.Resolution
 }
 
 /**
  * Anonymous scope enclosing the entry point. Nothing can resolve here.
  */
 class RootScope(override val tree: ExTree<*>) : Scope() {
+  override fun define(symbol: ExSymbol<*>) =
+      throw RuntimeException("Can't define binding in root scope")
+
   override fun resolve(symbol: ExSymbol<*>): Resolution = Resolution.Unresolved(symbol, this)
 
   override val parent: Scope get() = this
@@ -96,10 +102,10 @@ class FunctionScope(override val tree: ExLambda<*>, override val parent: Scope) 
    * Defines an argument name in this scope. Names resolve to indices in the order they
    * are defined.
    */
-  fun defineArgument(symbol: ExSymbol<*>, type: Type): Resolution.Argument {
+  override fun define(symbol: ExSymbol<*>): Resolution.Argument {
     val name = symbol.name
     if (name in args) throw NameError("Duplicate argument name $name", symbol)
-    val arg = Resolution.Argument(symbol, this, type, args.size)
+    val arg = Resolution.Argument(symbol, this, args.size)
     args[name] = arg
     return arg
   }
@@ -110,7 +116,7 @@ class FunctionScope(override val tree: ExLambda<*>, override val parent: Scope) 
 /**
  * A scope for bindings.
  */
-class BindingScope(override val tree: ExLet<*>, override val parent: Scope) : Scope() {
+class BindingScope(override val tree: ExTree<*>, override val parent: Scope) : Scope() {
   private val bindings: MutableMap<String, Resolution.Local> = mutableMapOf()
 
   override fun resolve(symbol: ExSymbol<*>): Resolution {
@@ -123,22 +129,10 @@ class BindingScope(override val tree: ExLet<*>, override val parent: Scope) : Sc
    *
    * TODO: resolve colliding names for different bindings in the same function (shadowing).
    */
-  fun defineBinding(symbol: ExSymbol<*>, type: Type): Resolution.Local {
+  override fun define(symbol: ExSymbol<*>): Resolution.Local {
     val name = symbol.name
     if (name in bindings) throw NameError("Duplicate binding for $name", symbol)
-    val binding = Resolution.Local(symbol, this, type)
-    bindings[name] = binding
-    return binding
-  }
-
-  /**
-   * Replaces type information for a binding in the current level.
-   */
-  fun replaceBinding(symbol: ExSymbol<*>, type: Type): Resolution.Local {
-    val name = symbol.name
-    if (name !in bindings) throw NameError("No binding for $name", symbol)
-    assert(bindings[name]!!.type == Type.NONE) { "Replacing non-NONE type" }
-    val binding = Resolution.Local(symbol, this, type)
+    val binding = Resolution.Local(symbol, this)
     bindings[name] = binding
     return binding
   }
