@@ -29,20 +29,20 @@ public final class Type {
   /** The function result type, or *this* for grounded types. */
   private final String name;
   private final Type result;
-  private final @Nullable Type[] arguments; // null for non-functions
+  private final @Nullable Type[] parameters; // null for non-functions
 
-  private Type(String name, @Nullable Type result, @Nullable Type[] arguments) {
+  private Type(String name, @Nullable Type result, @Nullable Type[] parameters) {
     this.name = name;
     this.result = result;
-    this.arguments = arguments;
+    this.parameters = parameters;
   }
 
   public String name() { return name; }
   public Type result() { return result; }
-  public Type[] arguments() { return arguments; }
+  public Type[] parameters() { return parameters; }
 
   public boolean isFunction() {
-    return arguments != null;
+    return parameters != null;
   }
 
   @Override
@@ -55,7 +55,7 @@ public final class Type {
       if (o == null || getClass() != o.getClass()) return false;
       Type type = (Type) o;
       return Objects.equals(result, type.result) &&
-          Arrays.equals(arguments, type.arguments);
+          Arrays.equals(parameters, type.parameters);
 
     } else {
       return this == o;
@@ -65,7 +65,7 @@ public final class Type {
   @Override
   public int hashCode() {
     if (this.isFunction()) {
-      return Objects.hash(result, arguments);
+      return Objects.hash(result, parameters);
     } else {
       return super.hashCode();
     }

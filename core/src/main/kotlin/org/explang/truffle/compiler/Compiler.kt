@@ -82,7 +82,7 @@ private class TruffleBuilder private constructor(
     check(call, fn.type().isFunction) { "Call to a non-function" }
     val args = call.args.map(::visit).toTypedArray()
     val actualTypes = args.map(ExpressionNode::type).toTypedArray()
-    val declaredTypes = fn.type().arguments()
+    val declaredTypes = fn.type().parameters()
     check(call, Arrays.equals(declaredTypes, actualTypes)) {
       "Actual parameters (${actualTypes.joinToString(",")}) don't match " +
           "declared (${declaredTypes.joinToString(",")})"

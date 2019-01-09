@@ -52,7 +52,23 @@ class TypeChecker(
   // - if the node type is not NONE, push it down to any untyped children
 
   override fun visitCall(call: ExCall<Analyzer.Tag>) {
-    TODO("not implemented")
+    // Visit callee and argument expressions, which must all become fully typed.
+    visitChildren(call, Unit)
+
+    val callee = call.callee
+    val args = call.args
+    check(callee, callee.typeTag.isFunction) { "Callee $callee is not a function" }
+    val formalParamTypes = callee.typeTag.parameters()
+    check(call, args.size == formalParamTypes.size) {
+      "Expected ${formalParamTypes.size} arguments, got ${args.size}"
+    }
+    for (i in formalParamTypes.indices) {
+      check(args[i], args[i].typeTag == formalParamTypes[i]) {
+        "Argument $i expected ${formalParamTypes[i]}, got ${args[i]}"
+      }
+    }
+
+    call.typeTag = callee.typeTag.result()
   }
 
   override fun visitUnaryOp(unop: ExUnaryOp<Analyzer.Tag>) {
@@ -141,7 +157,7 @@ class TypeChecker(
       }
     }
 
-    binding.value.accept(this)
+    visit(binding.value)
 
     val valueType = binding.value.typeTag
     // Propagate value type to the symbol resolution
@@ -158,14 +174,19 @@ class TypeChecker(
   }
 
   override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
-    TODO("not implemented")
-//    lambda.typeTag =
-//        Type.function(lambda.body.typeTag, *lambda.parameters.map { it.typeTag }.toTypedArray())
-
+    visitChildren(lambda, Unit) // Visit parameters and then body
+    lambda.typeTag = Type.function(lambda.body.typeTag,
+        *lambda.parameters.map { it.typeTag }.toTypedArray())
   }
 
   override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) {
-    parameter.symbol.typeTag = parameter.annotation
+    assert(parameter.annotation != Type.NONE) {
+      "Unexpected parameter annotation ${parameter.annotation}"
+    }
+    parameter.typeTag = parameter.annotation
+    val resolution = resolver.resolve(parameter.symbol)
+    assert(resolution !in bindings) { "Parameter binding resolved before definition" }
+    bindings[resolution] = parameter.annotation
   }
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>) {
