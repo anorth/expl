@@ -7,6 +7,7 @@ import org.explang.syntax.ExIf
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExLiteral
+import org.explang.syntax.ExParameter
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
@@ -99,19 +100,17 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   }
 
   override fun visitLambda(lambda: ExLambda<T>) {
-    val scope = FunctionScope(lambda, currentScope)
+    val lambdaScope = FunctionScope(lambda, currentScope)
 
-    // The body expression contains symbol nodes which refer to formal parameters by name.
-    // Visit those formal parameter declarations first to define their indices in the scope.
-    // Within this scope, matching symbols will resolve to those indices.
-    lambda.parameters.forEach {
-      scope.define(it)
-    }
-
-    scopes[lambda] = scope
-    currentScope = scope
-    lambda.body.accept(this)
+    currentScope = lambdaScope
+    visitChildren(lambda, Unit) // Visit parameters and then body
     currentScope = currentScope.parent
+
+    scopes[lambda] = lambdaScope
+  }
+
+  override fun visitParameter(parameter: ExParameter<T>) {
+    currentScope.define(parameter.symbol)
   }
 
   override fun visitLiteral(literal: ExLiteral<T, *>) {

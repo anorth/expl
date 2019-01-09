@@ -31,11 +31,24 @@ binding
   ;
 
 lambdaParameters
-  : symbol // Sugar for single-parameter lambdas
+  : parameter // Sugar for single-parameter lambdas
   | formalParameters
   ;
 
-formalParameters: LPAREN (symbol (COMMA symbol)*)? RPAREN ;
+formalParameters: LPAREN (parameter (COMMA parameter)*)? RPAREN ;
+
+parameter: symbol typeAnnotation ;
+
+typeAnnotation: COLON typeExpression ;
+
+typeExpression
+  // TODO: function types
+  : typePrimitive;
+
+typePrimitive
+  : DOUBLE
+  | BOOL
+  ;
 
 literal
   : number
@@ -63,6 +76,7 @@ ARROW: '->';
 LPAREN: '(' ;
 RPAREN: ')' ;
 COMMA: ',' ;
+COLON: ':' ;
 
 POW: '^' ;
 TIMES: '*' ;
@@ -78,6 +92,9 @@ NEQ: '<>';
 
 TRUE: 'true';
 FALSE: 'false';
+
+DOUBLE: 'double';
+BOOL: 'bool';
 
 INTEGER: DIGITS ;
 FLOAT: DIGITS ('.' [0-9]*)? (E SIGN? DIGITS)? ;

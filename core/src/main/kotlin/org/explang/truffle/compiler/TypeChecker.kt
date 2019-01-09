@@ -8,6 +8,7 @@ import org.explang.syntax.ExIf
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExLiteral
+import org.explang.syntax.ExParameter
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
@@ -158,9 +159,13 @@ class TypeChecker(
 
   override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
     TODO("not implemented")
-//    lambda.tag.type =
-//        Type.function(lambda.body.tag.type, *lambda.parameters.map { it.tag.type }.toTypedArray())
+//    lambda.typeTag =
+//        Type.function(lambda.body.typeTag, *lambda.parameters.map { it.typeTag }.toTypedArray())
 
+  }
+
+  override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) {
+    parameter.symbol.typeTag = parameter.annotation
   }
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>) {
@@ -170,13 +175,13 @@ class TypeChecker(
       else -> throw CompileError("Unrecognized literal type ${literal.type}", literal)
     }
 
-    if (literal.tag.type == Type.NONE) {
+    if (literal.typeTag == Type.NONE) {
       literal.typeTag = actual
     } else if (literal.typeTag != actual) {
       // An incompatible type was pushed down
       throw CompileError("Unexpected literal type $actual, expected ${literal.typeTag}", literal)
     }
-    assert(literal.tag.type != Type.NONE)
+    assert(literal.typeTag != Type.NONE)
   }
 
   override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>) {

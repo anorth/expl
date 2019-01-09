@@ -26,6 +26,7 @@ sealed class ExTree<T> {
     fun visitLet(let: ExLet<T>): V
     fun visitBinding(binding: ExBinding<T>): V
     fun visitLambda(lambda: ExLambda<T>): V
+    fun visitParameter(parameter: ExParameter<T>): V
     fun visitLiteral(literal: ExLiteral<T, *>): V
     fun visitSymbol(symbol: ExSymbol<T>): V
 
@@ -121,12 +122,23 @@ class ExBinding<T>(
 class ExLambda<T>(
     override val tokenRange: IntRange,
     override val tag: T,
-    val parameters: List<ExSymbol<T>>,
+    val parameters: List<ExParameter<T>>,
     val body: ExTree<T>
 ): ExTree<T>() {
   override val children get() = parameters + listOf(body)
   override fun <V> accept(v: Visitor<T, V>) = v.visitLambda(this)
   override fun toString() = "(${parameters.joinToString(",")} -> $body)"
+}
+
+class ExParameter<T>(
+  override val tokenRange: IntRange,
+  override val tag: T,
+  val symbol: ExSymbol<T>,
+  val annotation: Type
+): ExTree<T>() {
+  override val children = listOf(symbol)
+  override fun <V> accept(v: Visitor<T, V>): V = v.visitParameter(this)
+  override fun toString() = "$symbol:$annotation"
 }
 
 class ExLiteral<T, L>(

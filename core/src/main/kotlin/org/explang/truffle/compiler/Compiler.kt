@@ -9,6 +9,7 @@ import org.explang.syntax.ExIf
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExLiteral
+import org.explang.syntax.ExParameter
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
@@ -137,7 +138,7 @@ private class TruffleBuilder private constructor(
     frame = FrameDescriptor()
     scope = analysis.scopes[lambda]!!
 
-    val argTypes = lambda.parameters.map { it.tag.type }.toTypedArray()
+    val argTypes = lambda.parameters.map(ExParameter<*>::annotation).toTypedArray()
 
     // Function bodies can capture non-local values. The references are evaluated at the time
     // the function is defined. The value is closed over, not the reference.
@@ -180,7 +181,11 @@ private class TruffleBuilder private constructor(
 
     frame = prevFrame
     scope = prevScope
-    return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))  }
+    return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))
+  }
+
+  override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) =
+      throw RuntimeException("Unused")
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>): ExpressionNode {
     return when (literal.tag.type) {
