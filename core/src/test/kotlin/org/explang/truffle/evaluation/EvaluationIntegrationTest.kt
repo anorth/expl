@@ -91,7 +91,7 @@ private fun evaluate(expression: String): Any {
 
   val parse = parser.parse(expression) { Analyzer.Tag() }
   try {
-    val truffleEntry = compiler.compile(parse.tree)
+    val truffleEntry = compiler.compile(parse.syntax!!)
     val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
     val result = truffleEntry.executeDeclaredType(topFrame)
     if (debug) {

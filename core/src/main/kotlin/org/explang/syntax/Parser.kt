@@ -1,9 +1,12 @@
 package org.explang.syntax
 
+import org.antlr.v4.runtime.BaseErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.RecognitionException
+import org.antlr.v4.runtime.Recognizer
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.ParseTree
@@ -29,8 +32,15 @@ class Parser(
   class Result<T>(
     val tokens: List<Token>,
     val parse: ExplParser.ExpressionContext,
-    val tree: ExTree<T>,
-    val error: String? = null
+    val syntax: ExTree<T>?,
+    val error: ParseError? = null
+  )
+
+  /** A failure to parse. */
+  class ParseError(
+      val line: Int,
+      val charPositionInLine: Int,
+      val msg: String
   )
 
   /**
@@ -59,12 +69,21 @@ class Parser(
       }
     }
 
+    val errors = ErrorAccumulator()
+    parser.removeErrorListeners() // Console listener is added by default
+    parser.addErrorListener(errors)
+
     val parseTree = parser.expression()
-    var error: String? = null
-    if (parseTree.sourceInterval != Interval(0, tokens.size() - 2)) {
-      println("${parseTree.sourceInterval}, ${tokens.size()}")
+    var error: ParseError? = null
+    if (parser.numberOfSyntaxErrors > 0) {
+      error = errors.errors.first()
+    } else if (parseTree.sourceInterval != Interval(0, tokens.size() - 2)) {
       val trailing = tokens.get(parseTree.sourceInterval.b + 1, tokens.size() - 2)
-      error = "Parse failed with trailing tokens: ${trailing.joinToString(" ") { it.text }}"
+      error = ParseError(
+          parseTree.stop.line,
+          parseTree.stop.charPositionInLine,
+          "Parse failed with trailing tokens: ${trailing.joinToString(" ") { it.text }}"
+      )
     }
 
     if (printParse) {
@@ -72,16 +91,22 @@ class Parser(
       println(parseTree.toStringTree(parser))
     }
 
-    val ast = toSyntax(parseTree, tag)
-    if (printAst) {
-      println("*AST*")
-      println(ast)
+    // The parser emits a tree even if it encounters errors, but in that case the tree might not
+    // be syntactically valid, so the AST builder can fail. I must decide whether to make the AST
+    // builder robust to partial trees, or just fail here before the AST.
+    val ast = if (error == null) {
+      AstBuilder(tag).visit(parseTree).also {
+        if (printAst) {
+          println("*AST*")
+          println(it)
+        }
+      }
+    } else {
+      null
     }
 
     return Result(tokens.tokens, parseTree, ast, error)
   }
-
-  fun <T> toSyntax(tree: ParseTree,  tag: () -> T) = AstBuilder<T>(tag).visit(tree)
 }
 
 /** A parse tree visitor that constructs an AST */
@@ -226,6 +251,18 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return super.visitTypePrimitive(ctx)
   }
 }
+
+private class ErrorAccumulator : BaseErrorListener() {
+  private val accumulated = mutableListOf<Parser.ParseError>()
+
+  val errors: List<Parser.ParseError> get() = accumulated
+
+  override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int,
+      charPositionInLine: Int, msg: String?, e: RecognitionException?) {
+    accumulated.add(Parser.ParseError(line, charPositionInLine, msg ?: "unknown"))
+  }
+}
+
 
 // Both Interval and IntRange are closed (inclusive) ranges.
 private fun ParserRuleContext.range() = sourceInterval.a..sourceInterval.b

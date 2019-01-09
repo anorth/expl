@@ -33,17 +33,23 @@ class Cli {
     )
 
     val parse = parser.parse(args.expression) { Analyzer.Tag() }
-    try {
-      val truffleEntry = compiler.compile(parse.tree)
-      val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
-      val result = truffleEntry.executeDeclaredType(topFrame)
-      println("*Result*")
-      println(result)
-    } catch (e: CompileError) {
-      println("*Compile failed*")
-      println(args.expression)
-      println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
-      println(e.message)
+    parse.error?.let { error ->
+      println("*Parse failed*")
+      println("Line ${error.line}:${error.charPositionInLine} ${error.msg}")
+    }
+    parse.syntax?.let { syntax ->
+      try {
+        val truffleEntry = compiler.compile(syntax)
+        val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
+        val result = truffleEntry.executeDeclaredType(topFrame)
+        println("*Result*")
+        println(result)
+      } catch (e: CompileError) {
+        println("*Compile failed*")
+        println(args.expression)
+        println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
+        println(e.message)
+      }
     }
   }
 }

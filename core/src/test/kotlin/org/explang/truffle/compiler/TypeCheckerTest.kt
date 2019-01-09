@@ -202,5 +202,5 @@ private fun check(s: String): Result {
 }
 
 private fun parse(s: String): ExTree<Analyzer.Tag> {
-  return Parser().parse(s) { Analyzer.Tag() }.tree
+  return Parser().parse(s) { Analyzer.Tag() }.syntax!!
 }
