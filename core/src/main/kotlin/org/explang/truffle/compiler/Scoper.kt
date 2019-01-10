@@ -18,29 +18,16 @@ import org.explang.syntax.ExUnaryOp
  * @param <T> type of the AST tag (opaque)
  */
 class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
-  /** The result of scope analysis */
-  data class Result(
-      val rootScope: RootScope,
-      /** Scopes keyed by the syntactic tree which introduces them */
-      val scopes: Map<ExTree<*>, Scope>,
-      /** The resolution of each symbol occurrence in the syntactic tree. */
-      val resolutions: Map<ExSymbol<*>, Scope.Resolution>,
-      /** Maps function definitions to a collection of symbols which resolved outside the
-       * function's scope, so must be captured in a closure at function definition.
-       */
-      val captured: Map<ExLambda<*>, Set<Scope.Resolution>>
-  )
-
   companion object {
     /** Computes scopes and symbol resolutions for a tree. */
-    fun <T> computeScopes(tree: ExTree<T>): Result {
+    fun <T> buildResolver(tree: ExTree<T>): Resolver {
       val rootScope = RootScope(tree)
       val scoped = Scoper<T>(rootScope)
       tree.accept(scoped)
       assert(scoped.currentScope == rootScope) { "Scope visitor corrupt" }
 
       val captured = computeCapturedSymbols(scoped.resolutions.values)
-      return Result(rootScope, scoped.scopes, scoped.resolutions, captured)
+      return LookupResolver(rootScope, scoped.scopes, scoped.resolutions, captured)
     }
 
     private fun computeCapturedSymbols(

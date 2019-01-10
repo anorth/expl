@@ -74,7 +74,8 @@ private class TruffleBuilder private constructor(
     }
   }
 
-  private var scope: Scope = analysis.rootScope
+  private val resolver = analysis.resolver
+
   private var frame = FrameDescriptor()
 
   override fun visitCall(call: ExCall<Analyzer.Tag>): ExpressionNode {
@@ -111,19 +112,16 @@ private class TruffleBuilder private constructor(
     // Bindings in the let clause are also visible to each other.
     // TODO: rewrite names in nested let clauses to avoid name re-use trashing the frame for
     // subsequent bindings (but it works ok for nested clauses). I.e scoped resolved identifiers.
-    val prevScope = scope
-    scope = analysis.scopes[let]!!
     val bindingNodes = let.bindings.map(this::visitBinding)
     checkNameUniqueness(let, bindingNodes.map { it.slot.identifier as String })
 
     val expressionNode = visit(let.bound)
-    scope = prevScope
     return LetNode(bindingNodes.toTypedArray(), expressionNode)
   }
 
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>): BindingNode {
     // Add symbol to frame before visiting bound value (for recursion)
-    val resolution = (scope as BindingScope).resolve(binding.symbol)
+    val resolution = resolver.resolve(binding.symbol)
     val type = binding.symbol.tag.type
     val slot = frame.addFrameSlot(resolution.identifier, type, type.asSlotKind())
 
@@ -134,9 +132,7 @@ private class TruffleBuilder private constructor(
 
   override fun visitLambda(lambda: ExLambda<Analyzer.Tag>): ExpressionNode {
     val prevFrame = frame
-    val prevScope = scope
     frame = FrameDescriptor()
-    scope = analysis.scopes[lambda]!!
 
     val argTypes = lambda.parameters.map(ExParameter<*>::annotation).toTypedArray()
 
@@ -148,17 +144,17 @@ private class TruffleBuilder private constructor(
     // At function *call* time, a function call preamble copies values from the closure
     // into the executing (callee) frame, where normal symbol nodes will find them.
     val closureDescriptor = FrameDescriptor()
-    val captured = analysis.captured[lambda] ?: setOf()
+    val captured = resolver.captured(lambda)
     val closureBindings = arrayOfNulls<FrameBinding>(captured.size)
     val calleeBindings = arrayOfNulls<FrameBinding.SlotBinding>(captured.size)
     captured.forEachIndexed { i, resolution ->
-      // This is the only use for analysis.bindings. It's required only because the symbols
+      // This is the only use for analysis.symbolTypes. It's required only because the symbols
       // attached to the scope resolutions are not bound in their tag type (<*>).
       // An alternative of attaching types to resolutions was rejected as it requires
       // resolutions to be either mutable, or at least replacable in scopes, which breaks
       // other references to them.
       // Another alternative is to concretely type ExTrees in the scope objects.
-      val type = analysis.bindings[resolution]!!
+      val type = analysis.symbolTypes[resolution]!!
       val closureSlot = closureDescriptor.addSlot(resolution.identifier, type)
       closureBindings[i] = when (resolution) {
         is Scope.Resolution.Local,
@@ -180,7 +176,6 @@ private class TruffleBuilder private constructor(
     val fn = ExplFunction.create(type, callTarget)
 
     frame = prevFrame
-    scope = prevScope
     return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))
   }
 
@@ -196,7 +191,7 @@ private class TruffleBuilder private constructor(
   }
 
   override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>): ExpressionNode {
-    val resolution = scope.resolve(symbol)
+    val resolution = resolver.resolve(symbol)
     val id = resolution.identifier
     val type = symbol.tag.type
     return when (resolution) {

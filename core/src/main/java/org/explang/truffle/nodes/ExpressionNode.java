@@ -44,7 +44,7 @@ public abstract class ExpressionNode extends Node {
     } else if (type() == Type.BOOL) {
       return executeBoolean(frame);
     } else {
-      assert type().isFunction();
+      assert type().isFunction(): "Unexpected type " + type();
       return executeFunction(frame);
     }
   }

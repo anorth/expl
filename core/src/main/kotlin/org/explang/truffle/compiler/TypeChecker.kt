@@ -24,19 +24,15 @@ import org.explang.syntax.UNARY_OPERATORS
  * This doesn't yet support any kind of polymorphism or type parameters.
  */
 class TypeChecker(
-    private val resolver: SymbolResolver
+    private val resolver: Resolver
 ) : ExTree.Visitor<Analyzer.Tag, Unit> {
-
-  interface SymbolResolver {
-    fun resolve(symbol: ExSymbol<*>): Scope.Resolution
-  }
 
   data class Result(
       val resolutions: Map<Scope.Resolution, Type>
   )
 
   companion object {
-    fun computeTypes(tree: ExTree<Analyzer.Tag>, resolver: SymbolResolver): Result {
+    fun computeTypes(tree: ExTree<Analyzer.Tag>, resolver: Resolver): Result {
       val checker = TypeChecker(resolver)
       checker.visit(tree)
       return Result(checker.symbolTypes)
@@ -125,6 +121,10 @@ class TypeChecker(
 
   override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
     visitChildren(lambda, Unit) // Visit parameters and then body
+    // Populate types for enclosed symbols?
+//    resolver.captured(lambda).forEach {
+//      symbolTypes[it] = symbolTypes[it.capture]!!
+//    }
     lambda.typeTag = Type.function(lambda.body.typeTag,
         *lambda.parameters.map { it.typeTag }.toTypedArray())
   }
@@ -149,8 +149,23 @@ class TypeChecker(
   }
 
   override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>) {
-    val resolution = resolver.resolve(symbol)
-    symbol.typeTag = symbolTypes[resolution]!!
+    // Follow closure chain to a binding or argument to find the type.
+    // This is a bit messy. It might be better to change the resolver's captures to include the
+    // closure resolution, and set the closure symbol types with the enclosing function definition.
+    val initialResolution = resolver.resolve(symbol)
+    var resolution = initialResolution
+    while (resolution is Scope.Resolution.Closure) {
+      resolution = resolution.capture
+    }
+    val type = symbolTypes[resolution]!!
+
+    // Set the type for the free closure symbol
+    resolution = initialResolution
+    while (resolution is Scope.Resolution.Closure) {
+      symbolTypes[resolution] = type
+      resolution = resolution.capture
+    }
+    symbol.typeTag = type
   }
 
   ///// Private implementation /////

@@ -50,7 +50,7 @@ class TypeCheckerTest {
 
   @Test
   fun boundSymbol() {
-    check("let a = 1 in a").let { (tree, resolver, bindings) ->
+    check("let a = 1 in a").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val binding = let.bindings.first()
 
@@ -58,43 +58,53 @@ class TypeCheckerTest {
       assertEquals(NONE, binding.tag.type) // Remains untyped
       assertEquals(NONE, binding.symbol.tag.type) // Remains untyped
       assertEquals(DOUBLE, binding.value.tag.type)
-      assertEquals(DOUBLE, bindings[resolver.resolve(binding.symbol)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(binding.symbol)])
     }
-    check("let a = 1 in 1 + a").let { (tree, resolver, bindings) ->
+    check("let a = 1 in 1 + a").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val binOp = let.bound as ExBinaryOp
       assertEquals(DOUBLE, let.tag.type)
       assertEquals(DOUBLE, binOp.tag.type)
       assertEquals(DOUBLE, binOp.left.tag.type)
       assertEquals(DOUBLE, binOp.right.tag.type) // Inferred
-      assertEquals(DOUBLE, bindings[resolver.resolve(binOp.right as ExSymbol<*>)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(binOp.right as ExSymbol<*>)])
     }
-    check("let a = 1, b = a+a in a+b").let { (tree, resolver, bindings) ->
+    check("let a = 1, b = a+a in a+b").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       assertEquals(DOUBLE, let.tag.type)
       assertEquals(DOUBLE, let.bindings[0].value.tag.type)
       assertEquals(DOUBLE, let.bindings[1].value.tag.type)
-      assertEquals(DOUBLE, bindings[resolver.resolve(let.bindings[0].symbol)])
-      assertEquals(DOUBLE, bindings[resolver.resolve(let.bindings[1].symbol)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(let.bindings[0].symbol)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(let.bindings[1].symbol)])
+    }
+    check("let a = 1 in let b = a+a in a+b").let { (tree, resolver, symbols) ->
+      val outer = tree as ExLet
+      val inner = outer.bound as ExLet
+
+      assertEquals(DOUBLE, outer.tag.type)
+      assertEquals(DOUBLE, outer.bindings[0].value.tag.type)
+      assertEquals(DOUBLE, inner.bindings[0].value.tag.type)
+      assertEquals(DOUBLE, symbols[resolver.resolve(outer.bindings[0].symbol)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(inner.bindings[0].symbol)])
     }
   }
 
   @Test
   fun nestedBinding() {
-    check("let a = 1 in let b = a+a in a+b").let { (tree, resolver, bindings) ->
+    check("let a = 1 in let b = a+a in a+b").let { (tree, resolver, symbols) ->
       val outer = tree as ExLet
       val inner = outer.bound as ExLet
       assertEquals(DOUBLE, outer.tag.type)
       assertEquals(DOUBLE, outer.bindings[0].value.tag.type)
       assertEquals(DOUBLE, inner.bindings[0].value.tag.type)
-      assertEquals(DOUBLE, bindings[resolver.resolve(outer.bindings[0].symbol)])
-      assertEquals(DOUBLE, bindings[resolver.resolve(inner.bindings[0].symbol)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(outer.bindings[0].symbol)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(inner.bindings[0].symbol)])
     }
   }
 
   @Test
   fun iffSymbol() {
-    check("let a = true in if a then 1 else 2").let { (tree, resolver, bindings) ->
+    check("let a = true in if a then 1 else 2").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val iff = let.bound as ExIf
       assertEquals(DOUBLE, let.tag.type)
@@ -102,9 +112,9 @@ class TypeCheckerTest {
       assertEquals(BOOL, iff.test.tag.type)
       assertEquals(DOUBLE, iff.left.tag.type)
       assertEquals(DOUBLE, iff.right.tag.type)
-      assertEquals(BOOL, bindings[resolver.resolve(iff.test as ExSymbol<*>)])
+      assertEquals(BOOL, symbols[resolver.resolve(iff.test as ExSymbol<*>)])
     }
-    check("let a = 1, b = 2 in if false then a else b").let { (tree, resolver, bindings) ->
+    check("let a = 1, b = 2 in if false then a else b").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val iff = let.bound as ExIf
       assertEquals(DOUBLE, let.tag.type)
@@ -112,8 +122,8 @@ class TypeCheckerTest {
       assertEquals(BOOL, iff.test.tag.type)
       assertEquals(DOUBLE, iff.left.tag.type)
       assertEquals(DOUBLE, iff.right.tag.type)
-      assertEquals(DOUBLE, bindings[resolver.resolve(iff.left as ExSymbol<*>)])
-      assertEquals(DOUBLE, bindings[resolver.resolve(iff.right as ExSymbol<*>)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(iff.left as ExSymbol<*>)])
+      assertEquals(DOUBLE, symbols[resolver.resolve(iff.right as ExSymbol<*>)])
     }
   }
 
@@ -160,11 +170,11 @@ class TypeCheckerTest {
 
   @Test
   fun closure() {
-    check("let a = 1 in () -> a").let { (tree, resolver, bindings) ->
+    check("let a = 1 in () -> a").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val fn = let.bound as ExLambda
       assertEquals(function(DOUBLE), fn.tag.type)
-      assertEquals(DOUBLE, bindings[resolver.resolve((fn.body as ExSymbol<*>))])
+      assertEquals(DOUBLE, symbols[resolver.resolve((fn.body as ExSymbol<*>))])
     }
     check("(let a = 1 in () -> a)()").let { (tree, _, _) ->
       val call = tree as ExCall
@@ -183,27 +193,13 @@ class TypeCheckerTest {
 
 private data class Result(
     val tree: ExTree<Analyzer.Tag>,
-    val resolver: TypeChecker.SymbolResolver,
-    val bindings: Map<Scope.Resolution, Type>
+    val resolver: Resolver,
+    val symbols: Map<Scope.Resolution, Type>
 )
-
-/** Resolves on the fly by name in a global binding scope. */
-private class SimpleResolver(tree: ExTree<*>) :
-    TypeChecker.SymbolResolver {
-  private val rootScope = RootScope(tree)
-  private val bindingScope = BindingScope(tree, rootScope)
-  override fun resolve(symbol: ExSymbol<*>): Scope.Resolution {
-    val maybeResolved = bindingScope.resolve(symbol)
-    if (maybeResolved is Scope.Resolution.Unresolved) {
-      bindingScope.define(symbol)
-    }
-    return bindingScope.resolve(symbol)
-  }
-}
 
 private fun check(s: String): Result {
   val tree = parse(s)
-  val resolver = SimpleResolver(tree)
+  val resolver = Scoper.buildResolver(tree)
   val types = TypeChecker.computeTypes(tree, resolver)
   return Result(tree, resolver, types.resolutions)
 }
