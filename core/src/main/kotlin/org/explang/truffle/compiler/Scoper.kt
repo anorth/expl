@@ -110,7 +110,8 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   }
 
   override fun visitParameter(parameter: ExParameter<T>) {
-    currentScope.define(parameter.symbol)
+    val resolution = currentScope.define(parameter.symbol)
+    resolutions[parameter.symbol] = resolution
   }
 
   override fun visitLiteral(literal: ExLiteral<T, *>) {

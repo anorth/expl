@@ -26,10 +26,10 @@ public final class ArgReadNode extends ExpressionNode {
   }
 
   @Override
-  public ExplFunction executeFunction(VirtualFrame frame) {
-    assertTypeIsFunction();
+  public boolean executeBoolean(VirtualFrame frame) {
+    assertType(Type.BOOL);
     try {
-      return (ExplFunction) frame.getArguments()[index + 1];
+      return (boolean) frame.getArguments()[index + 1];
     } catch (ClassCastException | IndexOutOfBoundsException e) {
       throw fail(e);
     }
@@ -40,6 +40,16 @@ public final class ArgReadNode extends ExpressionNode {
     assertType(Type.DOUBLE);
     try {
       return (double) frame.getArguments()[index + 1];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(e);
+    }
+  }
+
+  @Override
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    assertTypeIsFunction();
+    try {
+      return (ExplFunction) frame.getArguments()[index + 1];
     } catch (ClassCastException | IndexOutOfBoundsException e) {
       throw fail(e);
     }

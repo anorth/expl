@@ -3,10 +3,14 @@ package org.explang.truffle.evaluation
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
 import org.explang.syntax.Parser
+import org.explang.syntax.Type.BOOL
+import org.explang.syntax.Type.function
+import org.explang.truffle.ExplFunction
 import org.explang.truffle.compiler.Analyzer
 import org.explang.truffle.compiler.CompileError
 import org.explang.truffle.compiler.Compiler
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Test
 
 /**
@@ -69,6 +73,21 @@ class EvaluationIntegrationTest {
 
 //    assertResult(2.0, "let a = 1 in let a = a*2 in a")
   }
+
+  @Test
+  fun lambda() {
+    assertEquals(function(BOOL), (evaluate("() -> true") as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (evaluate("(x: bool) -> true") as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (evaluate("(x: bool) -> x") as ExplFunction).type())
+  }
+
+  @Test
+  fun call() {
+    assertResult(true, "(() -> true)()")
+    assertResult(true, "(x: bool -> x)(true)")
+    assertResult(false, "(x: bool -> x)(false)")
+    assertResult(3.0, "((a: double, b: double) -> a+b)(1, 2)")
+  }
 }
 
 private fun assertResult(expected: Any, expression: String) {
@@ -90,6 +109,9 @@ private fun evaluate(expression: String): Any {
   )
 
   val parse = parser.parse(expression) { Analyzer.Tag() }
+  parse.error?.let { error ->
+    fail("Parse failed ${error.line}:${error.charPositionInLine} ${error.msg}")
+  }
   try {
     val truffleEntry = compiler.compile(parse.syntax!!)
     val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
