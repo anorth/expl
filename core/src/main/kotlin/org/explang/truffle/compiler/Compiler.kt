@@ -122,7 +122,7 @@ private class TruffleBuilder private constructor(
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>): BindingNode {
     // Add symbol to frame before visiting bound value (for recursion)
     val resolution = resolver.resolve(binding.symbol)
-    val type = binding.symbol.tag.type
+    val type = analysis.symbolTypes[resolution]!!
     val slot = frame.addFrameSlot(resolution.identifier, type, type.asSlotKind())
 
     // Note: the symbol node is not visited.
@@ -148,7 +148,7 @@ private class TruffleBuilder private constructor(
     val closureBindings = arrayOfNulls<FrameBinding>(captured.size)
     val calleeBindings = arrayOfNulls<FrameBinding.SlotBinding>(captured.size)
     captured.forEachIndexed { i, resolution ->
-      // This is the only use for analysis.symbolTypes. It's required only because the symbols
+      // The analysis.symbolTypes map is required only because the symbols
       // attached to the scope resolutions are not bound in their tag type (<*>).
       // An alternative of attaching types to resolutions was rejected as it requires
       // resolutions to be either mutable, or at least replacable in scopes, which breaks

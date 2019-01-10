@@ -23,7 +23,8 @@ public interface FrameBinding {
     @Override
     public void copy(Frame sourceFrame, Frame targetFrame) {
       assert sourceFrame.getFrameDescriptor().getFrameSlotKind(sourceSlot) ==
-          targetFrame.getFrameDescriptor().getFrameSlotKind(targetSlot);
+          targetFrame.getFrameDescriptor().getFrameSlotKind(targetSlot) :
+          "Mismatched slot binding types, source " + sourceSlot + ", target " + targetSlot;
       try {
         switch (sourceFrame.getFrameDescriptor().getFrameSlotKind(sourceSlot)) {
           case Object:

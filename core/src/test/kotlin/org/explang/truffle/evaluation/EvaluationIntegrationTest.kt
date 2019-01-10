@@ -88,6 +88,14 @@ class EvaluationIntegrationTest {
     assertResult(false, "(x: bool -> x)(false)")
     assertResult(3.0, "((a: double, b: double) -> a+b)(1, 2)")
   }
+
+  @Test
+  fun closure() {
+    assertResult(1.0, "(let a = 1 in () -> a)()")
+    assertResult(1.0, "let a = 1 in (() -> a)()")
+    assertResult(3.0, "let a = 1 in let b = 2 in ((c: double) -> a+c)(b)")
+    assertResult(1.0, "let a = 1 in (() -> (() -> a)()) ()")
+  }
 }
 
 private fun assertResult(expected: Any, expression: String) {
