@@ -13,7 +13,7 @@ data class Operator(
 /** A collection of operators. */
 class Operators(private val ops: Map<String, List<Operator>>) {
   fun withResultType(name: String, type: Type) = ops[name]!!.filter { it.resultType == type }
-  fun withOperandType(name: String, type: Type) = ops[name]!!.filter { it.operandType == type }
+  fun withOperandType(name: String, type: Type) = ops[name]!!.single { it.operandType == type }
 }
 
 val UNARY_OPERATORS = Operators(mapOf(

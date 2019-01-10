@@ -37,7 +37,7 @@ class Analyzer {
     val resolver = LookupResolver(scopes.resolutions)
     val types = TypeChecker.computeTypes(tree, resolver) // Updates node tags in-place
     return Analysis(scopes.rootScope, scopes.scopes, scopes.resolutions, scopes.captured,
-        types.bindings)
+        types.resolutions)
   }
 }
 
