@@ -23,7 +23,7 @@ val UNARY_OPERATORS = Operators(mapOf(
 
 val BINARY_OPERATORS = Operators(mapOf(
     "==" to listOf(Operator(Type.BOOL, Type.BOOL), Operator(Type.BOOL, Type.DOUBLE)),
-    "!=" to listOf(Operator(Type.BOOL, Type.BOOL), Operator(Type.BOOL, Type.DOUBLE)),
+    "<>" to listOf(Operator(Type.BOOL, Type.BOOL), Operator(Type.BOOL, Type.DOUBLE)),
 
     "<" to listOf(Operator(Type.BOOL, Type.DOUBLE)),
     "<=" to listOf(Operator(Type.BOOL, Type.DOUBLE)),

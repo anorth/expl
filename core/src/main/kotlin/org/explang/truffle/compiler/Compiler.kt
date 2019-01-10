@@ -241,7 +241,7 @@ private val UNOPS = mapOf(
 private val BINOPS = mapOf(
     Type.BOOL to mapOf(
         "==" to Booleans::eq,
-        "!=" to Booleans::ne
+        "<>" to Booleans::ne
     ),
     Type.DOUBLE to mapOf(
         "^" to Doubles::exp,
@@ -254,6 +254,6 @@ private val BINOPS = mapOf(
         ">" to Doubles::gt,
         ">=" to Doubles::ge,
         "==" to Doubles::eq,
-        "!=" to Doubles::ne
+        "<>" to Doubles::ne
     )
 )

@@ -42,7 +42,7 @@ class EvaluationIntegrationTest {
   @Test
   fun comparisons() {
     assertResult(true, "false == false")
-    assertResult(false, "false != false")
+    assertResult(false, "false <> false")
     assertResult(false, "false == true")
 
     assertResult(false, "1 > 1")
