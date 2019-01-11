@@ -18,7 +18,7 @@ expression
    | literal                                           # LiteralEx
    | symbol                                            # SymbolEx
    | IF expression THEN expression ELSE expression     # IfEx
-   | LET binding (COMMA binding)* IN expression        # LetEx
+   | LET binding (COMMA binding)* COMMA? IN expression # LetEx
    | LPAREN expression RPAREN                          # ParenthesizedEx
    | lambdaParameters ARROW expression                 # LambdaEx
    ;
@@ -43,8 +43,9 @@ parameter: symbol typeAnnotation ;
 typeAnnotation: COLON typeExpression ;
 
 typeExpression
-  // TODO: function types
-  : typePrimitive;
+  // (->double), (double->double), (double,bool->double)
+  : LPAREN (typeExpression (COMMA typeExpression)*)? ARROW typeExpression RPAREN
+  | typePrimitive;
 
 typePrimitive
   : DOUBLE

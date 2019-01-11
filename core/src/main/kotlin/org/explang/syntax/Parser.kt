@@ -221,12 +221,23 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
       paramCtxs.map(this::visitParameter)
 
   private fun makeType(ctx: ExplParser.TypeAnnotationContext?): Type {
-    val prim = ctx?.typeExpression()?.typePrimitive()
-    return when {
-      prim == null -> Type.NONE
-      prim.BOOL() != null -> Type.BOOL
-      prim.DOUBLE() != null -> Type.DOUBLE
-      else -> throw RuntimeException("Unhandled type literal ${prim.text}")
+    return if (ctx == null) Type.NONE
+    else makeType(ctx.typeExpression())
+  }
+
+  private fun makeType(ctx: ExplParser.TypeExpressionContext): Type {
+    val prim = ctx.typePrimitive()
+    if (prim != null) {
+      return when {
+        prim.BOOL() != null -> Type.BOOL
+        prim.DOUBLE() != null -> Type.DOUBLE
+        else -> throw RuntimeException("Unhandled type literal ${prim.text}")
+      }
+    } else {
+      val children = ctx.typeExpression()
+      val params = children.subList(0, children.lastIndex)
+      val ret = children.last()
+      return Type.function(makeType(ret), *params.map(this::makeType).toTypedArray())
     }
   }
 

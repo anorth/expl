@@ -9,7 +9,7 @@ import org.explang.syntax.ExLet
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
-import org.explang.syntax.Parser
+import org.explang.syntax.TestParser
 import org.explang.syntax.Type
 import org.explang.syntax.Type.BOOL
 import org.explang.syntax.Type.DOUBLE
@@ -19,6 +19,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TypeCheckerTest {
+  private data class Result(
+      val tree: ExTree<Analyzer.Tag>,
+      val resolver: Resolver,
+      val symbols: Map<Scope.Resolution, Type>
+  )
+
+  private val parser = TestParser(debug = false)
+
   @Test
   fun literals() {
     assertEquals(BOOL, check("true").tree.tag.type)
@@ -209,21 +217,63 @@ class TypeCheckerTest {
       assertEquals(function(DOUBLE, DOUBLE), symbols[resolver.resolve((sym2))])
     }
   }
-}
 
-private data class Result(
-    val tree: ExTree<Analyzer.Tag>,
-    val resolver: Resolver,
-    val symbols: Map<Scope.Resolution, Type>
-)
+  @Test
+  fun higherOrderFunction() {
+    check("""(inner: (->double)) -> inner""").let { (tree, _, _) ->
+      val fn = tree as ExLambda
+      assertEquals(NONE, fn.annotation)
+      assertEquals(function(DOUBLE), fn.parameters[0].tag.type)
+      assertEquals(function(DOUBLE), fn.body.tag.type)
+      assertEquals(function(function(DOUBLE), function(DOUBLE)), fn.tag.type)
+    }
+    check("""let f = (inner: (->double)) -> inner in f""").let { (tree, _, _) ->
+      val let = tree as ExLet
+      assertEquals(function(function(DOUBLE), function(DOUBLE)), let.bound.tag.type)
+      assertEquals(function(function(DOUBLE), function(DOUBLE)), let.tag.type)
+    }
+    check("""let
+      |f = (inner: (->double)) -> inner,
+      |g = () -> 1,
+      |in f(g)""".trimMargin()).let { (tree, resolver, symbols) ->
+      val let = tree as ExLet
+      assertEquals(function(DOUBLE), let.bound.tag.type)
+      assertEquals(function(DOUBLE), let.tag.type)
 
-private fun check(s: String): Result {
-  val tree = parse(s)
-  val resolver = Scoper.buildResolver(tree)
-  val types = TypeChecker.computeTypes(tree, resolver)
-  return Result(tree, resolver, types.resolutions)
-}
+      assertEquals(function(function(DOUBLE), function(DOUBLE)),
+          symbols[resolver.resolve((let.bindings[0].symbol))])
+      assertEquals(function(DOUBLE),
+          symbols[resolver.resolve((let.bindings[1].symbol))])
+    }
+    check("""let
+      |apply = (f: (double->double), x: double) -> f(x),
+      |inc = (x: double) -> x + 1,
+      |in apply(inc, 1)""".trimMargin()).let { (tree, resolver, symbols) ->
+      val let = tree as ExLet
+      val call = let.bound as ExCall
+      assertEquals(DOUBLE, call.tag.type)
 
-private fun parse(s: String): ExTree<Analyzer.Tag> {
-  return Parser().parse(s) { Analyzer.Tag() }.syntax!!
+      assertEquals(function(DOUBLE, function(DOUBLE, DOUBLE), DOUBLE),
+          symbols[resolver.resolve((let.bindings[0].symbol))])
+      assertEquals(function(DOUBLE, DOUBLE),
+          symbols[resolver.resolve((let.bindings[1].symbol))])
+    }
+    check("""let
+      |adder = (x: double): (double->double) -> (y: double) -> x + y,
+      |in adder(1)(5)""".trimMargin()).let { (tree, resolver, symbols) ->
+      val let = tree as ExLet
+      val call = let.bound as ExCall
+      assertEquals(DOUBLE, call.tag.type)
+
+      assertEquals(function(function(DOUBLE, DOUBLE), DOUBLE),
+          symbols[resolver.resolve((let.bindings[0].symbol))])
+    }
+  }
+
+  private fun check(s: String): Result {
+    val tree = parser.parse(s)
+    val resolver = Scoper.buildResolver(tree)
+    val types = TypeChecker.computeTypes(tree, resolver)
+    return Result(tree, resolver, types.resolutions)
+  }
 }

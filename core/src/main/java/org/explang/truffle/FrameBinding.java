@@ -52,7 +52,8 @@ public interface FrameBinding {
     private final FrameSlot targetSlot;
 
     public ArgumentBinding(int sourceIndex, FrameSlot targetSlot) {
-      this.sourceIndex = sourceIndex;
+      // The first argument slot is reserved for a closure frame.
+      this.sourceIndex = sourceIndex + 1;
       this.targetSlot = targetSlot;
     }
 

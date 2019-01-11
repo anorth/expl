@@ -72,7 +72,7 @@ public class FunctionCallNode extends ExpressionNode {
     assert (argTypes.length == argNodes.length) :
         "Mismatched arguments, expected " + argTypes.length + " got " + argNodes.length + " args";
     for (int i = 0; i < argTypes.length; i++) {
-      assert (argTypes[i] == argNodes[i].type()) :
+      assert (argTypes[i].equals(argNodes[i].type())) :
           "Mismatched argument " + i + ", expected " + argTypes[i] + " got " + argNodes[i].type();
     }
     return true;

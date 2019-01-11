@@ -79,7 +79,7 @@ class EvaluationIntegrationTest {
   fun lambda() {
     assertEquals(function(BOOL), (evaluate("() -> true") as ExplFunction).type())
     assertEquals(function(BOOL, BOOL), (evaluate("(x: bool) -> true") as ExplFunction).type())
-    assertEquals(function(BOOL, BOOL), (evaluate("(x: bool) -> x") as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (evaluate("x: bool -> x") as ExplFunction).type())
   }
 
   @Test
@@ -96,12 +96,31 @@ class EvaluationIntegrationTest {
     assertResult(1.0, "let a = 1 in (() -> a)()")
     assertResult(3.0, "let a = 1 in let b = 2 in ((c: double) -> a+c)(b)")
     assertResult(1.0, "let a = 1 in (() -> (() -> a)()) ()")
+
+    assertResult(1.0, "(x: double -> () -> x)(1)()")
   }
 
   @Test
   fun recursion() {
+    // Factorial
     assertResult(120.0, "let f = (x: double): double -> if x <= 1 then 1 else x * f(x-1) in f(5)")
+    // Fibonacci
     assertResult(5.0, "let f = (x: double): double -> if x <= 2 then 1 else f(x-1) + f(x-2) in f(5)")
+  }
+
+  @Test
+  fun higherOrderFunctions() {
+    assertResult(1.0, """let
+      |f = (inner: (->double)) -> inner,
+      |g = () -> 1,
+      |in f(g)()""".trimMargin())
+    assertResult(2.0, """let
+      |apply = (f: (double->double), x: double) -> f(x),
+      |inc = (x: double) -> x + 1,
+      |in apply(inc, 1)""".trimMargin())
+    assertResult(6.0, """let
+      |adder = (x: double): (double->double) -> (y: double) -> x + y,
+      |in adder(1)(5)""".trimMargin())
   }
 }
 

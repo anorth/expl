@@ -10,6 +10,9 @@ interface Resolver {
 
   /** Returns resolutions of symbols captured by a lambda. */
   fun captured(lambda: ExLambda<*>): Collection<Scope.Resolution>
+
+  /** Returns any failed resolutions. */
+  fun unresolved(): Collection<Scope.Resolution.Unresolved>
 }
 
 /** A resolver which looks up precomputed maps */
@@ -25,6 +28,10 @@ class LookupResolver(
 
   override fun captured(lambda: ExLambda<*>): Collection<Scope.Resolution> {
     return captured[lambda] ?: listOf()
+  }
+
+  override fun unresolved(): Collection<Scope.Resolution.Unresolved> {
+    return resolutions.values.mapNotNull { it as? Scope.Resolution.Unresolved }
   }
 
   override fun toString(): String {

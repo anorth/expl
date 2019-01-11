@@ -167,15 +167,18 @@ class TypeChecker(
     while (resolution is Scope.Resolution.Closure) {
       resolution = resolution.capture
     }
-    val type = symbolTypes[resolution]!!
-
-    // Set the type for the free closure resolutions
-    resolution = initialResolution
-    while (resolution is Scope.Resolution.Closure) {
-      symbolTypes[resolution] = type
-      resolution = resolution.capture
+    val type = symbolTypes[resolution]
+    if (type != null) {
+      // Set the type for the free closure resolutions
+      resolution = initialResolution
+      while (resolution is Scope.Resolution.Closure) {
+        symbolTypes[resolution] = type
+        resolution = resolution.capture
+      }
+      symbol.typeTag = type
+    } else {
+      throw CompileError("No type for $resolution", symbol)
     }
-    symbol.typeTag = type
   }
 
   ///// Private implementation /////
