@@ -103,13 +103,19 @@ class TypeChecker(
   }
 
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>) {
-    // The binding expression remains untyped, but the symbol resolution gets a type.
-    visit(binding.value)
-    assert(binding.value.typeTag != Type.NONE) { "No type for bound expression" }
-
-    val valueType = binding.value.typeTag
-    // Propagate value type to the symbol resolution
     val resolution = resolver.resolve(binding.symbol)
+    // Special case for bound lambdas carrying type annotations, which may recursively call
+    // themselves. Set the type for the symbol *before* visiting the body.
+    if (binding.value is ExLambda && binding.value.annotation != Type.NONE) {
+      symbolTypes[resolution] = binding.value.type()
+    }
+
+    visit(binding.value)
+    val valueType = binding.value.typeTag
+    assert(valueType != Type.NONE) { "No type for bound expression" }
+
+    // The binding expression remains untyped, but the symbol resolution gets a type.
+    // Propagate value type to the symbol resolution
     if (resolution !in symbolTypes) {
       symbolTypes[resolution] = valueType
     } else {
@@ -120,13 +126,17 @@ class TypeChecker(
   }
 
   override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
+    // We could populate types for enclosed symbols here,
+    // including the name of the lambda for recursive calls?
+
     visitChildren(lambda, Unit) // Visit parameters and then body
-    // Populate types for enclosed symbols?
-//    resolver.captured(lambda).forEach {
-//      symbolTypes[it] = symbolTypes[it.capture]!!
-//    }
-    lambda.typeTag = Type.function(lambda.body.typeTag,
-        *lambda.parameters.map { it.typeTag }.toTypedArray())
+    check(lambda, lambda.annotation == Type.NONE || lambda.body.typeTag == lambda.annotation) {
+      "Inconsistent return type for lambda, annotated ${lambda.annotation} " +
+          "but returns ${lambda.body.typeTag}"
+    }
+
+    lambda.typeTag =  Type.function(lambda.body.typeTag,
+      *lambda.parameters.map(ExParameter<*>::annotation).toTypedArray())
   }
 
   override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) {
@@ -159,7 +169,7 @@ class TypeChecker(
     }
     val type = symbolTypes[resolution]!!
 
-    // Set the type for the free closure symbol
+    // Set the type for the free closure resolutions
     resolution = initialResolution
     while (resolution is Scope.Resolution.Closure) {
       symbolTypes[resolution] = type
@@ -177,6 +187,11 @@ class TypeChecker(
       "Incompatible types for $parent: ${left.typeTag}, ${right.typeTag}"
     }
   }
+}
+
+private fun ExLambda<*>.type(): Type {
+  return Type.function(annotation,
+      *parameters.map(ExParameter<*>::annotation).toTypedArray())
 }
 
 private var ExTree<Analyzer.Tag>.typeTag: Type

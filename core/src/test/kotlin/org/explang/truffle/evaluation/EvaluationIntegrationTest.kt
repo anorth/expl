@@ -71,6 +71,7 @@ class EvaluationIntegrationTest {
     assertResult(2.0, "let a = 1 in let b = a+1 in b")
     assertResult(3.0, "let a = 1 in let b = a+1 in a+b")
 
+    // Not yet implemented
 //    assertResult(2.0, "let a = 1 in let a = a*2 in a")
   }
 
@@ -95,6 +96,12 @@ class EvaluationIntegrationTest {
     assertResult(1.0, "let a = 1 in (() -> a)()")
     assertResult(3.0, "let a = 1 in let b = 2 in ((c: double) -> a+c)(b)")
     assertResult(1.0, "let a = 1 in (() -> (() -> a)()) ()")
+  }
+
+  @Test
+  fun recursion() {
+    assertResult(120.0, "let f = (x: double): double -> if x <= 1 then 1 else x * f(x-1) in f(5)")
+    assertResult(5.0, "let f = (x: double): double -> if x <= 2 then 1 else f(x-1) + f(x-2) in f(5)")
   }
 }
 

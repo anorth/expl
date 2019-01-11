@@ -123,6 +123,7 @@ class ExLambda<T>(
     override val tokenRange: IntRange,
     override val tag: T,
     val parameters: List<ExParameter<T>>,
+    val annotation: Type,
     val body: ExTree<T>
 ): ExTree<T>() {
   override val children get() = parameters + listOf(body)

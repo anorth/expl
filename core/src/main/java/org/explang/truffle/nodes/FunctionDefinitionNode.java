@@ -1,21 +1,15 @@
 package org.explang.truffle.nodes;
 
-import java.util.Optional;
 import java.util.StringJoiner;
 
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.syntax.Type;
-import org.explang.truffle.Encloser;
 import org.explang.truffle.ExplFunction;
 
 @NodeInfo(shortName = "Function")
 public final class FunctionDefinitionNode extends ExpressionNode {
-  // The function value.
   private final ExplFunction function;
-  // Captures the closure frame.
-  private Encloser encloser;
 
   /**
    * Function bodies can close over non-local values. The references are evaluated at the time
@@ -24,16 +18,19 @@ public final class FunctionDefinitionNode extends ExpressionNode {
    * The function will contain descriptor scope resolution nodes which resolve in the descriptor scope
    * attached to the function.
    */
-  public FunctionDefinitionNode(ExplFunction function, Encloser encloser) {
+  public FunctionDefinitionNode(ExplFunction function) {
     super(function.type());
     this.function = function;
-    this.encloser = encloser;
   }
 
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
-    Optional<MaterializedFrame> closure = this.encloser.enclose(frame);
-    return closure.map(this.function::withClosure).orElse(this.function);
+    ExplFunction f = this.function.copy();
+    // Note: for a function with a recursive reference to itself, this will initially capture
+    // a null for that slot. The binding node must additionally capture the function reference after
+    // setting it.
+    f.capture(frame);
+    return f;
   }
 
   @Override

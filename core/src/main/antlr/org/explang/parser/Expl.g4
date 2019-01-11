@@ -31,11 +31,12 @@ binding
   ;
 
 lambdaParameters
-  : parameter // Sugar for single-parameter lambdas
+  : parameter // Sugar for single-parameter lambdas with no return type annotation
   | formalParameters
   ;
 
-formalParameters: LPAREN (parameter (COMMA parameter)*)? RPAREN ;
+// The return type annotation is optional (but semantically necessary for recursive functions).
+formalParameters: LPAREN (parameter (COMMA parameter)*)? RPAREN typeAnnotation? ;
 
 parameter: symbol typeAnnotation ;
 

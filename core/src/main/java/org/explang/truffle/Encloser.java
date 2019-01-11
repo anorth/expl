@@ -1,8 +1,9 @@
 package org.explang.truffle;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -29,17 +30,45 @@ public final class Encloser {
   }
 
   /**
-   * Allocates a materialized frame for the closure and copies enclosed values to it.
+   * Allocates a materialized frame for the closure and copies enclosed values to it, if there
+   * are any bindings.
    */
-  public Optional<MaterializedFrame> enclose(VirtualFrame frame) {
+  public @Nullable MaterializedFrame enclose(VirtualFrame frame) {
     if (bindings.length > 0) {
-      MaterializedFrame closure = getRuntime().createMaterializedFrame(NO_ARGS, descriptor);
+      MaterializedFrame closure = makeFrame();
       for (FrameBinding b : bindings) {
         b.copy(frame, closure);
       }
-      return Optional.of(closure);
-    } else {
-      return Optional.empty();
+      return closure;
     }
+    return null;
+  }
+
+  /**
+   * Copies a single value from a frame, if it is bound by this encloser.
+   *
+   * @param frame the frame to copy to, or null to allocate a new one if necessary
+   * @param sourceSlot slot in the source frame from which to copy
+   * @param closure target frame
+   * @return the provided closure frame, or a newly allocated one if it was and a value was copied
+   */
+  public @Nullable MaterializedFrame enclose(VirtualFrame frame, FrameSlot sourceSlot,
+      @Nullable MaterializedFrame closure) {
+    for (FrameBinding binding : bindings) {
+      if (binding instanceof FrameBinding.SlotBinding) {
+        FrameBinding.SlotBinding slotBinding = (FrameBinding.SlotBinding) binding;
+        if (slotBinding.sourceSlot == sourceSlot) {
+          if (closure == null) {
+            closure = makeFrame();
+          }
+          slotBinding.copy(frame, closure);
+        }
+      }
+    }
+    return closure;
+  }
+
+  private MaterializedFrame makeFrame() {
+    return getRuntime().createMaterializedFrame(NO_ARGS, descriptor);
   }
 }

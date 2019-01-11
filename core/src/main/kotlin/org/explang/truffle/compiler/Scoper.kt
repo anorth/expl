@@ -79,8 +79,6 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   override fun visitBinding(binding: ExBinding<T>) {
     assert(currentScope is BindingScope) { "Encountered binding without enclosing binding scope" }
     // Define the binding before visiting the value, thus supporting recursive resolution.
-    // An alternative would be to have the function's name resolve in the new function scope,
-    // rather than the containing binding scope.
     val resolution = currentScope.define(binding.symbol)
     resolutions[binding.symbol] = resolution // Resolve the bound symbol to "itself"
     binding.value.accept(this)

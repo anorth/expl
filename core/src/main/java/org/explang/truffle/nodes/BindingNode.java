@@ -35,6 +35,8 @@ public final class BindingNode extends ExpressionNode {
   public ExplFunction executeFunction(VirtualFrame frame) {
     ExplFunction f = this.valueNode.executeFunction(frame);
     frame.setObject(slot, f);
+    // Capture recursive reference in the closure after setting the function symbol in the frame
+    f.capture(frame, slot);
     return f;
   }
 

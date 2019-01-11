@@ -175,26 +175,28 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
   }
 
   override fun visitLambdaEx(ctx: ExplParser.LambdaExContext): ExLambda<T> {
-    val params = ctx.lambdaParameters().let { p ->
+    val (params, ret) = ctx.lambdaParameters().let { p ->
       if (p.parameter() != null) {
         // Sugar for single-parameter anonymous lambdas
-        listOf(p.parameter())
+        listOf(p.parameter()) to Type.NONE
       } else {
-        p.formalParameters().parameter()
+        p.formalParameters().parameter() to makeType(p.formalParameters().typeAnnotation())
       }
     }
-    return makeLambda(ctx, params, ctx.expression())
+    return makeLambda(ctx, params, ret, ctx.expression())
   }
 
   override fun visitParameter(ctx: ExplParser.ParameterContext): ExParameter<T> {
     return ExParameter(ctx.range(), tag(), visitSymbol(ctx.symbol()),
-        makeTypeAnnotation(ctx.typeAnnotation()))
+        makeType(ctx.typeAnnotation()))
   }
 
   override fun visitBinding(ctx: ExplParser.BindingContext): ExBinding<T> {
     val value = if (ctx.formalParameters() != null) {
       // Sugar for named function definitions.
-      makeLambda(ctx, ctx.formalParameters().parameter(), ctx.expression())
+      makeLambda(ctx, ctx.formalParameters().parameter(),
+          makeType(ctx.formalParameters().typeAnnotation()),
+          ctx.expression())
     } else {
       // Simple binding.
       visit(ctx.expression())
@@ -218,9 +220,10 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
   private fun makeFormalParameters(paramCtxs: List<ExplParser.ParameterContext>) =
       paramCtxs.map(this::visitParameter)
 
-  private fun makeTypeAnnotation(ctx: ExplParser.TypeAnnotationContext): Type {
-    val prim = ctx.typeExpression().typePrimitive()
+  private fun makeType(ctx: ExplParser.TypeAnnotationContext?): Type {
+    val prim = ctx?.typeExpression()?.typePrimitive()
     return when {
+      prim == null -> Type.NONE
       prim.BOOL() != null -> Type.BOOL
       prim.DOUBLE() != null -> Type.DOUBLE
       else -> throw RuntimeException("Unhandled type literal ${prim.text}")
@@ -228,8 +231,8 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
   }
 
   private fun makeLambda(ctx: ParserRuleContext, paramCtxs: List<ExplParser.ParameterContext>,
-      bodyCtx: ExplParser.ExpressionContext) =
-      ExLambda(ctx.range(), tag(), makeFormalParameters(paramCtxs), visit(bodyCtx))
+      annotation: Type, bodyCtx: ExplParser.ExpressionContext) =
+      ExLambda(ctx.range(), tag(), makeFormalParameters(paramCtxs), annotation, visit(bodyCtx))
 
   override fun visitFormalParameters(ctx: ExplParser.FormalParametersContext?): ExTree<T> {
     assert(false) { "Unused" }

@@ -53,7 +53,7 @@ class Compiler(
     // Wrap the evaluation in an anonymous function call providing the root frame.
     val entryRoot = CallRootNode(ast, topFrameDescriptor, Discloser.EMPTY)
     val callTarget = Truffle.getRuntime().createCallTarget(entryRoot)
-    val entryPoint = ExplFunction.create(Type.function(ast.type()), callTarget)
+    val entryPoint = ExplFunction(Type.function(ast.type()), callTarget, Encloser.EMPTY)
     return FunctionCallNode(StaticBound.function(entryPoint), arrayOfNulls(0))
   }
 }
@@ -173,10 +173,10 @@ private class TruffleBuilder private constructor(
     val type = Type.function(body.type(), *argTypes)
     val callRoot = CallRootNode(body, frame, Discloser(calleeBindings))
     val callTarget = Truffle.getRuntime().createCallTarget(callRoot)
-    val fn = ExplFunction.create(type, callTarget)
+    val fn = ExplFunction(type, callTarget, Encloser(closureDescriptor, closureBindings))
 
     frame = prevFrame
-    return FunctionDefinitionNode(fn, Encloser(closureDescriptor, closureBindings))
+    return FunctionDefinitionNode(fn)
   }
 
   override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) =

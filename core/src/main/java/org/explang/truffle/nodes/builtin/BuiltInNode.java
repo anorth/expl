@@ -5,6 +5,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import org.explang.syntax.Type;
 import org.explang.truffle.Discloser;
+import org.explang.truffle.Encloser;
 import org.explang.truffle.ExplFunction;
 import org.explang.truffle.nodes.CallRootNode;
 import org.explang.truffle.nodes.ExpressionNode;
@@ -25,7 +26,7 @@ public abstract class BuiltInNode extends ExpressionNode {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(
         new CallRootNode(builtin, new FrameDescriptor(), Discloser.EMPTY)
     );
-    return ExplFunction.create(builtin.type(), callTarget);
+    return new ExplFunction(builtin.type(), callTarget, Encloser.EMPTY);
   }
 
   private final String name;

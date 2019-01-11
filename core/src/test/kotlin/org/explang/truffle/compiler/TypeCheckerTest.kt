@@ -189,6 +189,26 @@ class TypeCheckerTest {
       assertEquals(function(DOUBLE), call.callee.tag.type)
     }
   }
+
+  @Test
+  fun recursion() {
+    check("let f = (x: double): double -> f(x+1) in f(1)").let { (tree, resolver, symbols) ->
+      val let = tree as ExLet
+      val outerCall = let.bound as ExCall
+      val sym1 = let.bindings[0].symbol
+      val fn = let.bindings[0].value as ExLambda
+      val innerCall = fn.body as ExCall
+      val sym2 = innerCall.callee as ExSymbol
+
+      assertEquals(DOUBLE, let.tag.type)
+      assertEquals(DOUBLE, outerCall.tag.type)
+      assertEquals(DOUBLE, innerCall.tag.type)
+      assertEquals(function(DOUBLE, DOUBLE), sym2.tag.type)
+
+      assertEquals(function(DOUBLE, DOUBLE), symbols[resolver.resolve((sym1))])
+      assertEquals(function(DOUBLE, DOUBLE), symbols[resolver.resolve((sym2))])
+    }
+  }
 }
 
 private data class Result(

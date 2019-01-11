@@ -12,8 +12,8 @@ public interface FrameBinding {
   void copy(Frame sourceFrame, Frame targetFrame);
 
   class SlotBinding implements FrameBinding {
-    private final FrameSlot sourceSlot;
-    private final FrameSlot targetSlot;
+    public final FrameSlot sourceSlot;
+    public final FrameSlot targetSlot;
 
     public SlotBinding(FrameSlot sourceSlot, FrameSlot targetSlot) {
       this.sourceSlot = sourceSlot;

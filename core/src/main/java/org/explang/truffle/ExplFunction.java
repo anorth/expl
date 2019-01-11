@@ -4,7 +4,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import org.explang.syntax.Type;
 
 /**
@@ -23,26 +25,33 @@ import org.explang.syntax.Type;
 public class ExplFunction {
   private final Type type;
   private final RootCallTarget callTarget;
-  private final @Nullable MaterializedFrame closure;
+  private final Encloser encloser;
+  private @Nullable MaterializedFrame closure = null;
 
-  /** Creates a new function object with no closure frame. */
-  public static ExplFunction create(Type type, RootCallTarget callTarget) {
-    return new ExplFunction(type, callTarget, null);
-  }
-
-  private ExplFunction(Type type, RootCallTarget callTarget, @Nullable MaterializedFrame closure) {
+  public ExplFunction(Type type, RootCallTarget callTarget, Encloser encloser) {
     assert type.isFunction() : "Expected a function type, got " + type;
     this.type = type;
     this.callTarget = callTarget;
-    this.closure = closure;
+    this.encloser = encloser;
   }
 
   public Type type() { return type; }
   public RootCallTarget callTarget() { return callTarget; }
   public Optional<MaterializedFrame> closure() { return Optional.ofNullable(closure); }
 
-  public ExplFunction withClosure(MaterializedFrame closure) {
-    return new ExplFunction(type, callTarget, closure);
+  /** Returns a copy of this function, omitting the closure frame. */
+  public ExplFunction copy() {
+    return new ExplFunction(type, callTarget, encloser);
+  }
+
+  /** Computes the complete closure frame for this function, given a context frame. */
+  public void capture(VirtualFrame frame) {
+    this.closure = encloser.enclose(frame);
+  }
+
+  /** Captures a single value from a context frame into the existing closure frame. */
+  public void capture(VirtualFrame frame, FrameSlot slot) {
+    this.closure = encloser.enclose(frame, slot, this.closure);
   }
 
   @Override
