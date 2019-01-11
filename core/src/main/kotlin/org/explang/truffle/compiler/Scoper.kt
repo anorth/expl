@@ -27,7 +27,7 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
       assert(scoped.currentScope == rootScope) { "Scope visitor corrupt" }
 
       val captured = computeCapturedSymbols(scoped.resolutions.values)
-      return LookupResolver(rootScope, scoped.scopes, scoped.resolutions, captured)
+      return LookupResolver(scoped.resolutions, captured)
     }
 
     private fun computeCapturedSymbols(
