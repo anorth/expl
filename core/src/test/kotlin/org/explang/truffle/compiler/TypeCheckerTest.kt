@@ -271,7 +271,7 @@ class TypeCheckerTest {
   }
 
   private fun check(s: String): Result {
-    val tree = parser.parse(s)
+    val tree = parser.parse(s).syntax!!
     val resolver = Scoper.buildResolver(tree)
     val types = TypeChecker.computeTypes(tree, resolver)
     return Result(tree, resolver, types.resolutions)

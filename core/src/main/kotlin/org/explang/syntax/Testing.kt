@@ -11,11 +11,11 @@ class TestParser(debug: Boolean) {
       trace = debug
   )
 
-  fun parse(expression: String): ExTree<Analyzer.Tag> {
+  fun parse(expression: String): Parser.Result<Analyzer.Tag> {
     val parse = parser.parse(expression) { Analyzer.Tag() }
     parse.error?.let { error ->
       fail("Parse failed ${error.line}:${error.charPositionInLine} ${error.msg}")
     }
-    return parse.syntax!!
+    return parse
   }
 }

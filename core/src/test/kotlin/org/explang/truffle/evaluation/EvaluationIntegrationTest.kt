@@ -1,22 +1,18 @@
 package org.explang.truffle.evaluation
 
-import com.oracle.truffle.api.Truffle
-import com.oracle.truffle.api.frame.FrameDescriptor
-import org.explang.syntax.Parser
 import org.explang.syntax.Type.BOOL
 import org.explang.syntax.Type.function
 import org.explang.truffle.ExplFunction
-import org.explang.truffle.compiler.Analyzer
-import org.explang.truffle.compiler.CompileError
-import org.explang.truffle.compiler.Compiler
+import org.explang.truffle.compiler.TestCompiler
 import org.junit.Assert.assertEquals
-import org.junit.Assert.fail
 import org.junit.Test
 
 /**
  * Smoke test of evaluations of well-formed expressions.
  */
 class EvaluationIntegrationTest {
+  private val compiler = TestCompiler(debug = false)
+
   @Test
   fun literals() {
     assertResult(0.0, "0")
@@ -77,9 +73,9 @@ class EvaluationIntegrationTest {
 
   @Test
   fun lambda() {
-    assertEquals(function(BOOL), (evaluate("() -> true") as ExplFunction).type())
-    assertEquals(function(BOOL, BOOL), (evaluate("(x: bool) -> true") as ExplFunction).type())
-    assertEquals(function(BOOL, BOOL), (evaluate("x: bool -> x") as ExplFunction).type())
+    assertEquals(function(BOOL), (compiler.eval("() -> true") as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (compiler.eval("(x: bool) -> true") as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (compiler.eval("x: bool -> x") as ExplFunction).type())
   }
 
   @Test
@@ -122,44 +118,10 @@ class EvaluationIntegrationTest {
       |adder = (x: double): (double->double) -> (y: double) -> x + y,
       |in adder(1)(5)""".trimMargin())
   }
-}
 
-private fun assertResult(expected: Any, expression: String) {
-  val result = evaluate(expression)
-  assertEquals(expected, result)
-}
-
-private fun evaluate(expression: String): Any {
-  val debug = false
-  val parser = Parser(
-      printTokens = debug,
-      printParse = debug,
-      printAst = debug,
-      trace = debug
-  )
-
-  val compiler = Compiler(
-      printAnalysis = debug
-  )
-
-  val parse = parser.parse(expression) { Analyzer.Tag() }
-  parse.error?.let { error ->
-    fail("Parse failed ${error.line}:${error.charPositionInLine} ${error.msg}")
-  }
-  try {
-    val truffleEntry = compiler.compile(parse.syntax!!)
-    val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
-    val result = truffleEntry.executeDeclaredType(topFrame)
-    if (debug) {
-      println("*Result*")
-      println(result)
-    }
-    return result
-  } catch (e: CompileError) {
-    println("*Compile failed*")
-    println(expression)
-    println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
-    println(e.message)
-    throw e
+  private fun assertResult(expected: Any, expression: String) {
+    val result = compiler.eval(expression)
+    assertEquals(expected, result)
   }
 }
+
