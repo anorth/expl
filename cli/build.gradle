@@ -1,6 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'application'
+    id 'com.github.johnrengelman.shadow'
 }
 
 mainClassName = 'org.explang.cli.CliKt'
@@ -15,3 +16,6 @@ dependencies {
 run {
     enableAssertions = true
 }
+
+// Build native image after shadowJar with
+// native-image -cp cli/build/libs/cli-1.0-SNAPSHOT-all.jar --tool:truffle org.explang.cli.CliKt
