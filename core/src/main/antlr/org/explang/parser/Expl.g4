@@ -8,13 +8,13 @@ package org.explang.parser;
 // Thank goodness ANTLR 4 supports direct left recursion.
 expression
    : expression arguments                              # CallEx
-   | PLUS expression                                   # UnaryPlusEx
-   | MINUS expression                                  # UnaryMinusEx
+   | (PLUS | MINUS | NOT) expression                   # UnaryEx
    | <assoc=right> expression POW expression           # ExponentiationEx
    | expression (TIMES | DIV) expression               # MultiplicativeEx
    | expression (PLUS | MINUS) expression              # AdditiveEx
    | expression (LT | LE | GT | GE) expression         # ComparativeEx
    | expression (EQ | NEQ) expression                  # EqualityEx
+   | expression (AND | OR | XOR) expression            # ConjunctionEx
    | literal                                           # LiteralEx
    | symbol                                            # SymbolEx
    | IF expression THEN expression ELSE expression     # IfEx
@@ -85,12 +85,17 @@ TIMES: '*' ;
 DIV: '/' ;
 PLUS: '+' ;
 MINUS: '-' ;
-LT: '<';
-LE: '<=';
-GT: '>';
-GE: '>=';
-EQ: '==';
-NEQ: '<>';
+LT: '<' ;
+LE: '<=' ;
+GT: '>' ;
+GE: '>=' ;
+EQ: '==' ;
+NEQ: '<>' ;
+AND: 'and' ;
+OR: 'or' ;
+XOR: 'xor' ;
+NOT: 'not' ;
+
 
 TRUE: 'true';
 FALSE: 'false';

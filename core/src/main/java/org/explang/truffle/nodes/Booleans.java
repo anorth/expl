@@ -21,6 +21,19 @@ public final class Booleans {
     };
   }
 
+  // Unary
+  public static ExpressionNode invert(ExpressionNode child) {
+    return new ExpressionNode(Type.BOOL) {
+      @Override
+      public boolean executeBoolean(VirtualFrame frame) {
+        return !child.executeBoolean(frame);
+      }
+      @Override
+      public String toString() { return "not(" + child + ")"; }
+
+    };
+  }
+
   // Comparison
   public static ExpressionNode eq(ExpressionNode left, ExpressionNode right) {
     return new BinaryNode(Type.BOOL, "==", left, right) {
@@ -35,6 +48,34 @@ public final class Booleans {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeBoolean(frame) != right.executeBoolean(frame);
+      }
+    };
+  }
+
+  // Conjunction
+  public static ExpressionNode and(ExpressionNode left, ExpressionNode right) {
+    return new BinaryNode(Type.BOOL, "and", left, right) {
+      @Override
+      public boolean executeBoolean(VirtualFrame frame) {
+        return left.executeBoolean(frame) && right.executeBoolean(frame);
+      }
+    };
+  }
+  public static ExpressionNode or(ExpressionNode left, ExpressionNode right) {
+    return new BinaryNode(Type.BOOL, "or", left, right) {
+      @Override
+      public boolean executeBoolean(VirtualFrame frame) {
+        return left.executeBoolean(frame) || right.executeBoolean(frame);
+      }
+    };
+  }
+  public static ExpressionNode xor(ExpressionNode left, ExpressionNode right) {
+    return new BinaryNode(Type.BOOL, "xor", left, right) {
+      @Override
+      public boolean executeBoolean(VirtualFrame frame) {
+        boolean l = left.executeBoolean(frame);
+        boolean r = right.executeBoolean(frame);
+        return (l || r) && !(l && r);
       }
     };
   }

@@ -1,5 +1,8 @@
 package org.explang.syntax
 
+import org.explang.syntax.Type.BOOL
+import org.explang.syntax.Type.DOUBLE
+
 /**
  * Describes the types of an operator's operands and results.
  * In this representation, operators of arity greater than one must have the same type
@@ -17,22 +20,27 @@ class Operators(private val ops: Map<String, List<Operator>>) {
 }
 
 val UNARY_OPERATORS = Operators(mapOf(
-    "-" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)),
-    "+" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)))
-)
+    "-" to listOf(Operator(DOUBLE, DOUBLE)),
+    "+" to listOf(Operator(DOUBLE, DOUBLE)),
+    "not" to listOf(Operator(BOOL, BOOL))
+))
 
 val BINARY_OPERATORS = Operators(mapOf(
-    "==" to listOf(Operator(Type.BOOL, Type.BOOL), Operator(Type.BOOL, Type.DOUBLE)),
-    "<>" to listOf(Operator(Type.BOOL, Type.BOOL), Operator(Type.BOOL, Type.DOUBLE)),
+    "and" to listOf(Operator(BOOL, BOOL)),
+    "or" to listOf(Operator(BOOL, BOOL)),
+    "xor" to listOf(Operator(BOOL, BOOL)),
 
-    "<" to listOf(Operator(Type.BOOL, Type.DOUBLE)),
-    "<=" to listOf(Operator(Type.BOOL, Type.DOUBLE)),
-    ">=" to listOf(Operator(Type.BOOL, Type.DOUBLE)),
-    ">" to listOf(Operator(Type.BOOL, Type.DOUBLE)),
+    "==" to listOf(Operator(BOOL, BOOL), Operator(BOOL, DOUBLE)),
+    "<>" to listOf(Operator(BOOL, BOOL), Operator(BOOL, DOUBLE)),
 
-    "+" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)),
-    "-" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)),
-    "*" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)),
-    "/" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)),
-    "^" to listOf(Operator(Type.DOUBLE, Type.DOUBLE)))
-)
+    "<" to listOf(Operator(BOOL, DOUBLE)),
+    "<=" to listOf(Operator(BOOL, DOUBLE)),
+    ">=" to listOf(Operator(BOOL, DOUBLE)),
+    ">" to listOf(Operator(BOOL, DOUBLE)),
+
+    "+" to listOf(Operator(DOUBLE, DOUBLE)),
+    "-" to listOf(Operator(DOUBLE, DOUBLE)),
+    "*" to listOf(Operator(DOUBLE, DOUBLE)),
+    "/" to listOf(Operator(DOUBLE, DOUBLE)),
+    "^" to listOf(Operator(DOUBLE, DOUBLE))
+))

@@ -228,6 +228,9 @@ private class TruffleBuilder private constructor(
 }
 
 private val UNOPS = mapOf(
+    Type.BOOL to mapOf(
+        "not" to Booleans::invert
+    ),
     Type.DOUBLE to mapOf(
         "-" to Doubles::negate
     )
@@ -236,7 +239,10 @@ private val UNOPS = mapOf(
 private val BINOPS = mapOf(
     Type.BOOL to mapOf(
         "==" to Booleans::eq,
-        "<>" to Booleans::ne
+        "<>" to Booleans::ne,
+        "and" to Booleans::and,
+        "or" to Booleans::or,
+        "xor" to Booleans::xor
     ),
     Type.DOUBLE to mapOf(
         "^" to Doubles::exp,

@@ -22,7 +22,16 @@ public final class Doubles {
 
   // Arithmetic
   public static ExpressionNode negate(ExpressionNode child) {
-    return new NegationNode(child);
+    return new ExpressionNode(Type.DOUBLE) {
+      @Override
+      public double executeDouble(VirtualFrame frame) {
+        return -child.executeDouble(frame);
+      }
+
+      @Override
+      public String toString() { return "-(" + child + ")"; }
+
+    };
   }
   public static ExpressionNode exp(ExpressionNode left, ExpressionNode right) {
     return new BinaryNode(Type.DOUBLE, "^", left, right) {

@@ -51,6 +51,28 @@ class EvaluationIntegrationTest {
   }
 
   @Test
+  fun conjunctions() {
+    assertResult(true, "true and true")
+    assertResult(false, "true and false")
+    assertResult(true, "true or false")
+    assertResult(false, "false or false")
+
+    assertResult(false, "false xor false")
+    assertResult(false, "true xor true")
+    assertResult(true, "true xor false")
+  }
+
+  @Test
+  fun unary() {
+    assertResult(-1.0, "-1")
+    assertResult(1.0, "--1")
+    assertResult(true, "not false")
+    assertResult(false, "not true")
+    assertResult(true, "not not true")
+    assertResult(true, "not true == false")
+  }
+
+  @Test
   fun conditional() {
     assertResult(1.0, "if true then 1 else 2")
     assertResult(2.0, "if false then 1 else 2")

@@ -119,11 +119,8 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return ExCall(ctx.range(), tag(), fn, args)
   }
 
-  override fun visitUnaryPlusEx(ctx: ExplParser.UnaryPlusExContext) =
-      ExUnaryOp(ctx.range(), tag(), "+", visit(ctx.expression()))
-
-  override fun visitUnaryMinusEx(ctx: ExplParser.UnaryMinusExContext) =
-      ExUnaryOp(ctx.range(), tag(), "-", visit(ctx.expression()))
+  override fun visitUnaryEx(ctx: ExplParser.UnaryExContext) =
+      ExUnaryOp(ctx.range(), tag(), ctx.getChild(0).text, visit(ctx.expression()))
 
   override fun visitExponentiationEx(ctx: ExplParser.ExponentiationExContext): ExBinaryOp<T> {
     // Right-associativity is handled by the grammar.
@@ -153,6 +150,12 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
   }
 
   override fun visitEqualityEx(ctx: ExplParser.EqualityExContext): ExTree<T> {
+    val left = visit(ctx.expression(0))
+    val right = visit(ctx.expression(1))
+    return ExBinaryOp(ctx.range(), tag(), ctx.getChild(1).text, left, right)
+  }
+
+  override fun visitConjunctionEx(ctx: ExplParser.ConjunctionExContext): ExTree<T> {
     val left = visit(ctx.expression(0))
     val right = visit(ctx.expression(1))
     return ExBinaryOp(ctx.range(), tag(), ctx.getChild(1).text, left, right)

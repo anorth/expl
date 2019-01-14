@@ -17,7 +17,10 @@ import org.explang.truffle.ExplFunction;
 public class FunctionCallNode extends ExpressionNode {
   @Child private ExpressionNode functionNode;
   @Children private final ExpressionNode[] argNodes;
-  @Child private IndirectCallNode callNode; // FIXME make a direct call
+  // Using a DirectCallNode might be faster here, allowing more Truffle optimizations,
+  // especially if we can resolve the function reference at compile time.
+  // See http://cesquivias.github.io/blog/2015/01/08/writing-a-language-in-truffle-part-3-making-my-language-much-faster/#making-function-calls-faster
+  @Child private IndirectCallNode callNode;
 
   public FunctionCallNode(ExpressionNode functionNode, ExpressionNode[] argNodes) {
     super(functionNode.type().result());
