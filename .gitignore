@@ -1,3 +1,6 @@
+# Native-client build output (until I move this elsewhere)
+org.explang.cli.clikt
+
 # Local data directory contents
 /data/*
 
