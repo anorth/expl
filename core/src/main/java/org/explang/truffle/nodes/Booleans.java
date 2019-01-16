@@ -36,7 +36,7 @@ public final class Booleans {
 
   // Comparison
   public static ExpressionNode eq(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "==", left, right) {
+    return new BinOpNode(Type.BOOL, "==", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeBoolean(frame) == right.executeBoolean(frame);
@@ -44,7 +44,7 @@ public final class Booleans {
     };
   }
   public static ExpressionNode ne(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "<>", left, right) {
+    return new BinOpNode(Type.BOOL, "<>", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeBoolean(frame) != right.executeBoolean(frame);
@@ -54,7 +54,7 @@ public final class Booleans {
 
   // Conjunction
   public static ExpressionNode and(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "and", left, right) {
+    return new BinOpNode(Type.BOOL, "and", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeBoolean(frame) && right.executeBoolean(frame);
@@ -62,7 +62,7 @@ public final class Booleans {
     };
   }
   public static ExpressionNode or(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "or", left, right) {
+    return new BinOpNode(Type.BOOL, "or", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeBoolean(frame) || right.executeBoolean(frame);
@@ -70,7 +70,7 @@ public final class Booleans {
     };
   }
   public static ExpressionNode xor(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "xor", left, right) {
+    return new BinOpNode(Type.BOOL, "xor", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         boolean l = left.executeBoolean(frame);

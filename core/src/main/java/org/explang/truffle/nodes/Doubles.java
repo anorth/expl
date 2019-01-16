@@ -34,7 +34,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode exp(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.DOUBLE, "^", left, right) {
+    return new BinOpNode(Type.DOUBLE, "^", left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return Math.pow(left.executeDouble(frame), right.executeDouble(frame));
@@ -42,7 +42,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode mul(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.DOUBLE, "*", left, right) {
+    return new BinOpNode(Type.DOUBLE, "*", left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return left.executeDouble(frame) * right.executeDouble(frame);
@@ -51,7 +51,7 @@ public final class Doubles {
   }
   public static ExpressionNode div(ExpressionNode left,
       ExpressionNode right) {
-    return new BinaryNode(Type.DOUBLE, "/", left, right) {
+    return new BinOpNode(Type.DOUBLE, "/", left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return left.executeDouble(frame) / right.executeDouble(frame);
@@ -59,7 +59,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode add(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.DOUBLE, "+", left, right) {
+    return new BinOpNode(Type.DOUBLE, "+", left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return left.executeDouble(frame) + right.executeDouble(frame);
@@ -67,7 +67,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode sub(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.DOUBLE, "-", left, right) {
+    return new BinOpNode(Type.DOUBLE, "-", left, right) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return left.executeDouble(frame) - right.executeDouble(frame);
@@ -77,7 +77,7 @@ public final class Doubles {
 
   // Comparison
   public static ExpressionNode lt(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "<", left, right) {
+    return new BinOpNode(Type.BOOL, "<", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeDouble(frame) < right.executeDouble(frame);
@@ -85,7 +85,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode le(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "<=", left, right) {
+    return new BinOpNode(Type.BOOL, "<=", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeDouble(frame) <= right.executeDouble(frame);
@@ -93,7 +93,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode gt(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, ">", left, right) {
+    return new BinOpNode(Type.BOOL, ">", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeDouble(frame) > right.executeDouble(frame);
@@ -101,7 +101,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode ge(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, ">=", left, right) {
+    return new BinOpNode(Type.BOOL, ">=", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeDouble(frame) >= right.executeDouble(frame);
@@ -109,7 +109,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode eq(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "==", left, right) {
+    return new BinOpNode(Type.BOOL, "==", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeDouble(frame) == right.executeDouble(frame);
@@ -117,7 +117,7 @@ public final class Doubles {
     };
   }
   public static ExpressionNode ne(ExpressionNode left, ExpressionNode right) {
-    return new BinaryNode(Type.BOOL, "<>", left, right) {
+    return new BinOpNode(Type.BOOL, "<>", left, right) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return left.executeDouble(frame) != right.executeDouble(frame);
