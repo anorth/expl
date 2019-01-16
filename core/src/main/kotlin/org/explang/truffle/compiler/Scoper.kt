@@ -20,8 +20,8 @@ import org.explang.syntax.ExUnaryOp
 class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   companion object {
     /** Computes scopes and symbol resolutions for a tree. */
-    fun <T> buildResolver(tree: ExTree<T>): Resolver {
-      val rootScope = RootScope(tree)
+    fun <T> buildResolver(tree: ExTree<T>, builtins: Set<String>): Resolver {
+      val rootScope = RootScope(tree, builtins)
       val scoped = Scoper<T>(rootScope)
       tree.accept(scoped)
       assert(scoped.currentScope == rootScope) { "Scope visitor corrupt" }

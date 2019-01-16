@@ -17,7 +17,32 @@ import org.explang.syntax.RuntimeTypeError;
 @NodeInfo(shortName = "Argument")
 public final class ArgReadNode extends ExpressionNode {
   private final int index; // Declared parameter index
-  private final String name; // For inspection
+  private final String name; // For inspection only
+
+  public static boolean readBoolean(VirtualFrame frame, int index) {
+    try {
+      // Are arguments to functions are necessarily boxed?
+      return (boolean) frame.getArguments()[index + 1];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(index, Type.BOOL.name(), e);
+    }
+  }
+
+  public static double readDouble(VirtualFrame frame, int index) {
+    try {
+      return (double) frame.getArguments()[index + 1];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(index, Type.DOUBLE.name(), e);
+    }
+  }
+
+  public static ExplFunction readFunction(VirtualFrame frame, int index) {
+    try {
+      return (ExplFunction) frame.getArguments()[index + 1];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(index, "function", e);
+    }
+  }
 
   public ArgReadNode(Type t, int index, String name) {
     super(t);
@@ -28,31 +53,19 @@ public final class ArgReadNode extends ExpressionNode {
   @Override
   public boolean executeBoolean(VirtualFrame frame) {
     assertType(Type.BOOL);
-    try {
-      return (boolean) frame.getArguments()[index + 1];
-    } catch (ClassCastException | IndexOutOfBoundsException e) {
-      throw fail(e);
-    }
+    return readBoolean(frame, index);
   }
 
   @Override
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
-    try {
-      return (double) frame.getArguments()[index + 1];
-    } catch (ClassCastException | IndexOutOfBoundsException e) {
-      throw fail(e);
-    }
+    return readDouble(frame, index);
   }
 
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
-    try {
-      return (ExplFunction) frame.getArguments()[index + 1];
-    } catch (ClassCastException | IndexOutOfBoundsException e) {
-      throw fail(e);
-    }
+    return readFunction(frame, index);
   }
 
   @Override
@@ -60,8 +73,8 @@ public final class ArgReadNode extends ExpressionNode {
     return name + "|" + index;
   }
 
-  private RuntimeTypeError fail(Throwable cause) {
+  private static RuntimeTypeError fail(int index, String type, Throwable cause) {
       throw new RuntimeTypeError(
-          String.format("Failed to read argument %d (%s) of type %s", index, name, type()), cause);
+          String.format("Failed to read argument %d of type %s", index, type), cause);
   }
 }

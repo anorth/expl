@@ -141,6 +141,11 @@ class EvaluationIntegrationTest {
       |in adder(1)(5)""".trimMargin())
   }
 
+  @Test
+  fun builtins() {
+    assertResult(Math.sqrt(2.0), "sqrt(2)")
+  }
+
   private fun assertResult(expected: Any, expression: String) {
     val result = compiler.eval(expression)
     assertEquals(expected, result)

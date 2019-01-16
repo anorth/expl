@@ -43,7 +43,8 @@ class Compiler(
 
   @Throws(CompileError::class)
   fun compile(tree: ExTree<Analyzer.Tag>): ExpressionNode {
-    val analysis = analyzer.analyze(tree)
+    val builtins = BUILT_INS.mapValues { it.value.funcType }
+    val analysis = analyzer.analyze(tree, builtins)
     if (printAnalysis) {
       println("*Analysis*")
       println(analysis)
@@ -164,6 +165,8 @@ private class TruffleBuilder private constructor(
         is Scope.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
         is Scope.Resolution.Unresolved ->
           throw CompileError("Unbound capture ${resolution.symbol}", lambda)
+        is Scope.Resolution.BuiltIn ->
+          throw CompileError("Capture ${resolution.symbol} is a builtin", lambda)
       }
       calleeBindings[i] =
           FrameBinding.SlotBinding(closureSlot, frame.addSlot(resolution.identifier, type))
@@ -201,13 +204,10 @@ private class TruffleBuilder private constructor(
         SymbolNode(type, frame.findFrameSlot(id))
       is Scope.Resolution.Closure ->
         SymbolNode(type, frame.findFrameSlot(id))
-      is Scope.Resolution.Unresolved -> {
-        if (id in BUILT_INS) {
-          StaticBound.builtIn(BUILT_INS[id]!!)
-        } else {
-          throw CompileError("Unbound symbol ${resolution.symbol}", symbol)
-        }
-      }
+      is Scope.Resolution.BuiltIn ->
+        StaticBound.builtIn(BUILT_INS[id]!!)
+      is Scope.Resolution.Unresolved ->
+        throw CompileError("Unbound symbol ${resolution.symbol}", symbol)
     }
   }
 

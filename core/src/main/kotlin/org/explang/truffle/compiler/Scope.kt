@@ -49,6 +49,15 @@ sealed class Scope {
       override fun toString() = "Closure[$symbol=$capture]"
     }
 
+    data class BuiltIn(
+        override val symbol: ExSymbol<*>,
+        override val scope: RootScope
+    ) : Resolution() {
+      override fun toString(): String {
+        return "BuiltIn[$symbol]"
+      }
+    }
+
     data class Unresolved(
         override val symbol: ExSymbol<*>,
         override val scope: RootScope
@@ -70,13 +79,21 @@ sealed class Scope {
 }
 
 /**
- * Anonymous scope enclosing the entry point. Nothing can resolve here.
+ * Anonymous scope enclosing the entry point. Only built-ins resolve here.
  */
-class RootScope(override val tree: ExTree<*>) : Scope() {
+class RootScope(
+    override val tree: ExTree<*>,
+    private val builtins: Set<String>
+) : Scope() {
   override fun define(symbol: ExSymbol<*>) =
       throw RuntimeException("Can't define binding in root scope")
 
-  override fun resolve(symbol: ExSymbol<*>): Resolution = Resolution.Unresolved(symbol, this)
+  override fun resolve(symbol: ExSymbol<*>): Resolution {
+    return if (symbol.name in builtins)
+      Resolution.BuiltIn(symbol, this)
+    else
+      Resolution.Unresolved(symbol, this)
+  }
 
   override val parent: Scope get() = this
   override fun toString() = "RootScope"

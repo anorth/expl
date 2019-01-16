@@ -24,9 +24,9 @@ class Analyzer {
     }
   }
 
-  fun analyze(tree: ExTree<Tag>): Analysis {
-    val resolver = Scoper.buildResolver(tree)
-    val types = TypeChecker.computeTypes(tree, resolver) // Updates node tags in-place
+  fun analyze(tree: ExTree<Tag>, builtins: Map<String, Type>): Analysis {
+    val resolver = Scoper.buildResolver(tree, builtins.keys)
+    val types = TypeChecker.computeTypes(tree, resolver, builtins) // Updates node tags in-place
     return Analysis(resolver, types.resolutions)
   }
 }

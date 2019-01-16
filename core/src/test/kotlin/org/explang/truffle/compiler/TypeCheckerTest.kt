@@ -270,10 +270,21 @@ class TypeCheckerTest {
     }
   }
 
-  private fun check(s: String): Result {
+  @Test
+  fun builtins() {
+    check("sqrt(2)", mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, _, _) ->
+      val call = tree as ExCall
+      val fn = call.callee as ExSymbol
+
+      assertEquals(DOUBLE, call.tag.type)
+      assertEquals(function(DOUBLE, DOUBLE), fn.tag.type)
+    }
+  }
+
+  private fun check(s: String, builtins: Map<String, Type> = mapOf()): Result {
     val tree = parser.parse(s).syntax!!
-    val resolver = Scoper.buildResolver(tree)
-    val types = TypeChecker.computeTypes(tree, resolver)
+    val resolver = Scoper.buildResolver(tree, builtins.keys)
+    val types = TypeChecker.computeTypes(tree, resolver, builtins)
     return Result(tree, resolver, types.resolutions)
   }
 }

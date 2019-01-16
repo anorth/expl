@@ -25,7 +25,8 @@ import org.explang.syntax.UNARY_OPERATORS
  * This doesn't yet support any kind of polymorphism or type parameters.
  */
 class TypeChecker(
-    private val resolver: Resolver
+    private val resolver: Resolver,
+    private val builtins: Map<String, Type>
 ) : ExTree.Visitor<Analyzer.Tag, Unit> {
 
   data class Result(
@@ -33,8 +34,9 @@ class TypeChecker(
   )
 
   companion object {
-    fun computeTypes(tree: ExTree<Analyzer.Tag>, resolver: Resolver): Result {
-      val checker = TypeChecker(resolver)
+    fun computeTypes(tree: ExTree<Analyzer.Tag>, resolver: Resolver,
+        builtins: Map<String, Type>): Result {
+      val checker = TypeChecker(resolver, builtins)
       checker.visit(tree)
       return Result(checker.symbolTypes)
     }
@@ -169,7 +171,11 @@ class TypeChecker(
     while (resolution is Scope.Resolution.Closure) {
       resolution = resolution.capture
     }
-    val type = symbolTypes[resolution]
+    val type = if (resolution is Scope.Resolution.BuiltIn) {
+      builtins[resolution.identifier]
+    } else {
+      symbolTypes[resolution]
+    }
     if (type != null) {
       // Set the type for the free closure resolutions
       resolution = initialResolution
