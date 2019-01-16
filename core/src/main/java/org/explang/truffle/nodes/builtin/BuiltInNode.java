@@ -3,7 +3,7 @@ package org.explang.truffle.nodes.builtin;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import org.explang.syntax.Func;
+import org.explang.syntax.FuncType;
 import org.explang.truffle.Discloser;
 import org.explang.truffle.Encloser;
 import org.explang.truffle.ExplFunction;
@@ -29,14 +29,14 @@ public abstract class BuiltInNode extends BaseNode {
 
   private final String name;
 
-  BuiltInNode(Func type, String name) {
+  BuiltInNode(FuncType type, String name) {
     super(type);
     this.name = name;
   }
 
   @Override
-  public Func type() {
-    return (Func) super.type();
+  public FuncType type() {
+    return (FuncType) super.type();
   }
 
   /** The name to which this built-in should be bound. */

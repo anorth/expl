@@ -12,7 +12,7 @@ import org.explang.syntax.ExParameter
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
-import org.explang.syntax.Func
+import org.explang.syntax.FuncType
 import org.explang.syntax.Type
 import org.explang.syntax.UNARY_OPERATORS
 
@@ -53,7 +53,7 @@ class TypeChecker(
 
     val callee = call.callee
     val args = call.args
-    val calleeType = callee.typeTag as? Func
+    val calleeType = callee.typeTag as? FuncType
         ?: throw CompileError("Callee $callee is not a function", callee)
     val formalParamTypes = calleeType.parameters()
     check(call, args.size == formalParamTypes.size) {

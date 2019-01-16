@@ -9,7 +9,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.syntax.Func;
+import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -66,7 +66,7 @@ public class FunctionCallNode extends ExpressionNode {
     return argValues;
   }
 
-  private boolean argsMatch(Func type, ExpressionNode[] argNodes) {
+  private boolean argsMatch(FuncType type, ExpressionNode[] argNodes) {
     Type[] argTypes = type.parameters();
     assert (argTypes.length == argNodes.length) :
         "Mismatched arguments, expected " + argTypes.length + " got " + argNodes.length + " args";

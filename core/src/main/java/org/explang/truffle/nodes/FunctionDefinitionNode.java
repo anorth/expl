@@ -4,7 +4,7 @@ import java.util.StringJoiner;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.syntax.Func;
+import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -25,7 +25,7 @@ public final class FunctionDefinitionNode extends BaseNode {
   }
 
   @Override
-  public Func type() {
+  public FuncType type() {
     return function.type();
   }
 

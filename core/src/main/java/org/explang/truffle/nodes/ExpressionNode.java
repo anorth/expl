@@ -3,7 +3,7 @@ package org.explang.truffle.nodes;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.syntax.Func;
+import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -34,7 +34,7 @@ public abstract class ExpressionNode extends Node {
     } else if (type() == Type.BOOL) {
       return executeBoolean(frame);
     } else {
-      assert type() instanceof Func: "Unexpected type " + type();
+      assert type() instanceof FuncType : "Unexpected type " + type();
       return executeFunction(frame);
     }
   }
@@ -46,7 +46,7 @@ public abstract class ExpressionNode extends Node {
   }
 
   protected void assertTypeIsFunction() {
-    assert type() instanceof Func :
+    assert type() instanceof FuncType :
         String.format("Expecting a function type but %s is %s", this, type());
   }
 }

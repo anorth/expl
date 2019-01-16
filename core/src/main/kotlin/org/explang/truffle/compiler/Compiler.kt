@@ -13,7 +13,7 @@ import org.explang.syntax.ExParameter
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
-import org.explang.syntax.Func
+import org.explang.syntax.FuncType
 import org.explang.syntax.Type
 import org.explang.truffle.Discloser
 import org.explang.truffle.Encloser
@@ -81,7 +81,7 @@ private class TruffleBuilder private constructor(
 
   override fun visitCall(call: ExCall<Analyzer.Tag>): ExpressionNode {
     val fn = visit(call.callee)
-    val type = fn.type() as? Func ?: throw CompileError("Call to a non-function", call)
+    val type = fn.type() as? FuncType ?: throw CompileError("Call to a non-function", call)
     val args = call.args.map(::visit).toTypedArray()
     val actualTypes = args.map(ExpressionNode::type).toTypedArray()
     val declaredTypes = type.parameters()
