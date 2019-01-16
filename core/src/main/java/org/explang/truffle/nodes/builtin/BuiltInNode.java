@@ -7,8 +7,8 @@ import org.explang.syntax.Func;
 import org.explang.truffle.Discloser;
 import org.explang.truffle.Encloser;
 import org.explang.truffle.ExplFunction;
+import org.explang.truffle.nodes.BaseNode;
 import org.explang.truffle.nodes.CallRootNode;
-import org.explang.truffle.nodes.ExpressionNode;
 
 /**
  * Abstract base class for all built-in functions implementations.
@@ -16,7 +16,7 @@ import org.explang.truffle.nodes.ExpressionNode;
  * Built-ins are expected to have no child nodes, but read their arguments directly from
  * the call frame.
  */
-public abstract class BuiltInNode extends ExpressionNode {
+public abstract class BuiltInNode extends BaseNode {
   /**
    * Creates an function node for a built-in.
    */

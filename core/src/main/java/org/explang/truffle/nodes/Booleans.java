@@ -8,7 +8,7 @@ import org.explang.syntax.Type;
  */
 public final class Booleans {
     public static ExpressionNode literal(boolean v) {
-    return new ExpressionNode(Type.BOOL) {
+    return new BaseNode(Type.BOOL) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return v;
@@ -23,7 +23,7 @@ public final class Booleans {
 
   // Unary
   public static ExpressionNode invert(ExpressionNode child) {
-    return new ExpressionNode(Type.BOOL) {
+    return new BaseNode(Type.BOOL) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return !child.executeBoolean(frame);

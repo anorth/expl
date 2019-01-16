@@ -21,11 +21,11 @@ public final class SymbolNode extends ExpressionNode {
   }
 
   @Override
-  public ExplFunction executeFunction(VirtualFrame frame) {
-    assertTypeIsFunction();
+  public boolean executeBoolean(VirtualFrame frame) {
+    assertType(Type.BOOL);
     try {
-      return (ExplFunction) frame.getObject(value);
-    } catch (FrameSlotTypeException | ClassCastException e) {
+      return frame.getBoolean(value);
+    } catch (FrameSlotTypeException e) {
       throw fail(e);
     }
   }
@@ -36,6 +36,16 @@ public final class SymbolNode extends ExpressionNode {
     try {
       return frame.getDouble(value);
     } catch (FrameSlotTypeException e) {
+      throw fail(e);
+    }
+  }
+
+  @Override
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    assertTypeIsFunction();
+    try {
+      return (ExplFunction) frame.getObject(value);
+    } catch (FrameSlotTypeException | ClassCastException e) {
       throw fail(e);
     }
   }

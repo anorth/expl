@@ -2,6 +2,7 @@ package org.explang.truffle.nodes.builtin;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.explang.truffle.ExplFunction;
+import org.explang.truffle.nodes.BaseNode;
 import org.explang.truffle.nodes.ExpressionNode;
 
 /**
@@ -15,7 +16,7 @@ public final class StaticBound {
 
   /** Builds a node statically resolving to a function */
   public static ExpressionNode function(ExplFunction f) {
-    return new ExpressionNode(f.type()) {
+    return new BaseNode(f.type()) {
       @Override
       public ExplFunction executeFunction(VirtualFrame frame) {
         return f;

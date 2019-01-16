@@ -21,20 +21,9 @@ public abstract class ExpressionNode extends Node {
    */
   public Type type() { return type; }
 
-  public boolean executeBoolean(VirtualFrame frame) {
-    assertType(Type.BOOL);
-    throw new AssertionError(String.format("%s has no implementation for boolean", this));
-  }
-
-  public double executeDouble(VirtualFrame frame) {
-    assertType(Type.DOUBLE);
-    throw new AssertionError(String.format("%s has no implementation for double", this));
-  }
-
-  public ExplFunction executeFunction(VirtualFrame frame) {
-    assertTypeIsFunction();
-    throw new AssertionError(String.format("%s has no implementation for function", this));
-  }
+  public abstract boolean executeBoolean(VirtualFrame frame);
+  public abstract double executeDouble(VirtualFrame frame);
+  public abstract ExplFunction executeFunction(VirtualFrame frame);
 
   /**
    * Executes a node according to its declared type.

@@ -8,7 +8,7 @@ import org.explang.syntax.Type;
  */
 public final class Doubles {
   public static ExpressionNode literal(double v) {
-    return new ExpressionNode(Type.DOUBLE) {
+    return new BaseNode(Type.DOUBLE) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return v;
@@ -22,7 +22,7 @@ public final class Doubles {
 
   // Arithmetic
   public static ExpressionNode negate(ExpressionNode child) {
-    return new ExpressionNode(Type.DOUBLE) {
+    return new BaseNode(Type.DOUBLE) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         return -child.executeDouble(frame);

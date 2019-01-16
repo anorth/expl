@@ -5,7 +5,7 @@ import org.explang.syntax.Type;
 /**
  * An abstract node with two children of the same type.
  */
-abstract class BinaryNode extends ExpressionNode {
+abstract class BinaryNode extends BaseNode {
   private final String name;
   @Child ExpressionNode left;
   @Child ExpressionNode right;

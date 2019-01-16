@@ -24,8 +24,14 @@ public final class BindingNode extends ExpressionNode {
   }
 
   @Override
+  public boolean executeBoolean(VirtualFrame frame) {
+    boolean v = this.valueNode.executeBoolean(frame);
+    frame.setBoolean(slot, v);
+    return v;
+
+  }
+  @Override
   public double executeDouble(VirtualFrame frame) {
-    // TODO: Cache the immutable result and avoid recomputing.
     double v = this.valueNode.executeDouble(frame);
     frame.setDouble(slot, v);
     return v;

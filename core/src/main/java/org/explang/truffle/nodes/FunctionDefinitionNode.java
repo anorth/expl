@@ -9,7 +9,7 @@ import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
 @NodeInfo(shortName = "Function")
-public final class FunctionDefinitionNode extends ExpressionNode {
+public final class FunctionDefinitionNode extends BaseNode {
   private final ExplFunction function;
 
   /**
