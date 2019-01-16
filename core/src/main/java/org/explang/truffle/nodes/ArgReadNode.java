@@ -4,7 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
-import org.explang.truffle.RuntimeTypeError;
+import org.explang.syntax.RuntimeTypeError;
 
 /**
  * A reference to a positional argument, resolved at runtime in the executing frame.

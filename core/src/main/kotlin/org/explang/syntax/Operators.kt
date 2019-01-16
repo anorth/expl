@@ -1,7 +1,7 @@
 package org.explang.syntax
 
-import org.explang.syntax.Type.BOOL
-import org.explang.syntax.Type.DOUBLE
+import org.explang.syntax.Type.Companion.BOOL
+import org.explang.syntax.Type.Companion.DOUBLE
 
 /**
  * Describes the types of an operator's operands and results.

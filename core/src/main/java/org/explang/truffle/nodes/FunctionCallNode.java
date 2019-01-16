@@ -7,9 +7,9 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.syntax.Func;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -23,30 +23,26 @@ public class FunctionCallNode extends ExpressionNode {
   @Child private IndirectCallNode callNode;
 
   public FunctionCallNode(ExpressionNode functionNode, ExpressionNode[] argNodes) {
-    super(functionNode.type().result());
-    assert argsMatch(functionNode.type(), argNodes);
+    super(functionNode.type().asFunc().result());
+    assert argsMatch(functionNode.type().asFunc(), argNodes);
     this.functionNode = functionNode;
     this.argNodes = argNodes;
     this.callNode = Truffle.getRuntime().createIndirectCallNode();
   }
 
-
   @Override
-  @ExplodeLoop
   public boolean executeBoolean(VirtualFrame frame) {
     assertType(Type.BOOL);
     return (boolean) execute(frame);
   }
 
   @Override
-  @ExplodeLoop
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
     return (double) execute(frame);
   }
 
   @Override
-  @ExplodeLoop
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     return (ExplFunction) execute(frame);
@@ -70,7 +66,7 @@ public class FunctionCallNode extends ExpressionNode {
     return argValues;
   }
 
-  private boolean argsMatch(Type type, ExpressionNode[] argNodes) {
+  private boolean argsMatch(Func type, ExpressionNode[] argNodes) {
     Type[] argTypes = type.parameters();
     assert (argTypes.length == argNodes.length) :
         "Mismatched arguments, expected " + argTypes.length + " got " + argNodes.length + " args";

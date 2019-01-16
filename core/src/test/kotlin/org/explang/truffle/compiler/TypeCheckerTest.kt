@@ -11,10 +11,10 @@ import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
 import org.explang.syntax.TestParser
 import org.explang.syntax.Type
-import org.explang.syntax.Type.BOOL
-import org.explang.syntax.Type.DOUBLE
-import org.explang.syntax.Type.NONE
-import org.explang.syntax.Type.function
+import org.explang.syntax.Type.Companion.BOOL
+import org.explang.syntax.Type.Companion.DOUBLE
+import org.explang.syntax.Type.Companion.NONE
+import org.explang.syntax.Type.Companion.function
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

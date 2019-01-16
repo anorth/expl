@@ -1,7 +1,7 @@
 package org.explang.truffle.evaluation
 
-import org.explang.syntax.Type.BOOL
-import org.explang.syntax.Type.function
+import org.explang.syntax.Type.Companion.BOOL
+import org.explang.syntax.Type.Companion.function
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.compiler.TestCompiler
 import org.junit.Assert.assertEquals

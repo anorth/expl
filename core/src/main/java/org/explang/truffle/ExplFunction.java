@@ -7,7 +7,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.explang.syntax.Type;
+import org.explang.syntax.Func;
 
 /**
  * Type object for a function, which includes the call target root of the function
@@ -23,19 +23,18 @@ import org.explang.syntax.Type;
  * {@link org.explang.truffle.nodes.FunctionCallNode}.
  */
 public class ExplFunction {
-  private final Type type;
+  private final Func type;
   private final RootCallTarget callTarget;
   private final Encloser encloser;
   private @Nullable MaterializedFrame closure = null;
 
-  public ExplFunction(Type type, RootCallTarget callTarget, Encloser encloser) {
-    assert type.isFunction() : "Expected a function type, got " + type;
+  public ExplFunction(Func type, RootCallTarget callTarget, Encloser encloser) {
     this.type = type;
     this.callTarget = callTarget;
     this.encloser = encloser;
   }
 
-  public Type type() { return type; }
+  public Func type() { return type; }
   public RootCallTarget callTarget() { return callTarget; }
   public Optional<MaterializedFrame> closure() { return Optional.ofNullable(closure); }
 

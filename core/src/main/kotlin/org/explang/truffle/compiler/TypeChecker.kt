@@ -12,6 +12,7 @@ import org.explang.syntax.ExParameter
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
+import org.explang.syntax.Func
 import org.explang.syntax.Type
 import org.explang.syntax.UNARY_OPERATORS
 
@@ -52,8 +53,9 @@ class TypeChecker(
 
     val callee = call.callee
     val args = call.args
-    check(callee, callee.typeTag.isFunction) { "Callee $callee is not a function" }
-    val formalParamTypes = callee.typeTag.parameters()
+    val calleeType = callee.typeTag as? Func
+        ?: throw CompileError("Callee $callee is not a function", callee)
+    val formalParamTypes = calleeType.parameters()
     check(call, args.size == formalParamTypes.size) {
       "Expected ${formalParamTypes.size} arguments, got ${args.size}"
     }
@@ -63,7 +65,7 @@ class TypeChecker(
       }
     }
 
-    call.typeTag = callee.typeTag.result()
+    call.typeTag = calleeType.result()
   }
 
   override fun visitUnaryOp(unop: ExUnaryOp<Analyzer.Tag>) {
