@@ -4,6 +4,7 @@ import java.util.StringJoiner;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.array.AbstractArray;
 import org.explang.truffle.ExplFunction;
 
 /**
@@ -36,6 +37,12 @@ public final class LetNode extends ExpressionNode {
   public ExplFunction executeFunction(VirtualFrame frame) {
     executeBindings(frame);
     return expression.executeFunction(frame);
+  }
+
+  @Override
+  public AbstractArray executeArray(VirtualFrame frame) {
+    executeBindings(frame);
+    return expression.executeArray(frame);
   }
 
   private void executeBindings(VirtualFrame frame) {

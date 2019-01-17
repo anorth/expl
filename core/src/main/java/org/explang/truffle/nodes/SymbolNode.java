@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.array.AbstractArray;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 import org.explang.syntax.RuntimeTypeError;
@@ -45,6 +46,16 @@ public final class SymbolNode extends ExpressionNode {
     assertTypeIsFunction();
     try {
       return (ExplFunction) frame.getObject(value);
+    } catch (FrameSlotTypeException | ClassCastException e) {
+      throw fail(e);
+    }
+  }
+
+  @Override
+  public AbstractArray executeArray(VirtualFrame frame) {
+    assertTypeIsArray();
+    try {
+      return (AbstractArray) frame.getObject(value);
     } catch (FrameSlotTypeException | ClassCastException e) {
       throw fail(e);
     }

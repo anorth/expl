@@ -1,6 +1,7 @@
 package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import org.explang.array.AbstractArray;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -16,7 +17,6 @@ public abstract class BaseNode extends ExpressionNode {
   @Override
   public boolean executeBoolean(VirtualFrame frame) {
     throw new AssertionError(String.format("%s has no implementation for boolean", this));
-
   }
   @Override
   public double executeDouble(VirtualFrame frame) {
@@ -25,5 +25,9 @@ public abstract class BaseNode extends ExpressionNode {
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     throw new AssertionError(String.format("%s has no implementation for function", this));
+  }
+  @Override
+  public AbstractArray executeArray(VirtualFrame frame) {
+    throw new AssertionError(String.format("%s has no implementation for array", this));
   }
 }

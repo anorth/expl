@@ -3,6 +3,7 @@ package org.explang.truffle.nodes;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.array.AbstractArray;
 import org.explang.truffle.ExplFunction;
 
 /**
@@ -44,6 +45,13 @@ public final class BindingNode extends ExpressionNode {
     // Capture recursive reference in the closure after setting the function symbol in the frame
     f.capture(frame, slot);
     return f;
+  }
+
+  @Override
+  public AbstractArray executeArray(VirtualFrame frame) {
+    AbstractArray v = this.valueNode.executeArray(frame);
+    frame.setObject(slot, v);
+    return v;
   }
 
   @Override

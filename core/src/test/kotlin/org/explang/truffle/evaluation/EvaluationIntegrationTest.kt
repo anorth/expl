@@ -1,5 +1,6 @@
 package org.explang.truffle.evaluation
 
+import org.explang.array.ArrayOfDouble
 import org.explang.syntax.Type.Companion.BOOL
 import org.explang.syntax.Type.Companion.function
 import org.explang.truffle.ExplFunction
@@ -146,9 +147,14 @@ class EvaluationIntegrationTest {
     assertResult(Math.sqrt(2.0), "sqrt(2)")
   }
 
+  @Test
+  fun arrays() {
+    val res = ArrayOfDouble.zeros(3)
+    assertResult(res, "zeros(3)")
+  }
+
   private fun assertResult(expected: Any, expression: String) {
     val result = compiler.eval(expression)
     assertEquals(expected, result)
   }
 }
-

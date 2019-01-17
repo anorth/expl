@@ -3,6 +3,8 @@ package org.explang.truffle.nodes;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.explang.array.AbstractArray;
+import org.explang.syntax.ArrayType;
 import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
@@ -24,6 +26,7 @@ public abstract class ExpressionNode extends Node {
   public abstract boolean executeBoolean(VirtualFrame frame);
   public abstract double executeDouble(VirtualFrame frame);
   public abstract ExplFunction executeFunction(VirtualFrame frame);
+  public abstract AbstractArray executeArray(VirtualFrame frame);
 
   /**
    * Executes a node according to its declared type.
@@ -33,9 +36,12 @@ public abstract class ExpressionNode extends Node {
       return executeDouble(frame);
     } else if (type() == Type.BOOL) {
       return executeBoolean(frame);
-    } else {
-      assert type() instanceof FuncType : "Unexpected type " + type();
+    } else if (type() instanceof FuncType) {
       return executeFunction(frame);
+    } else if (type instanceof ArrayType) {
+      return executeArray(frame);
+    } else {
+      throw new AssertionError("Unexpected type " + type);
     }
   }
 
@@ -48,5 +54,10 @@ public abstract class ExpressionNode extends Node {
   protected void assertTypeIsFunction() {
     assert type() instanceof FuncType :
         String.format("Expecting a function type but %s is %s", this, type());
+  }
+
+  protected void assertTypeIsArray() {
+    assert type() instanceof ArrayType :
+        String.format("Expecting an array type but %s is %s", this, type());
   }
 }
