@@ -4,8 +4,12 @@ import org.explang.array.ArrayOfDouble
 import org.explang.syntax.Type.Companion.BOOL
 import org.explang.syntax.Type.Companion.function
 import org.explang.truffle.ExplFunction
+import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
+import org.explang.truffle.nodes.builtin.ArrayBuiltins
+import org.explang.truffle.nodes.builtin.MathBuiltins
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -13,6 +17,12 @@ import org.junit.Test
  */
 class EvaluationIntegrationTest {
   private val compiler = TestCompiler(debug = false)
+  private var env = Environment()
+
+  @Before
+  fun setup() {
+    env = Environment()
+  }
 
   @Test
   fun literals() {
@@ -96,9 +106,9 @@ class EvaluationIntegrationTest {
 
   @Test
   fun lambda() {
-    assertEquals(function(BOOL), (compiler.eval("() -> true") as ExplFunction).type())
-    assertEquals(function(BOOL, BOOL), (compiler.eval("(x: bool) -> true") as ExplFunction).type())
-    assertEquals(function(BOOL, BOOL), (compiler.eval("x: bool -> x") as ExplFunction).type())
+    assertEquals(function(BOOL), (compiler.eval("() -> true", env) as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (compiler.eval("(x: bool) -> true", env) as ExplFunction).type())
+    assertEquals(function(BOOL, BOOL), (compiler.eval("x: bool -> x", env) as ExplFunction).type())
   }
 
   @Test
@@ -144,17 +154,19 @@ class EvaluationIntegrationTest {
 
   @Test
   fun builtins() {
+    env.addBuiltin(MathBuiltins.sqrt())
     assertResult(Math.sqrt(2.0), "sqrt(2)")
   }
 
   @Test
   fun arrays() {
+    env.addBuiltin(ArrayBuiltins.zeros())
     val res = ArrayOfDouble.zeros(3)
     assertResult(res, "zeros(3)")
   }
 
   private fun assertResult(expected: Any, expression: String) {
-    val result = compiler.eval(expression)
+    val result = compiler.eval(expression, env)
     assertEquals(expected, result)
   }
 }

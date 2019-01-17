@@ -2,6 +2,8 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
+import org.explang.array.AbstractArray
+import org.explang.syntax.ArrayType
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
@@ -14,12 +16,15 @@ import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
 import org.explang.syntax.FuncType
+import org.explang.syntax.None
+import org.explang.syntax.PrimType
 import org.explang.syntax.Type
 import org.explang.truffle.Discloser
 import org.explang.truffle.Encloser
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.FrameBinding
 import org.explang.truffle.nodes.ArgReadNode
+import org.explang.truffle.nodes.ArrayNodes
 import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.Booleans
 import org.explang.truffle.nodes.CallRootNode
@@ -27,12 +32,13 @@ import org.explang.truffle.nodes.Doubles
 import org.explang.truffle.nodes.ExpressionNode
 import org.explang.truffle.nodes.FunctionCallNode
 import org.explang.truffle.nodes.FunctionDefinitionNode
+import org.explang.truffle.nodes.FunctionNodes
 import org.explang.truffle.nodes.IfNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.SymbolNode
-import org.explang.truffle.nodes.builtin.Builtins
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.util.Arrays
+
 
 /**
  * Compiles an AST to Truffle node tree for interpretation/JIT.
@@ -42,16 +48,21 @@ class Compiler(
 ) {
   private val analyzer = Analyzer()
 
+  /**
+   * Compiles a syntax tree to Truffle nodes.
+   *
+   * @param tree the tree to compile
+   * @param env environment symbols, including built-ins and external data
+   */
   @Throws(CompileError::class)
-  fun compile(tree: ExTree<Analyzer.Tag>): ExpressionNode {
-    val builtins = Builtins.BY_NAME.mapValues { it.value.funcType }
-    val analysis = analyzer.analyze(tree, builtins)
+  fun compile(tree: ExTree<Analyzer.Tag>, env: Environment): ExpressionNode {
+    val analysis = analyzer.analyze(tree, env.types())
     if (printAnalysis) {
       println("*Analysis*")
       println(analysis)
     }
 
-    val (ast, topFrameDescriptor) = TruffleBuilder.build(tree, analysis)
+    val (ast, topFrameDescriptor) = TruffleBuilder.build(tree, analysis, env)
 
     // Wrap the evaluation in an anonymous function call providing the root frame.
     val entryRoot = CallRootNode(ast, topFrameDescriptor, Discloser.EMPTY)
@@ -65,12 +76,13 @@ class Compiler(
  * Converts an AST with analysis into a Truffle node tree.
  */
 private class TruffleBuilder private constructor(
-    val analysis: Analyzer.Analysis
+    private val analysis: Analyzer.Analysis,
+    private val env: Environment
 ) : ExTree.Visitor<Analyzer.Tag, ExpressionNode> {
   companion object {
-    fun build(tree: ExTree<Analyzer.Tag>,
-        analysis: Analyzer.Analysis): Pair<ExpressionNode, FrameDescriptor> {
-      val b = TruffleBuilder(analysis)
+    fun build(tree: ExTree<Analyzer.Tag>, analysis: Analyzer.Analysis,
+        environment: Environment): Pair<ExpressionNode, FrameDescriptor> {
+      val b = TruffleBuilder(analysis, environment)
       val node = b.visit(tree)
       val topFrameDescriptor = b.frame
       return node to topFrameDescriptor
@@ -166,7 +178,7 @@ private class TruffleBuilder private constructor(
         is Scope.Resolution.Argument -> FrameBinding.ArgumentBinding(resolution.index, closureSlot)
         is Scope.Resolution.Unresolved ->
           throw CompileError("Unbound capture ${resolution.symbol}", lambda)
-        is Scope.Resolution.BuiltIn ->
+        is Scope.Resolution.Environment ->
           throw CompileError("Capture ${resolution.symbol} is a builtin", lambda)
       }
       calleeBindings[i] =
@@ -201,12 +213,9 @@ private class TruffleBuilder private constructor(
     val type = symbol.tag.type
     return when (resolution) {
       is Scope.Resolution.Argument -> ArgReadNode(type, resolution.index, id)
-      is Scope.Resolution.Local ->
-        SymbolNode(type, frame.findFrameSlot(id))
-      is Scope.Resolution.Closure ->
-        SymbolNode(type, frame.findFrameSlot(id))
-      is Scope.Resolution.BuiltIn ->
-        StaticBound.builtIn(Builtins.BY_NAME[id]!!)
+      is Scope.Resolution.Local -> SymbolNode(type, frame.findFrameSlot(id))
+      is Scope.Resolution.Closure -> SymbolNode(type, frame.findFrameSlot(id))
+      is Scope.Resolution.Environment -> environmentNode(id)
       is Scope.Resolution.Unresolved ->
         throw CompileError("Unbound symbol ${resolution.symbol}", symbol)
     }
@@ -227,6 +236,31 @@ private class TruffleBuilder private constructor(
       throw CompileError("Duplicate bindings for ${duplicated.joinToString(",")}", let)
     }
   }
+
+  // Builds a node for an environment data value.
+  // Note that this short-circuits looking up the value in any frame. Alternatively, the
+  // environment values could be captured in a closure, though maybe
+  // a small change could add an EnvironmentSymbolNode that looks in a pre-defined frame.
+  private fun environmentNode(id: String): ExpressionNode {
+    return env.getBuiltin(id)?.let { StaticBound.builtIn(it) } ?: //
+    env.getValue(id)?.let { value -> environmentValueNode(value, id) } ?: //
+    throw RuntimeException("Can't find environment symbol $id")
+  }
+}
+
+private fun environmentValueNode(value: Environment.Value, id: String): ExpressionNode {
+  return when (value.type) {
+    is PrimType -> primitiveNode(value.type, value.value)
+    is ArrayType -> ArrayNodes.literal(value.value as AbstractArray)
+    is FuncType -> FunctionNodes.literal(value.value as ExplFunction)
+    is None -> throw RuntimeException("Unexpected environment value with type NONE $id: $value")
+  }
+}
+
+private fun primitiveNode(type: PrimType, value: Any) = when {
+  type == Type.BOOL -> Booleans.literal(value as Boolean)
+  type == Type.DOUBLE -> Doubles.literal(value as Double)
+  else -> throw RuntimeException("Unhandled primitive type $type")
 }
 
 private val UNOPS = mapOf(

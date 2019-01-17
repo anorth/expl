@@ -1,16 +1,17 @@
 package org.explang.array
 
+import org.explang.syntax.Type
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AbstractArrayTest {
-  val EMPTY = AbstractArray(Shape())
-  val SINGLETON = AbstractArray(Shape(1))
-  val ROW = AbstractArray(Shape(10))
-  val ROW2 = AbstractArray(Shape(1, 10))
-  val COLUMN = AbstractArray(Shape(10, 1)) // 10 rows of 1 column
-  val BOX = AbstractArray(Shape(3, 4)) // 3 rows of 4 columns
-  val CUBE = AbstractArray(Shape(7, 3, 4)) // 7 plane of 3 rows of 4 columns
+  val EMPTY = AbstractArray(Type.NONE, Shape())
+  val SINGLETON = AbstractArray(Type.NONE, Shape(1))
+  val ROW = AbstractArray(Type.NONE, Shape(10))
+  val ROW2 = AbstractArray(Type.NONE, Shape(1, 10))
+  val COLUMN = AbstractArray(Type.NONE, Shape(10, 1)) // 10 rows of 1 column
+  val BOX = AbstractArray(Type.NONE, Shape(3, 4)) // 3 rows of 4 columns
+  val CUBE = AbstractArray(Type.NONE, Shape(7, 3, 4)) // 7 plane of 3 rows of 4 columns
 
   @Test
   fun shape() {

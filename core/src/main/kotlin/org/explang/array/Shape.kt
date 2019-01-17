@@ -6,7 +6,7 @@ import java.util.Arrays
 class Shape(vararg dims: Int) : Iterable<Int> {
   init {
     dims.forEach {
-      require(it > 0) { "Invalid array dimension $it in ${Arrays.toString(dims)}" }
+      require(it >= 0) { "Invalid array dimension $it in ${Arrays.toString(dims)}" }
     }
   }
 

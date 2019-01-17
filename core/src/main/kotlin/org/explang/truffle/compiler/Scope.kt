@@ -49,12 +49,12 @@ sealed class Scope {
       override fun toString() = "Closure[$symbol=$capture]"
     }
 
-    data class BuiltIn(
+    data class Environment(
         override val symbol: ExSymbol<*>,
         override val scope: RootScope
     ) : Resolution() {
       override fun toString(): String {
-        return "BuiltIn[$symbol]"
+        return "Environment[$symbol]"
       }
     }
 
@@ -79,7 +79,7 @@ sealed class Scope {
 }
 
 /**
- * Anonymous scope enclosing the entry point. Only built-ins resolve here.
+ * Anonymous scope enclosing the entry point. Environment symbols (e.g. built-ins) resolve here.
  */
 class RootScope(
     override val tree: ExTree<*>,
@@ -90,7 +90,7 @@ class RootScope(
 
   override fun resolve(symbol: ExSymbol<*>): Resolution {
     return if (symbol.name in builtins)
-      Resolution.BuiltIn(symbol, this)
+      Resolution.Environment(symbol, this)
     else
       Resolution.Unresolved(symbol, this)
   }

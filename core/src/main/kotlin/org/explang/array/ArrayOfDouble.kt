@@ -1,5 +1,8 @@
 package org.explang.array
 
+import org.explang.syntax.Type
+import java.util.Arrays
+
 /**
  * A multi-dimensional array of doubles.
  *
@@ -10,7 +13,7 @@ package org.explang.array
 class ArrayOfDouble private constructor(
     shape: Shape,
     private val data: DoubleArray
-) : AbstractArray(shape) {
+) : AbstractArray(Type.DOUBLE, shape) {
   companion object {
     /** Allocates a new array of zeros. */
     @JvmStatic
@@ -24,6 +27,12 @@ class ArrayOfDouble private constructor(
     fun of(shape: IntArray, data: DoubleArray): ArrayOfDouble {
       val s = Shape(*shape)
       return ArrayOfDouble(s, data)
+    }
+
+    /** Wraps a 1-d DoubleArray */
+    @JvmStatic
+    fun of(data: DoubleArray): ArrayOfDouble {
+      return ArrayOfDouble(Shape(data.size), data)
     }
   }
 
@@ -52,5 +61,10 @@ class ArrayOfDouble private constructor(
 
   override fun hashCode(): Int {
     return shape.hashCode() * 31 + data.contentHashCode()
+  }
+
+  override fun toString(): String {
+    // TODO: format with shape
+    return Arrays.toString(data)
   }
 }

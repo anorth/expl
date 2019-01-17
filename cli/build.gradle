@@ -9,6 +9,8 @@ mainClassName = 'org.explang.cli.CliKt'
 dependencies {
     compile project(':core')
 
+    compile "com.fasterxml.jackson.core:jackson-core:2.9.8"
+    compile "com.fasterxml.jackson.core:jackson-databind:2.9.8"
     compile "com.xenomachina:kotlin-argparser:2.0.4"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }

@@ -63,7 +63,7 @@ class TypeChecker(
     }
     for (i in formalParamTypes.indices) {
       check(args[i], args[i].typeTag == formalParamTypes[i]) {
-        "Argument $i expected ${formalParamTypes[i]}, got ${args[i]}"
+        "Argument $i expected ${formalParamTypes[i]}, got ${args[i].typeTag}"
       }
     }
 
@@ -171,7 +171,7 @@ class TypeChecker(
     while (resolution is Scope.Resolution.Closure) {
       resolution = resolution.capture
     }
-    val type = if (resolution is Scope.Resolution.BuiltIn) {
+    val type = if (resolution is Scope.Resolution.Environment) {
       builtins[resolution.identifier]
     } else {
       symbolTypes[resolution]

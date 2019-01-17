@@ -9,10 +9,10 @@ class TestCompiler(private val debug: Boolean) {
   private val parser = TestParser(debug)
   private val compiler = Compiler(debug)
 
-  fun compile(expression: String): ExpressionNode {
+  fun compile(expression: String, environment: Environment): ExpressionNode {
     val parse = parser.parse(expression)
     try {
-      return compiler.compile(parse.syntax!!)
+      return compiler.compile(parse.syntax!!, environment)
     } catch (e: CompileError) {
       println("*Compile failed*")
       println(expression)
@@ -22,8 +22,8 @@ class TestCompiler(private val debug: Boolean) {
     }
   }
 
-  fun eval(expression: String): Any {
-    return eval(compile(expression))
+  fun eval(expression: String, environment: Environment): Any {
+    return eval(compile(expression, environment))
   }
 
   fun eval(node: ExpressionNode): Any {

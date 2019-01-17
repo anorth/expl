@@ -1,5 +1,6 @@
 package org.explang.array
 
+import org.explang.syntax.Type
 import java.util.Arrays
 
 /**
@@ -13,10 +14,13 @@ import java.util.Arrays
  * Indexes are zero-based.
  */
 open class AbstractArray(
+    val element: Type,
     val shape: Shape
 ) {
   // The distance between consecutive elements in each dimension.
   private val stride = IntArray(shape.dimensions)
+
+  private val type = Type.array(element, shape.dimensions)
 
   init {
     shape.forEachIndexed { index, i -> assert(i > 0) { "Invalid dimension $index: $i" } }
@@ -27,6 +31,8 @@ open class AbstractArray(
       thisStride *= shape[i]
     }
   }
+
+  fun type() = type
 
   fun size(dim: Int) = shape[dim]
 

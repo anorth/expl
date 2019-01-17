@@ -1,5 +1,6 @@
 package org.explang.truffle.evaluation
 
+import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
 import org.junit.Assert.assertEquals
 import org.junit.Ignore
@@ -17,7 +18,7 @@ class BenchmarkIntegrationTest {
   fun fibonacci() {
     val node = compiler.compile("""let
       |f = (x: double): double -> if x <= 2 then 1 else f(x-1) + f(x-2)
-      |in f(30)""".trimMargin())
+      |in f(30)""".trimMargin(), Environment())
     val ret = compiler.eval(node)
     assertEquals(832040.0, ret)
 

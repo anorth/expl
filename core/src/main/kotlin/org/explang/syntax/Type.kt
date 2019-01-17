@@ -81,6 +81,23 @@ class ArrayType(
 ) : Type(arrayTypeName(element, dims)) {
   fun element() = element
   fun dims() = dims
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (javaClass != other?.javaClass) return false
+
+    other as ArrayType
+
+    if (element != other.element) return false
+    if (dims != other.dims) return false
+    return true
+  }
+
+  override fun hashCode(): Int {
+    var result = element.hashCode()
+    result = 31 * result + dims
+    return result
+  }
 }
 
 /** Computes the name for a function type. */
