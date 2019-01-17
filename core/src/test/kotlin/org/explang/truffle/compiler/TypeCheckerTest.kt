@@ -13,6 +13,7 @@ import org.explang.syntax.TestParser
 import org.explang.syntax.Type
 import org.explang.syntax.Type.Companion.BOOL
 import org.explang.syntax.Type.Companion.DOUBLE
+import org.explang.syntax.Type.Companion.LONG
 import org.explang.syntax.Type.Companion.NONE
 import org.explang.syntax.Type.Companion.function
 import org.junit.Assert.assertEquals
@@ -30,21 +31,21 @@ class TypeCheckerTest {
   @Test
   fun literals() {
     assertEquals(BOOL, check("true").tree.tag.type)
-    assertEquals(DOUBLE, check("1").tree.tag.type)
+    assertEquals(LONG, check("1").tree.tag.type)
     assertEquals(DOUBLE, check("5.2").tree.tag.type)
   }
 
   @Test
   fun unaryOps() {
     check("-1").let {
-      assertEquals(DOUBLE, (it.tree as ExUnaryOp).operand.tag.type)
-      assertEquals(DOUBLE, it.tree.tag.type)
+      assertEquals(LONG, (it.tree as ExUnaryOp).operand.tag.type)
+      assertEquals(LONG, it.tree.tag.type)
     }
   }
 
   @Test
   fun binOps() {
-    assertEquals(DOUBLE, check("1 + 2").tree.tag.type)
+    assertEquals(LONG, check("1 + 2").tree.tag.type)
     assertEquals(BOOL, check("1 > 2").tree.tag.type)
     assertEquals(BOOL, check("1 == 2").tree.tag.type)
     assertEquals(BOOL, check("true == false").tree.tag.type)
@@ -52,7 +53,7 @@ class TypeCheckerTest {
 
   @Test
   fun iff() {
-    assertEquals(DOUBLE, check("if true then 1 else 2").tree.tag.type)
+    assertEquals(LONG, check("if true then 1 else 2").tree.tag.type)
     assertEquals(BOOL, check("if true then true else false").tree.tag.type)
   }
 
@@ -62,38 +63,38 @@ class TypeCheckerTest {
       val let = tree as ExLet
       val binding = let.bindings.first()
 
-      assertEquals(DOUBLE, let.tag.type)
+      assertEquals(LONG, let.tag.type)
       assertEquals(NONE, binding.tag.type) // Remains untyped
       assertEquals(NONE, binding.symbol.tag.type) // Remains untyped
-      assertEquals(DOUBLE, binding.value.tag.type)
-      assertEquals(DOUBLE, symbols[resolver.resolve(binding.symbol)])
+      assertEquals(LONG, binding.value.tag.type)
+      assertEquals(LONG, symbols[resolver.resolve(binding.symbol)])
     }
     check("let a = 1 in 1 + a").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val binOp = let.bound as ExBinaryOp
-      assertEquals(DOUBLE, let.tag.type)
-      assertEquals(DOUBLE, binOp.tag.type)
-      assertEquals(DOUBLE, binOp.left.tag.type)
-      assertEquals(DOUBLE, binOp.right.tag.type) // Inferred
-      assertEquals(DOUBLE, symbols[resolver.resolve(binOp.right as ExSymbol<*>)])
+      assertEquals(LONG, let.tag.type)
+      assertEquals(LONG, binOp.tag.type)
+      assertEquals(LONG, binOp.left.tag.type)
+      assertEquals(LONG, binOp.right.tag.type) // Inferred
+      assertEquals(LONG, symbols[resolver.resolve(binOp.right as ExSymbol<*>)])
     }
     check("let a = 1, b = a+a in a+b").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
-      assertEquals(DOUBLE, let.tag.type)
-      assertEquals(DOUBLE, let.bindings[0].value.tag.type)
-      assertEquals(DOUBLE, let.bindings[1].value.tag.type)
-      assertEquals(DOUBLE, symbols[resolver.resolve(let.bindings[0].symbol)])
-      assertEquals(DOUBLE, symbols[resolver.resolve(let.bindings[1].symbol)])
+      assertEquals(LONG, let.tag.type)
+      assertEquals(LONG, let.bindings[0].value.tag.type)
+      assertEquals(LONG, let.bindings[1].value.tag.type)
+      assertEquals(LONG, symbols[resolver.resolve(let.bindings[0].symbol)])
+      assertEquals(LONG, symbols[resolver.resolve(let.bindings[1].symbol)])
     }
     check("let a = 1 in let b = a+a in a+b").let { (tree, resolver, symbols) ->
       val outer = tree as ExLet
       val inner = outer.bound as ExLet
 
-      assertEquals(DOUBLE, outer.tag.type)
-      assertEquals(DOUBLE, outer.bindings[0].value.tag.type)
-      assertEquals(DOUBLE, inner.bindings[0].value.tag.type)
-      assertEquals(DOUBLE, symbols[resolver.resolve(outer.bindings[0].symbol)])
-      assertEquals(DOUBLE, symbols[resolver.resolve(inner.bindings[0].symbol)])
+      assertEquals(LONG, outer.tag.type)
+      assertEquals(LONG, outer.bindings[0].value.tag.type)
+      assertEquals(LONG, inner.bindings[0].value.tag.type)
+      assertEquals(LONG, symbols[resolver.resolve(outer.bindings[0].symbol)])
+      assertEquals(LONG, symbols[resolver.resolve(inner.bindings[0].symbol)])
     }
   }
 
@@ -102,11 +103,11 @@ class TypeCheckerTest {
     check("let a = 1 in let b = a+a in a+b").let { (tree, resolver, symbols) ->
       val outer = tree as ExLet
       val inner = outer.bound as ExLet
-      assertEquals(DOUBLE, outer.tag.type)
-      assertEquals(DOUBLE, outer.bindings[0].value.tag.type)
-      assertEquals(DOUBLE, inner.bindings[0].value.tag.type)
-      assertEquals(DOUBLE, symbols[resolver.resolve(outer.bindings[0].symbol)])
-      assertEquals(DOUBLE, symbols[resolver.resolve(inner.bindings[0].symbol)])
+      assertEquals(LONG, outer.tag.type)
+      assertEquals(LONG, outer.bindings[0].value.tag.type)
+      assertEquals(LONG, inner.bindings[0].value.tag.type)
+      assertEquals(LONG, symbols[resolver.resolve(outer.bindings[0].symbol)])
+      assertEquals(LONG, symbols[resolver.resolve(inner.bindings[0].symbol)])
     }
   }
 
@@ -115,23 +116,23 @@ class TypeCheckerTest {
     check("let a = true in if a then 1 else 2").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val iff = let.bound as ExIf
-      assertEquals(DOUBLE, let.tag.type)
-      assertEquals(DOUBLE, iff.tag.type)
+      assertEquals(LONG, let.tag.type)
+      assertEquals(LONG, iff.tag.type)
       assertEquals(BOOL, iff.test.tag.type)
-      assertEquals(DOUBLE, iff.left.tag.type)
-      assertEquals(DOUBLE, iff.right.tag.type)
+      assertEquals(LONG, iff.left.tag.type)
+      assertEquals(LONG, iff.right.tag.type)
       assertEquals(BOOL, symbols[resolver.resolve(iff.test as ExSymbol<*>)])
     }
     check("let a = 1, b = 2 in if false then a else b").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val iff = let.bound as ExIf
-      assertEquals(DOUBLE, let.tag.type)
-      assertEquals(DOUBLE, iff.tag.type)
+      assertEquals(LONG, let.tag.type)
+      assertEquals(LONG, iff.tag.type)
       assertEquals(BOOL, iff.test.tag.type)
-      assertEquals(DOUBLE, iff.left.tag.type)
-      assertEquals(DOUBLE, iff.right.tag.type)
-      assertEquals(DOUBLE, symbols[resolver.resolve(iff.left as ExSymbol<*>)])
-      assertEquals(DOUBLE, symbols[resolver.resolve(iff.right as ExSymbol<*>)])
+      assertEquals(LONG, iff.left.tag.type)
+      assertEquals(LONG, iff.right.tag.type)
+      assertEquals(LONG, symbols[resolver.resolve(iff.left as ExSymbol<*>)])
+      assertEquals(LONG, symbols[resolver.resolve(iff.right as ExSymbol<*>)])
     }
   }
 
@@ -167,12 +168,12 @@ class TypeCheckerTest {
       assertEquals(function(BOOL, BOOL), call.callee.tag.type)
       assertEquals(BOOL, call.args[0].tag.type)
     }
-    check("((a: double, b: double) -> a > b)(2, 1)").let { (tree, _, _) ->
+    check("((a: long, b: long) -> a > b)(2, 1)").let { (tree, _, _) ->
       val call = tree as ExCall
       assertEquals(BOOL, call.tag.type)
-      assertEquals(function(BOOL, DOUBLE, DOUBLE), call.callee.tag.type)
-      assertEquals(DOUBLE, call.args[0].tag.type)
-      assertEquals(DOUBLE, call.args[1].tag.type)
+      assertEquals(function(BOOL, LONG, LONG), call.callee.tag.type)
+      assertEquals(LONG, call.args[0].tag.type)
+      assertEquals(LONG, call.args[1].tag.type)
     }
   }
 
@@ -181,26 +182,26 @@ class TypeCheckerTest {
     check("let a = 1 in () -> a").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val fn = let.bound as ExLambda
-      assertEquals(function(DOUBLE), fn.tag.type)
-      assertEquals(DOUBLE, symbols[resolver.resolve((fn.body as ExSymbol<*>))])
+      assertEquals(function(LONG), fn.tag.type)
+      assertEquals(LONG, symbols[resolver.resolve((fn.body as ExSymbol<*>))])
     }
     check("(let a = 1 in () -> a)()").let { (tree, _, _) ->
       val call = tree as ExCall
-      assertEquals(DOUBLE, call.tag.type)
-      assertEquals(function(DOUBLE), call.callee.tag.type)
+      assertEquals(LONG, call.tag.type)
+      assertEquals(function(LONG), call.callee.tag.type)
     }
     check("let a = 1 in (() -> a)()").let { (tree, _, _) ->
       val let = tree as ExLet
       val call = let.bound as ExCall
-      assertEquals(DOUBLE, let.tag.type)
-      assertEquals(DOUBLE, call.tag.type)
-      assertEquals(function(DOUBLE), call.callee.tag.type)
+      assertEquals(LONG, let.tag.type)
+      assertEquals(LONG, call.tag.type)
+      assertEquals(function(LONG), call.callee.tag.type)
     }
   }
 
   @Test
   fun recursion() {
-    check("let f = (x: double): double -> f(x+1) in f(1)").let { (tree, resolver, symbols) ->
+    check("let f = (x: long): long -> f(x+1) in f(1)").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val outerCall = let.bound as ExCall
       val sym1 = let.bindings[0].symbol
@@ -208,71 +209,71 @@ class TypeCheckerTest {
       val innerCall = fn.body as ExCall
       val sym2 = innerCall.callee as ExSymbol
 
-      assertEquals(DOUBLE, let.tag.type)
-      assertEquals(DOUBLE, outerCall.tag.type)
-      assertEquals(DOUBLE, innerCall.tag.type)
-      assertEquals(function(DOUBLE, DOUBLE), sym2.tag.type)
+      assertEquals(LONG, let.tag.type)
+      assertEquals(LONG, outerCall.tag.type)
+      assertEquals(LONG, innerCall.tag.type)
+      assertEquals(function(LONG, LONG), sym2.tag.type)
 
-      assertEquals(function(DOUBLE, DOUBLE), symbols[resolver.resolve((sym1))])
-      assertEquals(function(DOUBLE, DOUBLE), symbols[resolver.resolve((sym2))])
+      assertEquals(function(LONG, LONG), symbols[resolver.resolve((sym1))])
+      assertEquals(function(LONG, LONG), symbols[resolver.resolve((sym2))])
     }
   }
 
   @Test
   fun higherOrderFunction() {
-    check("""(inner: (->double)) -> inner""").let { (tree, _, _) ->
+    check("""(inner: (->long)) -> inner""").let { (tree, _, _) ->
       val fn = tree as ExLambda
       assertEquals(NONE, fn.annotation)
-      assertEquals(function(DOUBLE), fn.parameters[0].tag.type)
-      assertEquals(function(DOUBLE), fn.body.tag.type)
-      assertEquals(function(function(DOUBLE), function(DOUBLE)), fn.tag.type)
+      assertEquals(function(LONG), fn.parameters[0].tag.type)
+      assertEquals(function(LONG), fn.body.tag.type)
+      assertEquals(function(function(LONG), function(LONG)), fn.tag.type)
     }
-    check("""let f = (inner: (->double)) -> inner in f""").let { (tree, _, _) ->
+    check("""let f = (inner: (->long)) -> inner in f""").let { (tree, _, _) ->
       val let = tree as ExLet
-      assertEquals(function(function(DOUBLE), function(DOUBLE)), let.bound.tag.type)
-      assertEquals(function(function(DOUBLE), function(DOUBLE)), let.tag.type)
+      assertEquals(function(function(LONG), function(LONG)), let.bound.tag.type)
+      assertEquals(function(function(LONG), function(LONG)), let.tag.type)
     }
     check("""let
-      |f = (inner: (->double)) -> inner,
+      |f = (inner: (->long)) -> inner,
       |g = () -> 1,
       |in f(g)""".trimMargin()).let { (tree, resolver, symbols) ->
       val let = tree as ExLet
-      assertEquals(function(DOUBLE), let.bound.tag.type)
-      assertEquals(function(DOUBLE), let.tag.type)
+      assertEquals(function(LONG), let.bound.tag.type)
+      assertEquals(function(LONG), let.tag.type)
 
-      assertEquals(function(function(DOUBLE), function(DOUBLE)),
+      assertEquals(function(function(LONG), function(LONG)),
           symbols[resolver.resolve((let.bindings[0].symbol))])
-      assertEquals(function(DOUBLE),
+      assertEquals(function(LONG),
           symbols[resolver.resolve((let.bindings[1].symbol))])
     }
     check("""let
-      |apply = (f: (double->double), x: double) -> f(x),
-      |inc = (x: double) -> x + 1,
+      |apply = (f: (long->long), x: long) -> f(x),
+      |inc = (x: long) -> x + 1,
       |in apply(inc, 1)""".trimMargin()).let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val call = let.bound as ExCall
-      assertEquals(DOUBLE, call.tag.type)
+      assertEquals(LONG, call.tag.type)
 
-      assertEquals(function(DOUBLE, function(DOUBLE, DOUBLE), DOUBLE),
+      assertEquals(function(LONG, function(LONG, LONG), LONG),
           symbols[resolver.resolve((let.bindings[0].symbol))])
-      assertEquals(function(DOUBLE, DOUBLE),
+      assertEquals(function(LONG, LONG),
           symbols[resolver.resolve((let.bindings[1].symbol))])
     }
     check("""let
-      |adder = (x: double): (double->double) -> (y: double) -> x + y,
+      |adder = (x: long): (long->long) -> (y: long) -> x + y,
       |in adder(1)(5)""".trimMargin()).let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val call = let.bound as ExCall
-      assertEquals(DOUBLE, call.tag.type)
+      assertEquals(LONG, call.tag.type)
 
-      assertEquals(function(function(DOUBLE, DOUBLE), DOUBLE),
+      assertEquals(function(function(LONG, LONG), LONG),
           symbols[resolver.resolve((let.bindings[0].symbol))])
     }
   }
 
   @Test
   fun builtins() {
-    check("sqrt(2)", mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, _, _) ->
+    check("sqrt(2.0)", mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, _, _) ->
       val call = tree as ExCall
       val fn = call.callee as ExSymbol
 

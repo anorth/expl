@@ -2,6 +2,7 @@ package org.explang.syntax
 
 import org.explang.syntax.Type.Companion.BOOL
 import org.explang.syntax.Type.Companion.DOUBLE
+import org.explang.syntax.Type.Companion.LONG
 
 /**
  * Describes the types of an operator's operands and results.
@@ -20,8 +21,8 @@ class Operators(private val ops: Map<String, List<Operator>>) {
 }
 
 val UNARY_OPERATORS = Operators(mapOf(
-    "-" to listOf(Operator(DOUBLE, DOUBLE)),
-    "+" to listOf(Operator(DOUBLE, DOUBLE)),
+    "-" to listOf(Operator(LONG, LONG), Operator(DOUBLE, DOUBLE)),
+    "+" to listOf(Operator(LONG, LONG), Operator(DOUBLE, DOUBLE)),
     "not" to listOf(Operator(BOOL, BOOL))
 ))
 
@@ -30,17 +31,17 @@ val BINARY_OPERATORS = Operators(mapOf(
     "or" to listOf(Operator(BOOL, BOOL)),
     "xor" to listOf(Operator(BOOL, BOOL)),
 
-    "==" to listOf(Operator(BOOL, BOOL), Operator(BOOL, DOUBLE)),
-    "<>" to listOf(Operator(BOOL, BOOL), Operator(BOOL, DOUBLE)),
+    "==" to listOf(Operator(BOOL, BOOL), Operator(BOOL, LONG), Operator(BOOL, DOUBLE)),
+    "<>" to listOf(Operator(BOOL, BOOL), Operator(BOOL, LONG), Operator(BOOL, DOUBLE)),
 
-    "<" to listOf(Operator(BOOL, DOUBLE)),
-    "<=" to listOf(Operator(BOOL, DOUBLE)),
-    ">=" to listOf(Operator(BOOL, DOUBLE)),
-    ">" to listOf(Operator(BOOL, DOUBLE)),
+    "<" to listOf(Operator(BOOL, DOUBLE), Operator(BOOL, LONG)),
+    "<=" to listOf(Operator(BOOL, DOUBLE), Operator(BOOL, LONG)),
+    ">=" to listOf(Operator(BOOL, DOUBLE), Operator(BOOL, LONG)),
+    ">" to listOf(Operator(BOOL, DOUBLE), Operator(BOOL, LONG)),
 
-    "+" to listOf(Operator(DOUBLE, DOUBLE)),
-    "-" to listOf(Operator(DOUBLE, DOUBLE)),
-    "*" to listOf(Operator(DOUBLE, DOUBLE)),
-    "/" to listOf(Operator(DOUBLE, DOUBLE)),
-    "^" to listOf(Operator(DOUBLE, DOUBLE))
+    "+" to listOf(Operator(DOUBLE, DOUBLE), Operator(LONG, LONG)),
+    "-" to listOf(Operator(DOUBLE, DOUBLE), Operator(LONG, LONG)),
+    "*" to listOf(Operator(DOUBLE, DOUBLE), Operator(LONG, LONG)),
+    "/" to listOf(Operator(DOUBLE, DOUBLE), Operator(LONG, LONG)),
+    "^" to listOf(Operator(DOUBLE, DOUBLE), Operator(LONG, LONG))
 ))

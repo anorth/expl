@@ -36,19 +36,21 @@ public class FunctionCallNode extends ExpressionNode {
     assertType(Type.BOOL);
     return (boolean) execute(frame);
   }
-
+  @Override
+  public long executeLong(VirtualFrame frame) {
+    assertType(Type.LONG);
+    return (long) execute(frame);
+  }
   @Override
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
     return (double) execute(frame);
   }
-
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     return (ExplFunction) execute(frame);
   }
-
   @Override
   public AbstractArray executeArray(VirtualFrame frame) {
     assertTypeIsArray();

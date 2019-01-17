@@ -48,8 +48,9 @@ typeExpression
   | typePrimitive;
 
 typePrimitive
-  : DOUBLE
-  | BOOL
+  : BOOL
+  | LONG
+  | DOUBLE
   ;
 
 literal
@@ -100,8 +101,9 @@ NOT: 'not' ;
 TRUE: 'true';
 FALSE: 'false';
 
-DOUBLE: 'double';
+LONG: 'long';
 BOOL: 'bool';
+DOUBLE: 'double';
 
 INTEGER: DIGITS ;
 FLOAT: DIGITS ('.' [0-9]*)? (E SIGN? DIGITS)? ;

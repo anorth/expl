@@ -19,6 +19,10 @@ public abstract class BaseNode extends ExpressionNode {
     throw new AssertionError(String.format("%s has no implementation for boolean", this));
   }
   @Override
+  public long executeLong(VirtualFrame frame) {
+    throw new AssertionError(String.format("%s has no implementation for long", this));
+  }
+  @Override
   public double executeDouble(VirtualFrame frame) {
     throw new AssertionError(String.format("%s has no implementation for double", this));
   }

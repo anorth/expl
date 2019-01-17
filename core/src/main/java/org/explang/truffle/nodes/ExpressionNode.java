@@ -24,22 +24,25 @@ public abstract class ExpressionNode extends Node {
   public Type type() { return type; }
 
   public abstract boolean executeBoolean(VirtualFrame frame);
+  public abstract long executeLong(VirtualFrame frame);
   public abstract double executeDouble(VirtualFrame frame);
-  public abstract ExplFunction executeFunction(VirtualFrame frame);
   public abstract AbstractArray executeArray(VirtualFrame frame);
+  public abstract ExplFunction executeFunction(VirtualFrame frame);
 
   /**
    * Executes a node according to its declared type.
    */
   public final Object executeDeclaredType(VirtualFrame frame) {
-    if (type() == Type.DOUBLE) {
-      return executeDouble(frame);
-    } else if (type() == Type.BOOL) {
+    if (type() == Type.BOOL) {
       return executeBoolean(frame);
-    } else if (type() instanceof FuncType) {
-      return executeFunction(frame);
+    } else if (type() == Type.LONG) {
+      return executeLong(frame);
+    } else if (type() == Type.DOUBLE) {
+      return executeDouble(frame);
     } else if (type instanceof ArrayType) {
       return executeArray(frame);
+    } else if (type() instanceof FuncType) {
+      return executeFunction(frame);
     } else {
       throw new AssertionError("Unexpected type " + type);
     }

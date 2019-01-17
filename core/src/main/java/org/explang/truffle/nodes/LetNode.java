@@ -26,23 +26,25 @@ public final class LetNode extends ExpressionNode {
     executeBindings(frame);
     return expression.executeBoolean(frame);
   }
-
+  @Override
+  public long executeLong(VirtualFrame frame) {
+    executeBindings(frame);
+    return expression.executeLong(frame);
+  }
   @Override
   public double executeDouble(VirtualFrame frame) {
     executeBindings(frame);
     return expression.executeDouble(frame);
   }
-
-  @Override
-  public ExplFunction executeFunction(VirtualFrame frame) {
-    executeBindings(frame);
-    return expression.executeFunction(frame);
-  }
-
   @Override
   public AbstractArray executeArray(VirtualFrame frame) {
     executeBindings(frame);
     return expression.executeArray(frame);
+  }
+  @Override
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    executeBindings(frame);
+    return expression.executeFunction(frame);
   }
 
   private void executeBindings(VirtualFrame frame) {

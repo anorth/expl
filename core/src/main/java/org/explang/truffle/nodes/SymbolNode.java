@@ -30,7 +30,15 @@ public final class SymbolNode extends ExpressionNode {
       throw fail(e);
     }
   }
-
+  @Override
+  public long executeLong(VirtualFrame frame) {
+    assertType(Type.LONG);
+    try {
+      return frame.getLong(value);
+    } catch (FrameSlotTypeException e) {
+      throw fail(e);
+    }
+  }
   @Override
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
@@ -40,22 +48,20 @@ public final class SymbolNode extends ExpressionNode {
       throw fail(e);
     }
   }
-
-  @Override
-  public ExplFunction executeFunction(VirtualFrame frame) {
-    assertTypeIsFunction();
-    try {
-      return (ExplFunction) frame.getObject(value);
-    } catch (FrameSlotTypeException | ClassCastException e) {
-      throw fail(e);
-    }
-  }
-
   @Override
   public AbstractArray executeArray(VirtualFrame frame) {
     assertTypeIsArray();
     try {
       return (AbstractArray) frame.getObject(value);
+    } catch (FrameSlotTypeException | ClassCastException e) {
+      throw fail(e);
+    }
+  }
+  @Override
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    assertTypeIsFunction();
+    try {
+      return (ExplFunction) frame.getObject(value);
     } catch (FrameSlotTypeException | ClassCastException e) {
       throw fail(e);
     }

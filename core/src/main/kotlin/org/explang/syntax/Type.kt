@@ -11,11 +11,13 @@ sealed class Type constructor(
 ) {
   companion object {
     @JvmField
-    val NONE = None()
+    val NONE = NoneType
     @JvmField
-    val BOOL = PrimType("boolean")
+    val BOOL = PrimType.BOOL
     @JvmField
-    val DOUBLE = PrimType("double")
+    val DOUBLE = PrimType.DOUBLE
+    @JvmField
+    val LONG = PrimType.LONG
 
     @JvmStatic
     fun function(result: Type, vararg arguments: Type) = FuncType(result, arguments)
@@ -30,10 +32,14 @@ sealed class Type constructor(
   open fun asArray(): ArrayType = throw RuntimeTypeError("$this is not an array")
 }
 
-class None : Type("none")
+object NoneType : Type("none")
 
 /** A primitive type */
-class PrimType(name: String) : Type(name) {
+sealed class PrimType(name: String) : Type(name) {
+  object BOOL : PrimType("boolean")
+  object LONG : PrimType("long")
+  object DOUBLE : PrimType("double") // Consider naming these "float" and "int" if 32-bit versions are excluded
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
@@ -74,6 +80,7 @@ class FuncType(
   }
 }
 
+/** An n-dimensional array type. */
 class ArrayType(
     private val element: Type,
     private val dims: Int

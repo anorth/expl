@@ -30,14 +30,18 @@ public interface FrameBinding {
           case Object:
             targetFrame.setObject(targetSlot, sourceFrame.getObject(sourceSlot));
             break;
+          case Boolean:
+            targetFrame.setBoolean(targetSlot, sourceFrame.getBoolean(sourceSlot));
+            break;
+          case Long:
+            targetFrame.setLong(targetSlot, sourceFrame.getLong(sourceSlot));
+            break;
           case Double:
             targetFrame.setDouble(targetSlot, sourceFrame.getDouble(sourceSlot));
             break;
-          case Illegal:
-          case Long:
           case Int:
           case Float:
-          case Boolean:
+          case Illegal:
           case Byte:
             throw new RuntimeException("Not implemented");
         }
@@ -60,20 +64,28 @@ public interface FrameBinding {
     @Override
     public void copy(Frame sourceFrame, Frame targetFrame) {
       switch (targetFrame.getFrameDescriptor().getFrameSlotKind(targetSlot)) {
-        case Object:
-          targetFrame.setObject(targetSlot, sourceFrame.getArguments()[sourceIndex]);
+        case Boolean:
+          targetFrame.setBoolean(targetSlot, (Boolean) getArg(sourceFrame));
+          break;
+        case Long:
+          targetFrame.setLong(targetSlot, (Long) getArg(sourceFrame));
           break;
         case Double:
-          targetFrame.setDouble(targetSlot, (Double) sourceFrame.getArguments()[sourceIndex]);
+          targetFrame.setDouble(targetSlot, (Double) getArg(sourceFrame));
+          break;
+        case Object:
+          targetFrame.setObject(targetSlot, getArg(sourceFrame));
           break;
         case Illegal:
-        case Long:
         case Int:
         case Float:
-        case Boolean:
         case Byte:
           throw new RuntimeException("Not implemented");
       }
+    }
+
+    private Object getArg(Frame sourceFrame) {
+      return sourceFrame.getArguments()[sourceIndex];
     }
   }
 }

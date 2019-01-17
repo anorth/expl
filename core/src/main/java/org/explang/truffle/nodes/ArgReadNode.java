@@ -29,6 +29,14 @@ public final class ArgReadNode extends ExpressionNode {
     }
   }
 
+  public static long readLong(VirtualFrame frame, int index) {
+    try {
+      return (long) frame.getArguments()[index + 1];
+    } catch (ClassCastException | IndexOutOfBoundsException e) {
+      throw fail(index, Type.LONG.name(), e);
+    }
+  }
+
   public static double readDouble(VirtualFrame frame, int index) {
     try {
       return (double) frame.getArguments()[index + 1];
@@ -64,19 +72,21 @@ public final class ArgReadNode extends ExpressionNode {
     assertType(Type.BOOL);
     return readBoolean(frame, index);
   }
-
+  @Override
+  public long executeLong(VirtualFrame frame) {
+    assertType(Type.LONG);
+    return readLong(frame, index);
+  }
   @Override
   public double executeDouble(VirtualFrame frame) {
     assertType(Type.DOUBLE);
     return readDouble(frame, index);
   }
-
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     return readFunction(frame, index);
   }
-
   @Override
   public AbstractArray executeArray(VirtualFrame frame) {
     assertTypeIsArray();

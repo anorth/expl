@@ -25,6 +25,10 @@ public final class IfNode extends ExpressionNode {
     return test.executeBoolean(frame) ? left.executeBoolean(frame) : right.executeBoolean(frame);
   }
   @Override
+  public long executeLong(VirtualFrame frame) {
+    return test.executeBoolean(frame) ? left.executeLong(frame) : right.executeLong(frame);
+  }
+  @Override
   public double executeDouble(VirtualFrame frame) {
     return test.executeBoolean(frame) ? left.executeDouble(frame) : right.executeDouble(frame);
   }

@@ -213,8 +213,13 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
   override fun visitBool(ctx: ExplParser.BoolContext) =
       ExLiteral(ctx.range(), tag(), Boolean::class.java, ctx.text!!.toBoolean())
 
-  override fun visitNumber(ctx: ExplParser.NumberContext) =
-      ExLiteral(ctx.range(), tag(), Double::class.java, ctx.text.toDouble())
+  override fun visitNumber(ctx: ExplParser.NumberContext): ExLiteral<T, *> {
+    return when {
+      ctx.INTEGER() != null -> ExLiteral(ctx.range(), tag(), Long::class.java, ctx.text.toLong())
+      ctx.FLOAT() != null -> ExLiteral(ctx.range(), tag(), Double::class.java, ctx.text.toDouble())
+      else -> throw RuntimeException("Unrecognized numeric literal ${ctx.text}")
+    }
+  }
 
   ///// Internals /////
 
@@ -233,8 +238,9 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     if (prim != null) {
       return when {
         prim.BOOL() != null -> Type.BOOL
+        prim.LONG() != null -> Type.LONG
         prim.DOUBLE() != null -> Type.DOUBLE
-        else -> throw RuntimeException("Unhandled type literal ${prim.text}")
+        else -> throw RuntimeException("Unrecognized type literal ${prim.text}")
       }
     } else {
       val children = ctx.typeExpression()

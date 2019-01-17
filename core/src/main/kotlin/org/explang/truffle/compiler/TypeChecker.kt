@@ -156,6 +156,7 @@ class TypeChecker(
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>) {
     val actual = when (literal.type) {
       Boolean::class.java -> Type.BOOL
+      Long::class.java -> Type.LONG
       Double::class.java -> Type.DOUBLE
       else -> throw CompileError("Unrecognized literal type ${literal.type}", literal)
     }

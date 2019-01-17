@@ -12,6 +12,7 @@ import org.explang.array.ArrayOfDouble
 import org.explang.array.EmptyArray
 import org.explang.array.Shape
 import org.explang.syntax.Type
+import org.explang.truffle.ExplFunction
 import java.io.File
 
 class DataLoader {
@@ -84,8 +85,10 @@ class DataLoader {
 private fun typeForValue(value: Any): Type {
   return when (value) {
     is Boolean -> Type.BOOL
+    is Int -> Type.LONG
     is Double -> Type.DOUBLE
     is AbstractArray -> Type.array(value.element, value.shape.dimensions)
+    is ExplFunction -> value.type()
     else -> Type.NONE
   }
 }

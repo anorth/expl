@@ -29,7 +29,12 @@ public final class BindingNode extends ExpressionNode {
     boolean v = this.valueNode.executeBoolean(frame);
     frame.setBoolean(slot, v);
     return v;
-
+  }
+  @Override
+  public long executeLong(VirtualFrame frame) {
+    long v = this.valueNode.executeLong(frame);
+    frame.setLong(slot, v);
+    return v;
   }
   @Override
   public double executeDouble(VirtualFrame frame) {
@@ -37,7 +42,6 @@ public final class BindingNode extends ExpressionNode {
     frame.setDouble(slot, v);
     return v;
   }
-
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     ExplFunction f = this.valueNode.executeFunction(frame);
@@ -46,7 +50,6 @@ public final class BindingNode extends ExpressionNode {
     f.capture(frame, slot);
     return f;
   }
-
   @Override
   public AbstractArray executeArray(VirtualFrame frame) {
     AbstractArray v = this.valueNode.executeArray(frame);

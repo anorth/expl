@@ -16,7 +16,7 @@ import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
 import org.explang.syntax.FuncType
-import org.explang.syntax.None
+import org.explang.syntax.NoneType
 import org.explang.syntax.PrimType
 import org.explang.syntax.Type
 import org.explang.truffle.Discloser
@@ -35,6 +35,7 @@ import org.explang.truffle.nodes.FunctionDefinitionNode
 import org.explang.truffle.nodes.FunctionNodes
 import org.explang.truffle.nodes.IfNode
 import org.explang.truffle.nodes.LetNode
+import org.explang.truffle.nodes.Longs
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.util.Arrays
@@ -200,10 +201,11 @@ private class TruffleBuilder private constructor(
       throw RuntimeException("Unused")
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>): ExpressionNode {
-    return when (literal.tag.type) {
-      Type.BOOL -> Booleans.literal(literal.value as Boolean)
-      Type.DOUBLE -> Doubles.literal(literal.value as Double)
-      else -> throw CompileError("Invalid literal type ${literal.tag.type}", literal)
+    return when (literal.tag.type as? PrimType) {
+      PrimType.BOOL -> Booleans.literal(literal.value as Boolean)
+      PrimType.LONG -> Longs.literal(literal.value as Long)
+      PrimType.DOUBLE -> Doubles.literal(literal.value as Double)
+      null -> throw CompileError("Invalid literal type ${literal.tag.type}", literal)
     }
   }
 
@@ -253,7 +255,7 @@ private fun environmentValueNode(value: Environment.Value, id: String): Expressi
     is PrimType -> primitiveNode(value.type, value.value)
     is ArrayType -> ArrayNodes.literal(value.value as AbstractArray)
     is FuncType -> FunctionNodes.literal(value.value as ExplFunction)
-    is None -> throw RuntimeException("Unexpected environment value with type NONE $id: $value")
+    is NoneType -> throw RuntimeException("Unexpected environment value with type NONE $id: $value")
   }
 }
 
@@ -267,6 +269,9 @@ private val UNOPS = mapOf(
     Type.BOOL to mapOf(
         "not" to Booleans::invert
     ),
+    Type.LONG to mapOf(
+        "-" to Longs::negate
+    ),
     Type.DOUBLE to mapOf(
         "-" to Doubles::negate
     )
@@ -279,6 +284,19 @@ private val BINOPS = mapOf(
         "and" to Booleans::and,
         "or" to Booleans::or,
         "xor" to Booleans::xor
+    ),
+    Type.LONG to mapOf(
+        "^" to Longs::exp,
+        "*" to Longs::mul,
+        "/" to Longs::div,
+        "+" to Longs::add,
+        "-" to Longs::sub,
+        "<" to Longs::lt,
+        "<=" to Longs::le,
+        ">" to Longs::gt,
+        ">=" to Longs::ge,
+        "==" to Longs::eq,
+        "<>" to Longs::ne
     ),
     Type.DOUBLE to mapOf(
         "^" to Doubles::exp,

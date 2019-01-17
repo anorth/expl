@@ -17,10 +17,10 @@ class BenchmarkIntegrationTest {
   @Test
   fun fibonacci() {
     val node = compiler.compile("""let
-      |f = (x: double): double -> if x <= 2 then 1 else f(x-1) + f(x-2)
+      |f = (x: long): long -> if x <= 2 then 1 else f(x-1) + f(x-2)
       |in f(30)""".trimMargin(), Environment())
     val ret = compiler.eval(node)
-    assertEquals(832040.0, ret)
+    assertEquals(832040L, ret)
 
     // Warm-up
     println("Warming up")
