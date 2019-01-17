@@ -37,6 +37,8 @@ class ArrayOfDouble private constructor(
     return data[index(*index)]
   }
 
+  fun sum() = data.sum()
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false

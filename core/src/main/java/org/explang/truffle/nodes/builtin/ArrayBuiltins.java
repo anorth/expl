@@ -20,4 +20,16 @@ public final class ArrayBuiltins {
       }
     };
   }
+
+  public static BuiltInNode sum() {
+    return new BuiltInNode("sum", DOUBLE, array(DOUBLE, 1)) {
+      // TODO: relax type to array of unknown dimension
+      // TODO: add optional arguments to select dimensions
+      @Override
+      public double executeDouble(VirtualFrame frame) {
+        ArrayOfDouble arr = (ArrayOfDouble) ArgReadNode.readArray(frame, 0);
+        return arr.sum();
+      }
+    };
+  }
 }
