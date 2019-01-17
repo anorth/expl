@@ -30,6 +30,7 @@ import org.explang.truffle.nodes.FunctionDefinitionNode
 import org.explang.truffle.nodes.IfNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.SymbolNode
+import org.explang.truffle.nodes.builtin.Builtins
 import org.explang.truffle.nodes.builtin.StaticBound
 import java.util.Arrays
 
@@ -43,7 +44,7 @@ class Compiler(
 
   @Throws(CompileError::class)
   fun compile(tree: ExTree<Analyzer.Tag>): ExpressionNode {
-    val builtins = BUILT_INS.mapValues { it.value.funcType }
+    val builtins = Builtins.BY_NAME.mapValues { it.value.funcType }
     val analysis = analyzer.analyze(tree, builtins)
     if (printAnalysis) {
       println("*Analysis*")
@@ -205,7 +206,7 @@ private class TruffleBuilder private constructor(
       is Scope.Resolution.Closure ->
         SymbolNode(type, frame.findFrameSlot(id))
       is Scope.Resolution.BuiltIn ->
-        StaticBound.builtIn(BUILT_INS[id]!!)
+        StaticBound.builtIn(Builtins.BY_NAME[id]!!)
       is Scope.Resolution.Unresolved ->
         throw CompileError("Unbound symbol ${resolution.symbol}", symbol)
     }
