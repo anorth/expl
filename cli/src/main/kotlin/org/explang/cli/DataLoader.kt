@@ -7,10 +7,9 @@ import com.fasterxml.jackson.databind.node.DoubleNode
 import com.fasterxml.jackson.databind.node.IntNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
-import org.explang.array.AbstractArray
-import org.explang.array.ArrayOfDouble
-import org.explang.array.EmptyArray
-import org.explang.array.Shape
+import org.explang.array.ArrayValue
+import org.explang.array.BooleanArrayValue
+import org.explang.array.DoubleArrayValue
 import org.explang.syntax.Type
 import org.explang.truffle.ExplFunction
 import java.io.File
@@ -33,7 +32,6 @@ class DataLoader {
 //    }
 //    return d
 //  }
-
 
   fun loadJsonToEnv(path: String) {
     println(File(path).absolutePath)
@@ -61,7 +59,7 @@ class DataLoader {
 
   private fun loadArray(array: ArrayNode): Any {
     return if (array.size() == 0) {
-      return EmptyArray(Shape(0))
+      return BooleanArrayValue(BooleanArray(0))
     } else {
       val first = array.get(0)
       if (first.isNumber) {
@@ -73,12 +71,12 @@ class DataLoader {
     }
   }
 
-  private fun loadDoubleArray(array: ArrayNode): ArrayOfDouble {
+  private fun loadDoubleArray(array: ArrayNode): DoubleArrayValue {
     val values = DoubleArray(array.size())
     for (i in 0..values.lastIndex) {
       values[i] = array[i].doubleValue()
     }
-    return ArrayOfDouble.of(values)
+    return DoubleArrayValue(values)
   }
 }
 
@@ -87,7 +85,7 @@ private fun typeForValue(value: Any): Type {
     is Boolean -> Type.BOOL
     is Int -> Type.LONG
     is Double -> Type.DOUBLE
-    is AbstractArray -> Type.array(value.element, value.shape.dimensions)
+    is ArrayValue<*> -> value.type
     is ExplFunction -> value.type()
     else -> Type.NONE
   }

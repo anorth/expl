@@ -1,12 +1,10 @@
 package org.explang.truffle.evaluation
 
-import org.explang.array.DoubleArrayValue
 import org.explang.syntax.Type.Companion.BOOL
 import org.explang.syntax.Type.Companion.function
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
-import org.explang.truffle.nodes.builtin.ArrayBuiltins
 import org.explang.truffle.nodes.builtin.MathBuiltins
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -158,13 +156,6 @@ class EvaluationIntegrationTest {
   fun builtins() {
     env.addBuiltin(MathBuiltins.sqrt())
     assertResult(Math.sqrt(2.0), "sqrt(2.0)")
-  }
-
-  @Test
-  fun arrays() {
-    env.addBuiltin(ArrayBuiltins.zeros())
-    val res = DoubleArrayValue(DoubleArray(3))
-    assertResult(res, "zeros(3)")
   }
 
   private fun assertResult(expected: Any, expression: String) {

@@ -7,6 +7,7 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.explang.array.ArrayValue;
@@ -63,6 +64,7 @@ public class FunctionCallNode extends ExpressionNode {
     return this.callNode.call(function.callTarget(), argValues);
   }
 
+  @ExplodeLoop
   private Object[] buildArgs(VirtualFrame virtualFrame, @Nullable MaterializedFrame closure) {
     CompilerAsserts.compilationConstant(this.argNodes.length);
     // The closure frame, if any, is passed to the callee as the first argument.

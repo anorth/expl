@@ -22,7 +22,8 @@ sealed class Type constructor(
     @JvmStatic
     fun function(result: Type, vararg arguments: Type) = FuncType(result, arguments)
     @JvmStatic
-    fun array(element: Type, length: Int?) = ArrayType(element, length)
+    @JvmOverloads
+    fun array(element: Type, length: Int? = null) = ArrayType(element, length)
   }
 
   fun name() = name

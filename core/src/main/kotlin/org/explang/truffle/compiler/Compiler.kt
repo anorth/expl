@@ -271,7 +271,7 @@ private fun arrayNode(elType: Type, value: Any) = when(elType) {
   PrimType.LONG -> ArrayNodes.longs(value as LongArray)
   PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArray)
   is FuncType -> ArrayNodes.functions(elType, value as Array<out ExplFunction>)
-  is ArrayType -> ArrayNodes.arrays(elType, value as Array<out ArrayValue>)
+  is ArrayType -> ArrayNodes.arrays(elType, value as Array<out ArrayValue<*>>)
   NoneType -> throw RuntimeException("Unexpected environment array with value type NONE")
 }
 
