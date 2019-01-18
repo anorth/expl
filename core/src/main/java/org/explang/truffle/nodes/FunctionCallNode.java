@@ -9,7 +9,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.AbstractArray;
+import org.explang.array.ArrayValue;
 import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
@@ -52,9 +52,9 @@ public class FunctionCallNode extends ExpressionNode {
     return (ExplFunction) execute(frame);
   }
   @Override
-  public AbstractArray executeArray(VirtualFrame frame) {
+  public ArrayValue executeArray(VirtualFrame frame) {
     assertTypeIsArray();
-    return (AbstractArray) execute(frame);
+    return (ArrayValue) execute(frame);
   }
 
   private Object execute(VirtualFrame frame) {

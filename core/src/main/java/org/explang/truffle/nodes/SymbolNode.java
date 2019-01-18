@@ -4,10 +4,10 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.AbstractArray;
+import org.explang.array.ArrayValue;
+import org.explang.syntax.RuntimeTypeError;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
-import org.explang.syntax.RuntimeTypeError;
 
 /**
  * A symbol to be resolved at runtime in the executing frame.
@@ -49,10 +49,10 @@ public final class SymbolNode extends ExpressionNode {
     }
   }
   @Override
-  public AbstractArray executeArray(VirtualFrame frame) {
+  public ArrayValue executeArray(VirtualFrame frame) {
     assertTypeIsArray();
     try {
-      return (AbstractArray) frame.getObject(value);
+      return (ArrayValue) frame.getObject(value);
     } catch (FrameSlotTypeException | ClassCastException e) {
       throw fail(e);
     }

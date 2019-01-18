@@ -2,7 +2,7 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
-import org.explang.array.AbstractArray
+import org.explang.array.ArrayValue
 import org.explang.syntax.ArrayType
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
@@ -253,16 +253,26 @@ private class TruffleBuilder private constructor(
 private fun environmentValueNode(value: Environment.Value, id: String): ExpressionNode {
   return when (value.type) {
     is PrimType -> primitiveNode(value.type, value.value)
-    is ArrayType -> ArrayNodes.literal(value.value as AbstractArray)
+    is ArrayType -> arrayNode(value.type.element(), value.value)
     is FuncType -> FunctionNodes.literal(value.value as ExplFunction)
     is NoneType -> throw RuntimeException("Unexpected environment value with type NONE $id: $value")
   }
 }
 
-private fun primitiveNode(type: PrimType, value: Any) = when {
-  type == Type.BOOL -> Booleans.literal(value as Boolean)
-  type == Type.DOUBLE -> Doubles.literal(value as Double)
-  else -> throw RuntimeException("Unhandled primitive type $type")
+private fun primitiveNode(type: PrimType, value: Any) = when(type) {
+  PrimType.BOOL -> Booleans.literal(value as Boolean)
+  PrimType.LONG -> Longs.literal(value as Long)
+  PrimType.DOUBLE -> Doubles.literal(value as Double)
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun arrayNode(elType: Type, value: Any) = when(elType) {
+  PrimType.BOOL -> ArrayNodes.booleans(value as BooleanArray)
+  PrimType.LONG -> ArrayNodes.longs(value as LongArray)
+  PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArray)
+  is FuncType -> ArrayNodes.functions(elType, value as Array<out ExplFunction>)
+  is ArrayType -> ArrayNodes.arrays(elType, value as Array<out ArrayValue>)
+  NoneType -> throw RuntimeException("Unexpected environment array with value type NONE")
 }
 
 private val UNOPS = mapOf(

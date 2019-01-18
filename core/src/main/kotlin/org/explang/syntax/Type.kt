@@ -22,7 +22,7 @@ sealed class Type constructor(
     @JvmStatic
     fun function(result: Type, vararg arguments: Type) = FuncType(result, arguments)
     @JvmStatic
-    fun array(element: Type, dims: Int) = ArrayType(element, dims)
+    fun array(element: Type, length: Int?) = ArrayType(element, length)
   }
 
   fun name() = name
@@ -83,11 +83,10 @@ class FuncType(
 /** An n-dimensional array type. */
 class ArrayType(
     private val element: Type,
-    private val dims: Int
-    // Add optional dimension sizes here so that double[3] is a concrete type?
-) : Type(arrayTypeName(element, dims)) {
+    private val length: Int?
+) : Type(arrayTypeName(element, length)) {
   fun element() = element
-  fun dims() = dims
+  fun length() = length
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -96,13 +95,13 @@ class ArrayType(
     other as ArrayType
 
     if (element != other.element) return false
-    if (dims != other.dims) return false
+    if (length != other.length) return false
     return true
   }
 
   override fun hashCode(): Int {
     var result = element.hashCode()
-    result = 31 * result + dims
+    result = 31 * result + (length ?: 0)
     return result
   }
 }
@@ -111,10 +110,6 @@ class ArrayType(
 private fun funcTypeName(result: Type, parameters: Array<out Type>) =
     "(${parameters.joinToString(",")}->$result)"
 
-private fun arrayTypeName(element: Type, dims: Int) : String {
-  return if (dims == 0) {
-    "[]"
-  } else {
-    element.name + "[]".repeat(dims)
-  }
+private fun arrayTypeName(element: Type, dims: Int?): String {
+  return "$element[${dims ?: ""}]"
 }

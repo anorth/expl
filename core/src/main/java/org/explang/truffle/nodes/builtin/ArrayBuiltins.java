@@ -1,8 +1,8 @@
 package org.explang.truffle.nodes.builtin;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.explang.array.AbstractArray;
-import org.explang.array.ArrayOfDouble;
+import org.explang.array.ArrayValue;
+import org.explang.array.DoubleArrayValue;
 import org.explang.truffle.nodes.ArgReadNode;
 
 import static org.explang.syntax.Type.DOUBLE;
@@ -16,12 +16,12 @@ public final class ArrayBuiltins {
       // TODO: add element type as parameter for double/long.
       // TODO: use guest language varargs or a record to specify more than one dimension
       @Override
-      public AbstractArray executeArray(VirtualFrame frame) {
-        long dim1 = ArgReadNode.readLong(frame, 0);
-        if (dim1 > Integer.MAX_VALUE) { // The practical limit is much smaller
-          throw new RuntimeException("Array size too big: " + dim1);
+      public ArrayValue executeArray(VirtualFrame frame) {
+        long size = ArgReadNode.readLong(frame, 0);
+        if (size > Integer.MAX_VALUE) { // The practical limit is much smaller
+          throw new RuntimeException("Array size too big: " + size);
         }
-        return ArrayOfDouble.zeros((int)dim1);
+        return new DoubleArrayValue(new double[(int)size]);
       }
     };
   }
@@ -31,7 +31,7 @@ public final class ArrayBuiltins {
       // TODO: relax type to array of unknown dimension
       @Override
       public double executeDouble(VirtualFrame frame) {
-        ArrayOfDouble arr = (ArrayOfDouble) ArgReadNode.readArray(frame, 0);
+        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
         return arr.sum();
       }
     };

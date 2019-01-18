@@ -1,6 +1,6 @@
 package org.explang.truffle.evaluation
 
-import org.explang.array.ArrayOfDouble
+import org.explang.array.DoubleArrayValue
 import org.explang.syntax.Type.Companion.BOOL
 import org.explang.syntax.Type.Companion.function
 import org.explang.truffle.ExplFunction
@@ -163,7 +163,7 @@ class EvaluationIntegrationTest {
   @Test
   fun arrays() {
     env.addBuiltin(ArrayBuiltins.zeros())
-    val res = ArrayOfDouble.zeros(3)
+    val res = DoubleArrayValue(DoubleArray(3))
     assertResult(res, "zeros(3)")
   }
 

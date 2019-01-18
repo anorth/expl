@@ -3,7 +3,7 @@ package org.explang.truffle.nodes;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.AbstractArray;
+import org.explang.array.ArrayValue;
 import org.explang.syntax.ArrayType;
 import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
@@ -26,7 +26,7 @@ public abstract class ExpressionNode extends Node {
   public abstract boolean executeBoolean(VirtualFrame frame);
   public abstract long executeLong(VirtualFrame frame);
   public abstract double executeDouble(VirtualFrame frame);
-  public abstract AbstractArray executeArray(VirtualFrame frame);
+  public abstract ArrayValue executeArray(VirtualFrame frame);
   public abstract ExplFunction executeFunction(VirtualFrame frame);
 
   /**

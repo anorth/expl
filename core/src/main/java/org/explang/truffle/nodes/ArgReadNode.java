@@ -2,10 +2,10 @@ package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.AbstractArray;
+import org.explang.array.ArrayValue;
+import org.explang.syntax.RuntimeTypeError;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
-import org.explang.syntax.RuntimeTypeError;
 
 /**
  * A reference to a positional argument, resolved at runtime in the executing frame.
@@ -53,9 +53,9 @@ public final class ArgReadNode extends ExpressionNode {
     }
   }
 
-  public static AbstractArray readArray(VirtualFrame frame, int index) {
+  public static ArrayValue readArray(VirtualFrame frame, int index) {
     try {
-      return (AbstractArray) frame.getArguments()[index + 1];
+      return (ArrayValue) frame.getArguments()[index + 1];
     } catch (ClassCastException | IndexOutOfBoundsException e) {
       throw fail(index, "array", e);
     }
@@ -88,7 +88,7 @@ public final class ArgReadNode extends ExpressionNode {
     return readFunction(frame, index);
   }
   @Override
-  public AbstractArray executeArray(VirtualFrame frame) {
+  public ArrayValue executeArray(VirtualFrame frame) {
     assertTypeIsArray();
     return readArray(frame, index);
   }
