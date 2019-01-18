@@ -57,7 +57,7 @@ class DataLoader {
     }
   }
 
-  private fun loadArray(array: ArrayNode): Any {
+  private fun loadArray(array: ArrayNode): ArrayValue<*> {
     return if (array.size() == 0) {
       return BooleanArrayValue(BooleanArray(0))
     } else {

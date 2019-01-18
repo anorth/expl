@@ -62,7 +62,7 @@ class TypeChecker(
       "Expected ${formalParamTypes.size} arguments, got ${args.size}"
     }
     for (i in formalParamTypes.indices) {
-      check(args[i], args[i].typeTag == formalParamTypes[i]) {
+      check(args[i], args[i].typeTag.satisfies(formalParamTypes[i])) {
         "Argument $i expected ${formalParamTypes[i]}, got ${args[i].typeTag}"
       }
     }

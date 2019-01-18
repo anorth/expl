@@ -2,7 +2,11 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
-import org.explang.array.ArrayValue
+import org.explang.array.ArrayArrayValue
+import org.explang.array.BooleanArrayValue
+import org.explang.array.DoubleArrayValue
+import org.explang.array.FunctionArrayValue
+import org.explang.array.LongArrayValue
 import org.explang.syntax.ArrayType
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
@@ -38,7 +42,6 @@ import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.Longs
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
-import java.util.Arrays
 
 
 /**
@@ -100,9 +103,13 @@ private class TruffleBuilder private constructor(
     val args = call.args.map(::visit).toTypedArray()
     val actualTypes = args.map(ExpressionNode::type).toTypedArray()
     val declaredTypes = type.parameters()
-    check(call, Arrays.equals(declaredTypes, actualTypes)) {
-      "Actual parameters (${actualTypes.joinToString(",")}) don't match " +
-          "declared (${declaredTypes.joinToString(",")})"
+    check(call, declaredTypes.size == actualTypes.size) {
+      "Function requires ${declaredTypes.size} but passed ${actualTypes.size}"
+    }
+    declaredTypes.forEachIndexed { i, declared ->
+      check(call.args[i], actualTypes[i].satisfies(declared)) {
+        "Argument $i with type ${actualTypes[i]} doesn't satisfy declared $declared"
+      }
     }
     return FunctionCallNode(fn, args)
   }
@@ -267,11 +274,11 @@ private fun primitiveNode(type: PrimType, value: Any) = when(type) {
 
 @Suppress("UNCHECKED_CAST")
 private fun arrayNode(elType: Type, value: Any) = when(elType) {
-  PrimType.BOOL -> ArrayNodes.booleans(value as BooleanArray)
-  PrimType.LONG -> ArrayNodes.longs(value as LongArray)
-  PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArray)
-  is FuncType -> ArrayNodes.functions(elType, value as Array<out ExplFunction>)
-  is ArrayType -> ArrayNodes.arrays(elType, value as Array<out ArrayValue<*>>)
+  PrimType.BOOL -> ArrayNodes.booleans(value as BooleanArrayValue)
+  PrimType.LONG -> ArrayNodes.longs(value as LongArrayValue)
+  PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArrayValue)
+  is FuncType -> ArrayNodes.functions(value as FunctionArrayValue)
+  is ArrayType -> ArrayNodes.arrays(value as ArrayArrayValue)
   NoneType -> throw RuntimeException("Unexpected environment array with value type NONE")
 }
 

@@ -31,9 +31,14 @@ sealed class Type constructor(
 
   open fun asFunc(): FuncType = throw RuntimeTypeError("$this is not a function")
   open fun asArray(): ArrayType = throw RuntimeTypeError("$this is not an array")
+
+  /** Whether a value of this type is acceptable where an [other] is required */
+  open fun satisfies(other: Type) = this == other
 }
 
-object NoneType : Type("none")
+object NoneType : Type("none") {
+  override fun satisfies(other: Type) = false
+}
 
 /** A primitive type */
 sealed class PrimType(name: String) : Type(name) {
@@ -62,15 +67,17 @@ class FuncType(
 
   override fun asFunc() = this
 
+  override fun satisfies(other: Type) = other is FuncType &&
+      result.satisfies(other.result) &&
+      other.parameters.zip(parameters).all { (o, t) -> o.satisfies(t) }
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
 
     other as FuncType
-
     if (result != other.result) return false
     if (!parameters.contentEquals(other.parameters)) return false
-
     return true
   }
 
@@ -89,12 +96,17 @@ class ArrayType(
   fun element() = element
   fun length() = length
 
+  override fun satisfies(other: Type): Boolean {
+    return other is ArrayType &&
+        element == other.element &&
+        (other.length == null || length == other.length())
+  }
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
 
     other as ArrayType
-
     if (element != other.element) return false
     if (length != other.length) return false
     return true
