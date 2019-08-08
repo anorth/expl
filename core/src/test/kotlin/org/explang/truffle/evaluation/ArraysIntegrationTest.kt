@@ -3,21 +3,12 @@ package org.explang.truffle.evaluation
 import org.explang.array.DoubleArrayValue
 import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
-import org.explang.truffle.nodes.builtin.ArrayBuiltins
 import org.junit.Assert
 import org.junit.Test
 
 class ArraysIntegrationTest {
   private val compiler = TestCompiler(debug = false)
-  private val env = Environment()
-
-  init {
-    env.addBuiltin(ArrayBuiltins.zeros())
-    env.addBuiltin(ArrayBuiltins.map())
-    env.addBuiltin(ArrayBuiltins.filter())
-    env.addBuiltin(ArrayBuiltins.fold())
-    env.addBuiltin(ArrayBuiltins.reduce())
-  }
+  private val env = Environment.withBuiltins()
 
   @Test
   fun construction() {
@@ -45,6 +36,13 @@ class ArraysIntegrationTest {
   @Test
   fun reduceDouble() {
     assertResult(0.0, "reduce(zeros(3), (x: double, y: double) -> x + y)")
+  }
+
+  @Test
+  fun sumDouble() {
+    assertResult(0.0, """let
+      |sum = (a: double[]) -> fold(a, 0.0, (x: double, y: double) -> x + y)
+      |in sum(zeros(3))""".trimMargin())
   }
 
   private fun assertResult(expected: Any, expression: String) {

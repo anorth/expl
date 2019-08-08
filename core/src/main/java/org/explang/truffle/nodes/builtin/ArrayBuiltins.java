@@ -90,16 +90,6 @@ public final class ArrayBuiltins {
     };
   }
 
-    public static BuiltInNode sum() {
-    return new BuiltInNode("sum", DOUBLE, array(DOUBLE)) {
-      @Override
-      public double executeDouble(VirtualFrame frame) {
-        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
-        return arr.sum();
-      }
-    };
-  }
-
   /** Wraps a call to a unary function */
   private static class Call1 {
     private final DirectCallNode node;

@@ -24,8 +24,6 @@ class BooleanArrayValue(
   override inline fun filter(predicate: (Boolean) -> Boolean) =
       BooleanArrayValue(data.filter(predicate).toBooleanArray())
 
-  fun sum() = data.count { it }
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
@@ -48,8 +46,6 @@ class LongArrayValue(
   override inline fun filter(predicate: (Long) -> Boolean) =
       LongArrayValue(data.filter(predicate).toLongArray())
 
-  fun sum() = data.sum()
-
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
@@ -71,8 +67,6 @@ class DoubleArrayValue(
 
   override inline fun filter(predicate: (Double) -> Boolean) =
       DoubleArrayValue(data.filter(predicate).toDoubleArray())
-
-  fun sum() = data.sum()
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true

@@ -113,6 +113,8 @@ class Parser(
 private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T>>() {
   override fun visit(tree: ParseTree) = super.visit(tree)!!
 
+  ///// expression /////
+
   override fun visitCallEx(ctx: ExplParser.CallExContext): ExCall<T> {
     val fn = visit(ctx.expression())
     val args = makeArguments(ctx.arguments())
@@ -189,10 +191,7 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return makeLambda(ctx, params, ret, ctx.expression())
   }
 
-  override fun visitParameter(ctx: ExplParser.ParameterContext): ExParameter<T> {
-    return ExParameter(ctx.range(), tag(), visitSymbol(ctx.symbol()),
-        makeType(ctx.typeAnnotation()))
-  }
+  ///// Sub-rules /////
 
   override fun visitBinding(ctx: ExplParser.BindingContext): ExBinding<T> {
     val value = if (ctx.formalParameters() != null) {
@@ -207,11 +206,13 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return ExBinding(ctx.range(), tag(), visitSymbol(ctx.symbol()), value)
   }
 
+  override fun visitParameter(ctx: ExplParser.ParameterContext): ExParameter<T> {
+    return ExParameter(ctx.range(), tag(), visitSymbol(ctx.symbol()),
+        makeType(ctx.typeAnnotation()))
+  }
+
   override fun visitSymbol(ctx: ExplParser.SymbolContext) =
       ExSymbol(ctx.range(), tag(), ctx.text)
-
-  override fun visitBool(ctx: ExplParser.BoolContext) =
-      ExLiteral(ctx.range(), tag(), Boolean::class.java, ctx.text!!.toBoolean())
 
   override fun visitNumber(ctx: ExplParser.NumberContext): ExLiteral<T, *> {
     return when {
@@ -220,6 +221,9 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
       else -> throw RuntimeException("Unrecognized numeric literal ${ctx.text}")
     }
   }
+
+  override fun visitBool(ctx: ExplParser.BoolContext) =
+      ExLiteral(ctx.range(), tag(), Boolean::class.java, ctx.text!!.toBoolean())
 
   ///// Internals /////
 
@@ -235,18 +239,21 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   private fun makeType(ctx: ExplParser.TypeExpressionContext): Type {
     val prim = ctx.typePrimitive()
-    if (prim != null) {
+    if (prim != null) { // Primitive
       return when {
         prim.BOOL() != null -> Type.BOOL
         prim.LONG() != null -> Type.LONG
         prim.DOUBLE() != null -> Type.DOUBLE
         else -> throw RuntimeException("Unrecognized type literal ${prim.text}")
       }
-    } else {
+    } else if (ctx.ARROW() != null) { // Function
       val children = ctx.typeExpression()
       val params = children.subList(0, children.lastIndex)
       val ret = children.last()
       return Type.function(makeType(ret), *params.map(this::makeType).toTypedArray())
+    } else { // Array
+      val elType = ctx.typeExpression(0)
+      return Type.array(makeType(elType))
     }
   }
 
@@ -254,14 +261,14 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
       annotation: Type, bodyCtx: ExplParser.ExpressionContext) =
       ExLambda(ctx.range(), tag(), makeFormalParameters(paramCtxs), annotation, visit(bodyCtx))
 
-  override fun visitFormalParameters(ctx: ExplParser.FormalParametersContext?): ExTree<T> {
-    assert(false) { "Unused" }
-    return super.visitFormalParameters(ctx)
-  }
-
   override fun visitArguments(ctx: ExplParser.ArgumentsContext?): ExTree<T> {
     assert(false) { "Unused" }
     return super.visitArguments(ctx)
+  }
+
+  override fun visitFormalParameters(ctx: ExplParser.FormalParametersContext?): ExTree<T> {
+    assert(false) { "Unused" }
+    return super.visitFormalParameters(ctx)
   }
 
   override fun visitTypeAnnotation(ctx: ExplParser.TypeAnnotationContext?): ExTree<T> {

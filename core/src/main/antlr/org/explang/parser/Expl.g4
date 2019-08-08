@@ -45,7 +45,10 @@ typeAnnotation: COLON typeExpression ;
 typeExpression
   // (->double), (double->double), (double,bool->double)
   : LPAREN (typeExpression (COMMA typeExpression)*)? ARROW typeExpression RPAREN
-  | typePrimitive;
+  // double[], bool[], (double->double)[][]
+  | typeExpression LBRACKET RBRACKET
+  | typePrimitive
+  ;
 
 typePrimitive
   : BOOL
@@ -78,6 +81,8 @@ ARROW: '->';
 
 LPAREN: '(' ;
 RPAREN: ')' ;
+LBRACKET: '[';
+RBRACKET: ']';
 COMMA: ',' ;
 COLON: ':' ;
 
