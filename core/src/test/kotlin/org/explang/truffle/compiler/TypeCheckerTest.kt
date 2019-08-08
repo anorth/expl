@@ -2,6 +2,7 @@ package org.explang.truffle.compiler
 
 
 import org.explang.syntax.ExBinaryOp
+import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
 import org.explang.syntax.ExIf
 import org.explang.syntax.ExLambda
@@ -17,6 +18,7 @@ import org.explang.syntax.Type.Companion.LONG
 import org.explang.syntax.Type.Companion.NONE
 import org.explang.syntax.Type.Companion.function
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TypeCheckerTest {
@@ -273,12 +275,47 @@ class TypeCheckerTest {
 
   @Test
   fun builtins() {
-    check("sqrt(2.0)", mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, _, _) ->
+    check("sqrt(2.0)", mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, _) ->
       val call = tree as ExCall
-      val fn = call.callee as ExSymbol
+      val builtin = call.callee as ExSymbol
 
       assertEquals(DOUBLE, call.tag.type)
-      assertEquals(function(DOUBLE, DOUBLE), fn.tag.type)
+      assertEquals(function(DOUBLE, DOUBLE), builtin.tag.type)
+
+      assertTrue(resolver.resolve(builtin) is Scope.Resolution.Environment)
+    }
+
+    check("let x = 2.0 in sqrt(x)",
+        mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, _) ->
+      val let = tree as ExLet
+      val call = let.bound as ExCall
+      val builtin = call.callee as ExSymbol
+
+      assertEquals(DOUBLE, let.tag.type)
+      assertEquals(DOUBLE, call.tag.type)
+      assertEquals(function(DOUBLE, DOUBLE), builtin.tag.type)
+
+      assertTrue(resolver.resolve(builtin) is Scope.Resolution.Environment)
+    }
+
+    check("let s(x: double) = sqrt(x) in s(2.0)",
+        mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, symbols) ->
+      val let = tree as ExLet
+      val binding = let.bindings[0] as ExBinding
+      val lambda = binding.value as ExLambda
+      val call = lambda.body as ExCall
+      val builtin = call.callee as ExSymbol
+
+      assertEquals(DOUBLE, let.tag.type)
+      assertEquals(function(DOUBLE, DOUBLE), lambda.tag.type)
+      assertEquals(DOUBLE, call.tag.type)
+      assertEquals(function(DOUBLE, DOUBLE), builtin.tag.type)
+
+      assertEquals(function(DOUBLE, DOUBLE),
+          symbols[resolver.resolve((binding.symbol))])
+
+      // Resolve directly to environment, not closure.
+      assertTrue(resolver.resolve(builtin) is Scope.Resolution.Environment)
     }
   }
 

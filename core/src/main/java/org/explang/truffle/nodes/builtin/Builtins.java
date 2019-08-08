@@ -1,22 +1,32 @@
 package org.explang.truffle.nodes.builtin;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import static java.lang.reflect.Modifier.isPublic;
+import static java.lang.reflect.Modifier.isStatic;
 
 public final class Builtins {
   public static List<BuiltInNode> ALL = new ArrayList<>();
-  public static Map<String, BuiltInNode> BY_NAME = new HashMap<>();
 
   static {
-    ALL.add(MathBuiltins.sqrt());
+    addBuiltinsFromClass(MathBuiltins.class);
+    addBuiltinsFromClass(ArrayBuiltins.class);
+  }
 
-    ALL.add(ArrayBuiltins.zeros());
-    ALL.add(ArrayBuiltins.sum());
-
-    for (BuiltInNode bi : ALL) {
-      BY_NAME.put(bi.name, bi);
+  private static void addBuiltinsFromClass(Class<?> clazz) {
+    for (Method method : clazz.getDeclaredMethods()) {
+      int mods = method.getModifiers();
+      if (isStatic(mods) && isPublic(mods) && method.getReturnType().equals(BuiltInNode.class)) {
+        try {
+          Object node = method.invoke(null);
+          ALL.add((BuiltInNode) node);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
   }
 }

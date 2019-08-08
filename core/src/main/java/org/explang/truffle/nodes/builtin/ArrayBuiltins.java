@@ -15,6 +15,7 @@ import static org.explang.syntax.Type.LONG;
 import static org.explang.syntax.Type.array;
 import static org.explang.syntax.Type.function;
 
+@SuppressWarnings("unused") // Installed via reflection
 public final class ArrayBuiltins {
   /** Builds a 1-d array of zeros */
   public static BuiltInNode zeros() {
@@ -31,12 +32,16 @@ public final class ArrayBuiltins {
     };
   }
 
-  public static BuiltInNode sum() {
-    return new BuiltInNode("sum", DOUBLE, array(DOUBLE)) {
+  public static BuiltInNode filter() {
+    // 1-d arrays only
+    return new BuiltInNode("filter", array(DOUBLE), array(DOUBLE), function(BOOL, DOUBLE)) {
       @Override
-      public double executeDouble(VirtualFrame frame) {
+      public ArrayValue executeArray(VirtualFrame frame) {
         DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
-        return arr.sum();
+        ExplFunction f = ArgReadNode.readFunction(frame, 1);
+
+        Call1 caller = new Call1(f);
+        return arr.filter(caller::callBoolean);
       }
     };
   }
@@ -53,20 +58,6 @@ public final class ArrayBuiltins {
         // where more general inlining strategies can't help.
         Call1 caller = new Call1(f);
         return ArrayValueKt.mapToDouble(arr, caller::callDouble);
-      }
-    };
-  }
-
-  public static BuiltInNode filter() {
-    // 1-d arrays only
-    return new BuiltInNode("filter", array(DOUBLE), array(DOUBLE), function(BOOL, DOUBLE)) {
-      @Override
-      public ArrayValue executeArray(VirtualFrame frame) {
-        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
-        ExplFunction f = ArgReadNode.readFunction(frame, 1);
-
-        Call1 caller = new Call1(f);
-        return arr.filter(caller::callBoolean);
       }
     };
   }
@@ -95,6 +86,16 @@ public final class ArrayBuiltins {
 
         Call2 caller = new Call2(f);
         return ArrayValueKt.reduce(arr, caller::callDouble);
+      }
+    };
+  }
+
+    public static BuiltInNode sum() {
+    return new BuiltInNode("sum", DOUBLE, array(DOUBLE)) {
+      @Override
+      public double executeDouble(VirtualFrame frame) {
+        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
+        return arr.sum();
       }
     };
   }

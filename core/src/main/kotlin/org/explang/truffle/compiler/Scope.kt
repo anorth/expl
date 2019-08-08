@@ -111,7 +111,9 @@ class FunctionScope(override val tree: ExLambda<*>, override val parent: Scope) 
       argument
     } else {
       val capture = parent.resolve(symbol)
-      capture as? Resolution.Unresolved ?: Resolution.Closure(this, capture)
+      capture as? Resolution.Unresolved ?:
+      capture as? Resolution.Environment ?:
+      Resolution.Closure(this, capture)
     }
   }
 

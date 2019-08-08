@@ -5,6 +5,7 @@ import org.explang.truffle.nodes.ArgReadNode;
 
 import static org.explang.syntax.Type.DOUBLE;
 
+@SuppressWarnings("unused") // Installed via reflection
 public final class MathBuiltins {
   public static BuiltInNode sqrt() {
     return new BuiltInNode("sqrt", DOUBLE, DOUBLE) {

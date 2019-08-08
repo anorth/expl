@@ -5,7 +5,6 @@ import org.explang.syntax.Type.Companion.function
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
-import org.explang.truffle.nodes.builtin.MathBuiltins
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -19,7 +18,7 @@ class EvaluationIntegrationTest {
 
   @Before
   fun setup() {
-    env = Environment()
+    env = Environment.withBuiltins()
   }
 
   @Test
@@ -125,6 +124,8 @@ class EvaluationIntegrationTest {
     assertResult(1L, "let a = 1 in (() -> a)()")
     assertResult(3L, "let a = 1 in let b = 2 in ((c: long) -> a+c)(b)")
     assertResult(1L, "let a = 1 in (() -> (() -> a)()) ()")
+    assertResult(3L, "let f(x: long) = x + 1 in let s(x: long) = f(x) in s(2)")
+    assertResult(3L, "let f(x: long) = x + 1 in let s = f in s(2)")
 
     assertResult(1L, "(x: long -> () -> x)(1)()")
   }
@@ -154,8 +155,9 @@ class EvaluationIntegrationTest {
 
   @Test
   fun builtins() {
-    env.addBuiltin(MathBuiltins.sqrt())
     assertResult(Math.sqrt(2.0), "sqrt(2.0)")
+    assertResult(Math.sqrt(2.0), "let s = sqrt in s(2.0)")
+    assertResult(Math.sqrt(2.0), "let s(x: double) = sqrt(x) in s(2.0)")
   }
 
   private fun assertResult(expected: Any, expression: String) {
