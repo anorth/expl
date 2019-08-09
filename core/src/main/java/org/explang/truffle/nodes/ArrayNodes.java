@@ -1,11 +1,10 @@
 package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.explang.array.ArrayArrayValue;
 import org.explang.array.BooleanArrayValue;
 import org.explang.array.DoubleArrayValue;
-import org.explang.array.FunctionArrayValue;
 import org.explang.array.LongArrayValue;
+import org.explang.array.ObjectArrayValue;
 
 public final class ArrayNodes {
   public static ExpressionNode booleans(BooleanArrayValue v) {
@@ -34,18 +33,10 @@ public final class ArrayNodes {
       public String toString() { return v.toString(); }
     };
   }
-  public static ExpressionNode arrays(ArrayArrayValue v) {
+  public static ExpressionNode objects(ObjectArrayValue v) {
     return new BaseNode(v.getType()) {
       @Override
-      public ArrayArrayValue executeObject(VirtualFrame frame) { return v;}
-      @Override
-      public String toString() { return v.toString(); }
-    };
-  }
-  public static ExpressionNode functions(FunctionArrayValue v) {
-    return new BaseNode(v.getType()) {
-      @Override
-      public FunctionArrayValue executeObject(VirtualFrame frame) { return v;}
+      public ObjectArrayValue executeObject(VirtualFrame frame) { return v;}
       @Override
       public String toString() { return v.toString(); }
     };

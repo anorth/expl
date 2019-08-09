@@ -1,12 +1,12 @@
 package org.explang.array
 
 import org.explang.syntax.ArrayType
-import org.explang.syntax.FuncType
+import org.explang.syntax.PrimType
 import org.explang.syntax.PrimType.BOOL
+import org.explang.syntax.Type
 import org.explang.syntax.Type.Companion.DOUBLE
 import org.explang.syntax.Type.Companion.LONG
 import org.explang.syntax.Type.Companion.array
-import org.explang.truffle.ExplFunction
 import java.util.Arrays
 
 sealed class ArrayValue<out T>(val type: ArrayType) : AbstractList<T>() {
@@ -80,44 +80,24 @@ class DoubleArrayValue(
 }
 
 @Suppress("OVERRIDE_BY_INLINE")
-class FunctionArrayValue(
-    val elementType: FuncType,
-    val data: Array<ExplFunction>
-) : ArrayValue<ExplFunction>(array(elementType, data.size)) {
-  override val size get() = data.size
-  override fun get(index: Int) = data[index]
-  override fun iterator() = data.iterator()
-
-  override inline fun filter(predicate: (ExplFunction) -> Boolean) =
-      FunctionArrayValue(elementType, data.filter(predicate).toTypedArray())
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (javaClass != other?.javaClass) return false
-    if (!data.contentEquals((other as FunctionArrayValue).data)) return false
-    return true
+class ObjectArrayValue(
+    val elementType: Type,
+    val data: Array<Any>
+) : ArrayValue<Any>(array(elementType, data.size)) {
+  init {
+    check(elementType !is PrimType) {"Expected non-primitive element type but got $elementType"}
   }
-
-  override fun hashCode() = data.contentHashCode()
-  override fun toString(): String = Arrays.toString(data)
-}
-
-@Suppress("OVERRIDE_BY_INLINE")
-class ArrayArrayValue(
-    val elementType: ArrayType,
-    val data: Array<ArrayValue<*>>
-) : ArrayValue<ArrayValue<*>>(array(elementType, data.size)) {
   override val size get() = data.size
   override fun get(index: Int) = data[index]
   override fun iterator() = data.iterator()
 
-  override inline fun filter(predicate: (ArrayValue<*>) -> Boolean) =
-      ArrayArrayValue(elementType, data.filter(predicate).toTypedArray())
+  override inline fun filter(predicate: (Any) -> Boolean) =
+      ObjectArrayValue(elementType, data.filter(predicate).toTypedArray())
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
-    if (!data.contentEquals((other as ArrayArrayValue).data)) return false
+    if (!data.contentEquals((other as ObjectArrayValue).data)) return false
     return true
   }
 

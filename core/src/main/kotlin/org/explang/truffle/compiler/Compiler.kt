@@ -2,11 +2,10 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
-import org.explang.array.ArrayArrayValue
 import org.explang.array.BooleanArrayValue
 import org.explang.array.DoubleArrayValue
-import org.explang.array.FunctionArrayValue
 import org.explang.array.LongArrayValue
+import org.explang.array.ObjectArrayValue
 import org.explang.syntax.ArrayType
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
@@ -273,13 +272,14 @@ private fun primitiveNode(type: PrimType, value: Any) = when(type) {
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun arrayNode(elType: Type, value: Any) = when(elType) {
-  PrimType.BOOL -> ArrayNodes.booleans(value as BooleanArrayValue)
-  PrimType.LONG -> ArrayNodes.longs(value as LongArrayValue)
-  PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArrayValue)
-  is FuncType -> ArrayNodes.functions(value as FunctionArrayValue)
-  is ArrayType -> ArrayNodes.arrays(value as ArrayArrayValue)
-  NoneType -> throw RuntimeException("Unexpected environment array with value type NONE")
+private fun arrayNode(elType: Type, value: Any) = when {
+  elType is PrimType -> when (elType) {
+    PrimType.BOOL -> ArrayNodes.booleans(value as BooleanArrayValue)
+    PrimType.LONG -> ArrayNodes.longs(value as LongArrayValue)
+    PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArrayValue)
+  }
+  elType != NoneType -> ArrayNodes.objects(value as ObjectArrayValue)
+  else -> throw RuntimeException("Unexpected environment array with value type NONE")
 }
 
 private val UNOPS = mapOf(
