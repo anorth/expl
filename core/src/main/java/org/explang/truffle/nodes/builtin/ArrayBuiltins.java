@@ -22,7 +22,7 @@ public final class ArrayBuiltins {
     return new BuiltInNode("zeros", array(DOUBLE), LONG) {
       // TODO: add element type as parameter for double/long.
       @Override
-      public ArrayValue executeArray(VirtualFrame frame) {
+      public ArrayValue executeObject(VirtualFrame frame) {
         long size = ArgReadNode.readLong(frame, 0);
         if (size > Integer.MAX_VALUE) { // The practical limit is much smaller
           throw new RuntimeException("Array size too big: " + size);
@@ -36,7 +36,7 @@ public final class ArrayBuiltins {
     // 1-d arrays only
     return new BuiltInNode("filter", array(DOUBLE), array(DOUBLE), function(BOOL, DOUBLE)) {
       @Override
-      public ArrayValue executeArray(VirtualFrame frame) {
+      public ArrayValue executeObject(VirtualFrame frame) {
         DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
@@ -49,7 +49,7 @@ public final class ArrayBuiltins {
   public static BuiltInNode map() {
     return new BuiltInNode("map", array(DOUBLE), array(DOUBLE), function(DOUBLE, DOUBLE)) {
       @Override
-      public ArrayValue executeArray(VirtualFrame frame) {
+      public ArrayValue executeObject(VirtualFrame frame) {
         DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 

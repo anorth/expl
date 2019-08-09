@@ -2,7 +2,6 @@ package org.explang.truffle.compiler
 
 
 import org.explang.syntax.ExBinaryOp
-import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
 import org.explang.syntax.ExIf
 import org.explang.syntax.ExLambda
@@ -301,7 +300,7 @@ class TypeCheckerTest {
     check("let s(x: double) = sqrt(x) in s(2.0)",
         mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, symbols) ->
       val let = tree as ExLet
-      val binding = let.bindings[0] as ExBinding
+      val binding = let.bindings[0]
       val lambda = binding.value as ExLambda
       val call = lambda.body as ExCall
       val builtin = call.callee as ExSymbol

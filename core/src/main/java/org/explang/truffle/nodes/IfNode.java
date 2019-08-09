@@ -1,7 +1,6 @@
 package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.explang.array.ArrayValue;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -33,12 +32,12 @@ public final class IfNode extends ExpressionNode {
     return test.executeBoolean(frame) ? left.executeDouble(frame) : right.executeDouble(frame);
   }
   @Override
-  public ExplFunction executeFunction(VirtualFrame frame) {
-    return test.executeBoolean(frame) ? left.executeFunction(frame) : right.executeFunction(frame);
+  public Object executeObject(VirtualFrame frame) {
+    return test.executeBoolean(frame) ? left.executeObject(frame) : right.executeObject(frame);
   }
   @Override
-  public ArrayValue executeArray(VirtualFrame frame) {
-    return test.executeBoolean(frame) ? left.executeArray(frame) : right.executeArray(frame);
+  public ExplFunction executeFunction(VirtualFrame frame) {
+    return test.executeBoolean(frame) ? left.executeFunction(frame) : right.executeFunction(frame);
   }
 
   @Override

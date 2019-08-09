@@ -167,7 +167,7 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return visit(ctx.literal())
   }
 
-  override fun visitIfEx(ctx: ExplParser.IfExContext) = ExIf<T>(ctx.range(), tag(),
+  override fun visitIfEx(ctx: ExplParser.IfExContext) = ExIf(ctx.range(), tag(),
       visit(ctx.expression(0)),
       visit(ctx.expression(1)),
       visit(ctx.expression(2)))

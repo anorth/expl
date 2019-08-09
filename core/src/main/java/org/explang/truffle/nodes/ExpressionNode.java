@@ -3,9 +3,8 @@ package org.explang.truffle.nodes;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.ArrayValue;
-import org.explang.syntax.ArrayType;
 import org.explang.syntax.FuncType;
+import org.explang.syntax.PrimType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
 
@@ -26,25 +25,22 @@ public abstract class ExpressionNode extends Node {
   public abstract boolean executeBoolean(VirtualFrame frame);
   public abstract long executeLong(VirtualFrame frame);
   public abstract double executeDouble(VirtualFrame frame);
-  public abstract ArrayValue executeArray(VirtualFrame frame);
+  public abstract Object executeObject(VirtualFrame frame);
   public abstract ExplFunction executeFunction(VirtualFrame frame);
 
-  /**
-   * Executes a node according to its declared type.
-   */
+  /** Executes a node according to its declared type. */
   public final Object executeDeclaredType(VirtualFrame frame) {
-    if (type() == Type.BOOL) {
+    Type t = type();
+    if (t == Type.BOOL) {
       return executeBoolean(frame);
-    } else if (type() == Type.LONG) {
+    } else if (t == Type.LONG) {
       return executeLong(frame);
-    } else if (type() == Type.DOUBLE) {
+    } else if (t == Type.DOUBLE) {
       return executeDouble(frame);
-    } else if (type instanceof ArrayType) {
-      return executeArray(frame);
-    } else if (type() instanceof FuncType) {
+    } else if (t instanceof FuncType) {
       return executeFunction(frame);
     } else {
-      throw new AssertionError("Unexpected type " + type);
+      return executeObject(frame);
     }
   }
 
@@ -59,8 +55,9 @@ public abstract class ExpressionNode extends Node {
         String.format("Expecting a function type but %s is %s", this, type());
   }
 
-  protected void assertTypeIsArray() {
-    assert type() instanceof ArrayType :
-        String.format("Expecting an array type but %s is %s", this, type());
+  protected void assertTypeIsObject() {
+    Type t = type();
+    assert !(t instanceof PrimType || t instanceof FuncType):
+        String.format("Expecting an object type but %s is %s", this, t);
   }
 }

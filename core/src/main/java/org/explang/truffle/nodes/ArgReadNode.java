@@ -83,14 +83,14 @@ public final class ArgReadNode extends ExpressionNode {
     return readDouble(frame, index);
   }
   @Override
+  public ArrayValue executeObject(VirtualFrame frame) {
+    assertTypeIsObject();
+    return readArray(frame, index);
+  }
+  @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     return readFunction(frame, index);
-  }
-  @Override
-  public ArrayValue executeArray(VirtualFrame frame) {
-    assertTypeIsArray();
-    return readArray(frame, index);
   }
 
   @Override

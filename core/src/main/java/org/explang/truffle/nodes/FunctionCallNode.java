@@ -10,7 +10,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.ArrayValue;
 import org.explang.syntax.FuncType;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
@@ -48,14 +47,14 @@ public class FunctionCallNode extends ExpressionNode {
     return (double) execute(frame);
   }
   @Override
+  public Object executeObject(VirtualFrame frame) {
+    assertTypeIsObject();
+    return execute(frame);
+  }
+  @Override
   public ExplFunction executeFunction(VirtualFrame frame) {
     assertTypeIsFunction();
     return (ExplFunction) execute(frame);
-  }
-  @Override
-  public ArrayValue executeArray(VirtualFrame frame) {
-    assertTypeIsArray();
-    return (ArrayValue) execute(frame);
   }
 
   private Object execute(VirtualFrame frame) {

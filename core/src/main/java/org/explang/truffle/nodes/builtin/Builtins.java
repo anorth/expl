@@ -9,7 +9,7 @@ import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
 
 public final class Builtins {
-  public static List<BuiltInNode> ALL = new ArrayList<>();
+  public static final List<BuiltInNode> ALL = new ArrayList<>();
 
   static {
     addBuiltinsFromClass(MathBuiltins.class);
