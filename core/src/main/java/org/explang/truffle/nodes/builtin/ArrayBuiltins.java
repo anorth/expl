@@ -72,7 +72,7 @@ public final class ArrayBuiltins {
         ExplFunction f = ArgReadNode.readFunction(frame, 2);
 
         Call2 caller = new Call2(f);
-        return ArrayValueKt.fold(arr, init, caller::callDouble);
+        return arr.fold(init, caller::callDouble);
       }
     };
   }
@@ -85,7 +85,7 @@ public final class ArrayBuiltins {
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
         Call2 caller = new Call2(f);
-        return ArrayValueKt.reduce(arr, caller::callDouble);
+        return arr.reduce(caller::callDouble);
       }
     };
   }

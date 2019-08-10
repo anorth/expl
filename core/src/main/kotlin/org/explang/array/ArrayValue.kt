@@ -9,8 +9,18 @@ import org.explang.syntax.Type.Companion.LONG
 import org.explang.syntax.Type.Companion.array
 import java.util.Arrays
 
-sealed class ArrayValue<out T>(val type: ArrayType) : AbstractList<T>() {
+/**
+ * Array value superclass.
+ *
+ * This does not extend AbstractList to avoid inheriting [AbstractList.equals].
+ */
+sealed class ArrayValue<T>(val type: ArrayType): Iterable<T> {
+  abstract val size: Int
+  abstract operator fun get(index: Int): T
+
   abstract fun filter(predicate: (T) -> Boolean): ArrayValue<T>
+  abstract fun <R> fold(initial: R, operation: (R, T) -> R): R
+  abstract fun reduce(acc: (T, T) -> T): T
 }
 
 @Suppress("OVERRIDE_BY_INLINE")
@@ -22,7 +32,15 @@ class BooleanArrayValue(
   override fun iterator() = data.iterator()
 
   override inline fun filter(predicate: (Boolean) -> Boolean) =
+      // BooleanArray.filter() copies to a List and boxes values under the hood.
+      // See ObjectArrayValue for a manual alternative.
       BooleanArrayValue(data.filter(predicate).toBooleanArray())
+
+  override inline fun <R> fold(initial: R, operation: (R, Boolean) -> R): R =
+      data.fold(initial, operation)
+
+  override inline fun reduce(acc: (Boolean, Boolean) -> Boolean): Boolean =
+      data.reduce(acc)
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -46,6 +64,12 @@ class LongArrayValue(
   override inline fun filter(predicate: (Long) -> Boolean) =
       LongArrayValue(data.filter(predicate).toLongArray())
 
+  override inline fun <R> fold(initial: R, operation: (R, Long) -> R): R =
+      data.fold(initial, operation)
+
+  override inline fun reduce(acc: (Long, Long) -> Long): Long =
+      data.reduce(acc)
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
@@ -68,6 +92,12 @@ class DoubleArrayValue(
   override inline fun filter(predicate: (Double) -> Boolean) =
       DoubleArrayValue(data.filter(predicate).toDoubleArray())
 
+  override inline fun <R> fold(initial: R, operation: (R, Double) -> R): R =
+      data.fold(initial, operation)
+
+  override inline fun reduce(acc: (Double, Double) -> Double): Double =
+      data.reduce(acc)
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
@@ -80,10 +110,11 @@ class DoubleArrayValue(
 }
 
 @Suppress("OVERRIDE_BY_INLINE")
-class ObjectArrayValue(
+class ObjectArrayValue<T>(
     val elementType: Type,
-    val data: Array<Any>
-) : ArrayValue<Any>(array(elementType, data.size)) {
+    val implType: Class<T>,
+    val data: Array<T>
+) : ArrayValue<T>(array(elementType, data.size)) {
   init {
     check(elementType !is PrimType) {"Expected non-primitive element type but got $elementType"}
   }
@@ -91,13 +122,28 @@ class ObjectArrayValue(
   override fun get(index: Int) = data[index]
   override fun iterator() = data.iterator()
 
-  override inline fun filter(predicate: (Any) -> Boolean) =
-      ObjectArrayValue(elementType, data.filter(predicate).toTypedArray())
+  @Suppress("UNCHECKED_CAST")
+  override inline fun filter(predicate: (T) -> Boolean): ObjectArrayValue<T> {
+    val arr = java.lang.reflect.Array.newInstance(implType, data.size) as Array<T>
+    var nextIdx = 0
+    for (d in data) {
+      if (predicate(d)) {
+        arr[nextIdx++] = d
+      }
+    }
+
+    return ObjectArrayValue(elementType, implType, Arrays.copyOfRange(arr, 0, nextIdx))
+  }
+
+  override inline fun <R> fold(initial: R, operation: (R, T) -> R): R =
+      data.fold(initial, operation)
+
+  override inline fun reduce(acc: (T, T) -> T): T = data.reduce(acc)
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
-    if (!data.contentEquals((other as ObjectArrayValue).data)) return false
+    if (!data.contentEquals((other as ObjectArrayValue<*>).data)) return false
     return true
   }
 
@@ -117,13 +163,8 @@ class ObjectArrayValue(
 
 inline fun <T> mapToDouble(arr: ArrayValue<T>, mapper: (T) -> Double): DoubleArrayValue {
   val mapped = DoubleArray(arr.size)
-  for (i in arr.indices) {
+  for (i in 0 until arr.size) {
     mapped[i] = mapper(arr[i])
   }
   return DoubleArrayValue(mapped)
 }
-
-inline fun <T, R> fold(arr: ArrayValue<T>, initial: R, operation: (R, T) -> R): R =
-    arr.fold(initial, operation)
-
-inline fun <S, T : S> reduce(arr: ArrayValue<T>, acc: (S, T) -> S) = arr.reduce(acc)
