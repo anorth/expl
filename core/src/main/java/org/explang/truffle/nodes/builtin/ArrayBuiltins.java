@@ -37,7 +37,7 @@ public final class ArrayBuiltins {
     return new BuiltInNode("filter", array(DOUBLE), array(DOUBLE), function(BOOL, DOUBLE)) {
       @Override
       public ArrayValue executeObject(VirtualFrame frame) {
-        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
+        DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
         Call1 caller = new Call1(f);
@@ -50,7 +50,7 @@ public final class ArrayBuiltins {
     return new BuiltInNode("map", array(DOUBLE), array(DOUBLE), function(DOUBLE, DOUBLE)) {
       @Override
       public ArrayValue executeObject(VirtualFrame frame) {
-        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
+        DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
         // Actually doing the function call here will be slower than necessary. We want to inline
@@ -67,7 +67,7 @@ public final class ArrayBuiltins {
     return new BuiltInNode("fold", DOUBLE, array(DOUBLE), DOUBLE, function(DOUBLE, DOUBLE, DOUBLE)) {
       @Override
       public double executeDouble(VirtualFrame frame) {
-        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
+        DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
         double init = ArgReadNode.readDouble(frame, 1);
         ExplFunction f = ArgReadNode.readFunction(frame, 2);
 
@@ -81,7 +81,7 @@ public final class ArrayBuiltins {
     return new BuiltInNode("reduce", DOUBLE, array(DOUBLE), function(DOUBLE, DOUBLE, DOUBLE)) {
       @Override
       public double executeDouble(VirtualFrame frame) {
-        DoubleArrayValue arr = (DoubleArrayValue) ArgReadNode.readArray(frame, 0);
+        DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
         Call2 caller = new Call2(f);

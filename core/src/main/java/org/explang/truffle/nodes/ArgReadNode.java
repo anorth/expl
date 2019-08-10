@@ -2,7 +2,6 @@ package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.explang.array.ArrayValue;
 import org.explang.syntax.RuntimeTypeError;
 import org.explang.syntax.Type;
 import org.explang.truffle.ExplFunction;
@@ -53,11 +52,11 @@ public final class ArgReadNode extends ExpressionNode {
     }
   }
 
-  public static ArrayValue readArray(VirtualFrame frame, int index) {
+  public static <T> T readObject(VirtualFrame frame, int index, Class<T> clazz) {
     try {
-      return (ArrayValue) frame.getArguments()[index + 1];
+      return clazz.cast(frame.getArguments()[index + 1]);
     } catch (ClassCastException | IndexOutOfBoundsException e) {
-      throw fail(index, "array", e);
+      throw fail(index, clazz.getSimpleName(), e);
     }
   }
 
@@ -83,9 +82,9 @@ public final class ArgReadNode extends ExpressionNode {
     return readDouble(frame, index);
   }
   @Override
-  public ArrayValue executeObject(VirtualFrame frame) {
+  public Object executeObject(VirtualFrame frame) {
     assertTypeIsObject();
-    return readArray(frame, index);
+    return readObject(frame, index, Object.class);
   }
   @Override
   public ExplFunction executeFunction(VirtualFrame frame) {

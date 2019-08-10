@@ -2,11 +2,6 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
-import org.explang.array.BooleanArrayValue
-import org.explang.array.DoubleArrayValue
-import org.explang.array.LongArrayValue
-import org.explang.array.ObjectArrayValue
-import org.explang.syntax.ArrayType
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
@@ -27,7 +22,6 @@ import org.explang.truffle.Encloser
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.FrameBinding
 import org.explang.truffle.nodes.ArgReadNode
-import org.explang.truffle.nodes.ArrayNodes
 import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.Booleans
 import org.explang.truffle.nodes.CallRootNode
@@ -39,6 +33,7 @@ import org.explang.truffle.nodes.FunctionNodes
 import org.explang.truffle.nodes.IfNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.Longs
+import org.explang.truffle.nodes.ObjectNodes
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 
@@ -259,9 +254,9 @@ private class TruffleBuilder private constructor(
 private fun environmentValueNode(value: Environment.Value, id: String): ExpressionNode {
   return when (value.type) {
     is PrimType -> primitiveNode(value.type, value.value)
-    is ArrayType -> arrayNode(value.type.element(), value.value)
     is FuncType -> FunctionNodes.literal(value.value as ExplFunction)
     is NoneType -> throw RuntimeException("Unexpected environment value with type NONE $id: $value")
+    else -> ObjectNodes.obj(value.value, value.type)
   }
 }
 
@@ -269,17 +264,6 @@ private fun primitiveNode(type: PrimType, value: Any) = when(type) {
   PrimType.BOOL -> Booleans.literal(value as Boolean)
   PrimType.LONG -> Longs.literal(value as Long)
   PrimType.DOUBLE -> Doubles.literal(value as Double)
-}
-
-@Suppress("UNCHECKED_CAST")
-private fun arrayNode(elType: Type, value: Any) = when {
-  elType is PrimType -> when (elType) {
-    PrimType.BOOL -> ArrayNodes.booleans(value as BooleanArrayValue)
-    PrimType.LONG -> ArrayNodes.longs(value as LongArrayValue)
-    PrimType.DOUBLE -> ArrayNodes.doubles(value as DoubleArrayValue)
-  }
-  elType != NoneType -> ArrayNodes.objects(value as ObjectArrayValue<*>)
-  else -> throw RuntimeException("Unexpected environment array with value type NONE")
 }
 
 private val UNOPS = mapOf(
