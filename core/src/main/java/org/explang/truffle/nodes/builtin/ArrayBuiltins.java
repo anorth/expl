@@ -12,14 +12,14 @@ import org.explang.truffle.nodes.ArgReadNode;
 import static org.explang.syntax.Type.BOOL;
 import static org.explang.syntax.Type.DOUBLE;
 import static org.explang.syntax.Type.LONG;
-import static org.explang.syntax.Type.array;
 import static org.explang.syntax.Type.function;
+import static org.explang.syntax.Type.slice;
 
 @SuppressWarnings("unused") // Installed via reflection
 public final class ArrayBuiltins {
   /** Builds a 1-d array of zeros */
   public static BuiltInNode zeros() {
-    return new BuiltInNode("zeros", array(DOUBLE), LONG) {
+    return new BuiltInNode("zeros", slice(DOUBLE), LONG) {
       // TODO: add element type as parameter for double/long.
       @Override
       public ArrayValue executeObject(VirtualFrame frame) {
@@ -27,14 +27,14 @@ public final class ArrayBuiltins {
         if (size > Integer.MAX_VALUE) { // The practical limit is much smaller
           throw new RuntimeException("Array size too big: " + size);
         }
-        return new DoubleArrayValue(new double[(int)size]);
+        return new DoubleArrayValue(new double[(int)size]); // FIXME slice
       }
     };
   }
 
   public static BuiltInNode filter() {
     // 1-d arrays only
-    return new BuiltInNode("filter", array(DOUBLE), array(DOUBLE), function(BOOL, DOUBLE)) {
+    return new BuiltInNode("filter", slice(DOUBLE), slice(DOUBLE), function(BOOL, DOUBLE)) {
       @Override
       public ArrayValue executeObject(VirtualFrame frame) {
         DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
@@ -47,7 +47,7 @@ public final class ArrayBuiltins {
   }
 
   public static BuiltInNode map() {
-    return new BuiltInNode("map", array(DOUBLE), array(DOUBLE), function(DOUBLE, DOUBLE)) {
+    return new BuiltInNode("map", slice(DOUBLE), slice(DOUBLE), function(DOUBLE, DOUBLE)) {
       @Override
       public ArrayValue executeObject(VirtualFrame frame) {
         DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
@@ -64,7 +64,7 @@ public final class ArrayBuiltins {
 
   public static BuiltInNode fold() {
     // 1-d arrays only
-    return new BuiltInNode("fold", DOUBLE, array(DOUBLE), DOUBLE, function(DOUBLE, DOUBLE, DOUBLE)) {
+    return new BuiltInNode("fold", DOUBLE, slice(DOUBLE), DOUBLE, function(DOUBLE, DOUBLE, DOUBLE)) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);
@@ -78,7 +78,7 @@ public final class ArrayBuiltins {
   }
 
   public static BuiltInNode reduce() {
-    return new BuiltInNode("reduce", DOUBLE, array(DOUBLE), function(DOUBLE, DOUBLE, DOUBLE)) {
+    return new BuiltInNode("reduce", DOUBLE, slice(DOUBLE), function(DOUBLE, DOUBLE, DOUBLE)) {
       @Override
       public double executeDouble(VirtualFrame frame) {
         DoubleArrayValue arr = ArgReadNode.readObject(frame, 0, DoubleArrayValue.class);

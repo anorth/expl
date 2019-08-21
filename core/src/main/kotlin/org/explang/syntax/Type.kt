@@ -22,8 +22,9 @@ sealed class Type constructor(
     @JvmStatic
     fun function(result: Type, vararg arguments: Type) = FuncType(result, arguments)
     @JvmStatic
-    @JvmOverloads
-    fun array(element: Type, length: Int? = null) = ArrayType(element, length)
+    fun array(element: Type, length: Int) = ArrayType(element, length)
+    @JvmStatic
+    fun slice(element: Type) = SliceType(element)
   }
 
   fun name() = name
@@ -88,10 +89,10 @@ class FuncType(
   }
 }
 
-/** An n-dimensional array type. */
+/** A 1-dimensional fixed-length array type. */
 class ArrayType(
     private val element: Type,
-    private val length: Int?
+    private val length: Int
 ) : Type(arrayTypeName(element, length)) {
   fun element() = element
   fun length() = length
@@ -99,7 +100,7 @@ class ArrayType(
   override fun satisfies(other: Type): Boolean {
     return other is ArrayType &&
         element == other.element &&
-        (other.length == null || length == other.length())
+        length == other.length
   }
 
   override fun equals(other: Any?): Boolean {
@@ -114,8 +115,32 @@ class ArrayType(
 
   override fun hashCode(): Int {
     var result = element.hashCode()
-    result = 31 * result + (length ?: 0)
+    result = 31 * result + length
     return result
+  }
+}
+
+/** A 1-dimensional slice of an array */
+class SliceType(
+    private val element: Type
+) : Type(arrayTypeName(element, null)) {
+  fun element() = element
+
+  override fun satisfies(other: Type): Boolean {
+    return other is SliceType && element == other.element
+  }
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (javaClass != other?.javaClass) return false
+
+    other as SliceType
+    if (element != other.element) return false
+    return true
+  }
+
+  override fun hashCode(): Int {
+    return element.hashCode() * 31
   }
 }
 

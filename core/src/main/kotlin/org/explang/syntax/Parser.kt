@@ -239,21 +239,26 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   private fun makeType(ctx: ExplParser.TypeExpressionContext): Type {
     val prim = ctx.typePrimitive()
-    if (prim != null) { // Primitive
-      return when {
-        prim.BOOL() != null -> Type.BOOL
-        prim.LONG() != null -> Type.LONG
-        prim.DOUBLE() != null -> Type.DOUBLE
-        else -> throw RuntimeException("Unrecognized type literal ${prim.text}")
+    when {
+      prim != null -> // Primitive
+        return when {
+          prim.BOOL() != null -> Type.BOOL
+          prim.LONG() != null -> Type.LONG
+          prim.DOUBLE() != null -> Type.DOUBLE
+          else -> throw RuntimeException("Unrecognized type literal ${prim.text}")
+        }
+      ctx.ARROW() != null -> { // Function
+        val children = ctx.typeExpression()
+        val params = children.subList(0, children.lastIndex)
+        val ret = children.last()
+        return Type.function(makeType(ret), *params.map(this::makeType).toTypedArray())
       }
-    } else if (ctx.ARROW() != null) { // Function
-      val children = ctx.typeExpression()
-      val params = children.subList(0, children.lastIndex)
-      val ret = children.last()
-      return Type.function(makeType(ret), *params.map(this::makeType).toTypedArray())
-    } else { // Array
-      val elType = ctx.typeExpression(0)
-      return Type.array(makeType(elType))
+      else -> { // Array/slice
+        val elType = ctx.typeExpression(0)
+        val size = ctx.INTEGER()
+        return if (size == null) Type.slice(makeType(elType))
+        else Type.array(makeType(elType), size.text.toInt())
+      }
     }
   }
 

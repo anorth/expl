@@ -45,8 +45,8 @@ typeAnnotation: COLON typeExpression ;
 typeExpression
   // (->double), (double->double), (double,bool->double)
   : LPAREN (typeExpression (COMMA typeExpression)*)? ARROW typeExpression RPAREN
-  // double[], bool[], (double->double)[][]
-  | typeExpression LBRACKET RBRACKET
+  // double[], bool[4], (double->double)[5][]
+  | typeExpression LBRACKET INTEGER? RBRACKET
   | typePrimitive
   ;
 
