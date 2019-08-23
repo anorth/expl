@@ -7,20 +7,20 @@ import com.fasterxml.jackson.databind.node.DoubleNode
 import com.fasterxml.jackson.databind.node.IntNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
-import org.explang.array.ArrayValue
-import org.explang.array.BooleanArrayValue
-import org.explang.array.DoubleArrayValue
+import org.explang.array.BooleanSliceValue
+import org.explang.array.DoubleSliceValue
 import org.explang.syntax.Type
-import org.explang.truffle.ExplFunction
 import java.io.File
 
 class DataLoader {
-  private val data = mutableMapOf<String, Any>()
+  private data class Datum(val type: Type, val obj: Any)
+
+  private val data = mutableMapOf<String, Datum>()
   private val mapper = ObjectMapper()
 
   fun forEach(handler: (String, Type, Any) -> Unit) {
-    data.forEach { key, value ->
-      handler(key, typeForValue(value), value)
+    data.forEach { (key, value) ->
+      handler(key, value.type, value.obj)
     }
   }
 
@@ -46,20 +46,21 @@ class DataLoader {
     }
   }
 
-  private fun loadValue(node: JsonNode): Any {
+  private fun loadValue(node: JsonNode): Datum {
     return when (node) {
       is ArrayNode -> loadArray(node)
-      is TextNode -> node.toString()
-      is DoubleNode, is IntNode -> node.doubleValue()
+      is TextNode -> Datum(Type.NONE, node.toString())
+      is DoubleNode -> Datum(Type.DOUBLE, node.doubleValue())
+      is IntNode -> Datum(Type.LONG, node.longValue())
       else -> {
         throw RuntimeException("Can't load json node $node")
       }
     }
   }
 
-  private fun loadArray(array: ArrayNode): ArrayValue<*> {
+  private fun loadArray(array: ArrayNode): Datum {
     return if (array.size() == 0) {
-      return BooleanArrayValue(BooleanArray(0))
+      return Datum(Type.slice(Type.BOOL), BooleanSliceValue.of(BooleanArray(0)))
     } else {
       val first = array.get(0)
       if (first.isNumber) {
@@ -71,23 +72,11 @@ class DataLoader {
     }
   }
 
-  private fun loadDoubleArray(array: ArrayNode): DoubleArrayValue {
+  private fun loadDoubleArray(array: ArrayNode): Datum {
     val values = DoubleArray(array.size())
     for (i in 0..values.lastIndex) {
       values[i] = array[i].doubleValue()
     }
-    return DoubleArrayValue(values)
+    return Datum(Type.slice(Type.DOUBLE), DoubleSliceValue.of(values))
   }
 }
-
-private fun typeForValue(value: Any): Type {
-  return when (value) {
-    is Boolean -> Type.BOOL
-    is Int -> Type.LONG
-    is Double -> Type.DOUBLE
-    is ArrayValue<*> -> value.type
-    is ExplFunction -> value.type()
-    else -> Type.NONE
-  }
-}
-

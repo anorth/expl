@@ -7,7 +7,7 @@ import org.junit.Test
 class SliceValueTest {
   @Test
   fun array() {
-    val a = LongArrayValue(longArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+    val a = longArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     val all = SlicerValue(null, null, 1)
     val allExplicit = SlicerValue(1, 10, 1)
     val first = SlicerValue(1, 1, 1)
@@ -63,7 +63,7 @@ class SliceValueTest {
 
     outOfBounds.forEach {
       try {
-        SliceValue.of(a, it)
+        LongSliceValue.of(a, it)
         Assert.fail("Expected IOOB exception")
       } catch (e: IndexOutOfBoundsException) {
         // expected
@@ -73,7 +73,7 @@ class SliceValueTest {
 
   @Test
   fun emptySlices() {
-    val a = LongArrayValue(longArrayOf(1, 2, 3))
+    val a = longArrayOf(1, 2, 3)
 
     val before1 = SlicerValue(1, 0, 1)
 
@@ -95,7 +95,7 @@ class SliceValueTest {
 
   @Test
   fun emptyArray() {
-    val a = LongArrayValue(longArrayOf())
+    val a = longArrayOf()
     val all = SlicerValue(null, null, 1)
     val before1  = SlicerValue(1, 0, 1)
 
@@ -105,7 +105,7 @@ class SliceValueTest {
 
   @Test
   fun singleton() {
-    val a = LongArrayValue(longArrayOf(1L))
+    val a = longArrayOf(1L)
     val all = SlicerValue(null, null, 1)
     val first = SlicerValue(null, 1, 1)
     val last = SlicerValue(1, null, 1)
@@ -122,9 +122,9 @@ class SliceValueTest {
   }
 }
 
-fun verifySlice(expected: List<Long>, data: LongArrayValue, slicer: SlicerValue,
+fun verifySlice(expected: List<Long>, data: LongArray, slicer: SlicerValue,
     reversible: Boolean = true) {
-  val slice = SliceValue.of(data, slicer)
+  val slice = LongSliceValue.of(data, slicer)
   assertEquals(slicer.toString(), expected.size, slice.size)
   // Verify the slice as specified
   assertEquals(expected, slice.toList())
@@ -138,7 +138,7 @@ fun verifySlice(expected: List<Long>, data: LongArrayValue, slicer: SlicerValue,
   if (reversible) {
     // Verify the reversed (descending) slice matches the reversed expectation.
     val rexpected = expected.reversed()
-    val rslice = SliceValue.of(data, slicer.reversed())
+    val rslice = LongSliceValue.of(data, slicer.reversed())
     assertEquals(rexpected.size, rslice.size)
     assertEquals(rexpected, rslice.toList())
     for (i in rexpected.indices) {
