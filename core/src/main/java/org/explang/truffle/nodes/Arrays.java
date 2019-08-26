@@ -1,16 +1,16 @@
 package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.explang.array.SliceValue;
+import org.explang.array.ArrayValue;
 import org.explang.array.SlicerValue;
 import org.explang.truffle.ExplFunction;
 
 /**
  * Operator nodes for slices.
  */
-public final class Slices {
+public final class Arrays {
   public static ExpressionNode index(ExpressionNode indexee, ExpressionNode indexer) {
-    return new BaseNode(indexee.type().asSlice().element()) {
+    return new BaseNode(indexee.type().asArray().element()) {
       @Override
       public boolean executeBoolean(VirtualFrame frame) {
         return (boolean) executeObject(frame);
@@ -25,7 +25,7 @@ public final class Slices {
       }
       @Override
       public Object executeObject(VirtualFrame frame) {
-        SliceValue<?> target = (SliceValue<?>) indexee.executeObject(frame);
+        ArrayValue<?> target = (ArrayValue<?>) indexee.executeObject(frame);
         long idx = indexer.executeLong(frame);
         return target.get(Math.toIntExact(idx));
       }
@@ -39,8 +39,8 @@ public final class Slices {
   public static ExpressionNode slice(ExpressionNode indexee, ExpressionNode indexer) {
     return new BaseNode(indexee.type()) {
       @Override
-      public SliceValue<?> executeObject(VirtualFrame frame) {
-        SliceValue<?> target = (SliceValue<?>) indexee.executeObject(frame);
+      public ArrayValue<?> executeObject(VirtualFrame frame) {
+        ArrayValue<?> target = (ArrayValue<?>) indexee.executeObject(frame);
         SlicerValue slicer = (SlicerValue) indexer.executeObject(frame);
         return target.slice(slicer);
       }

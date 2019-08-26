@@ -1,7 +1,7 @@
 package org.explang.truffle.evaluation
 
-import org.explang.array.DoubleSliceValue
-import org.explang.array.SliceValue
+import org.explang.array.ArrayValue
+import org.explang.array.DoubleArrayValue
 import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
 import org.hamcrest.Matchers
@@ -16,19 +16,19 @@ class SliceIntegrationTest {
   @Test
   fun construction() {
     val res = zeros(3)
-    assertSlice(res, "zeros(3)")
+    assertArray(res, "zeros(3)")
   }
 
   @Test
   fun mapDouble() {
-    val res = DoubleSliceValue.of(1.0, 1.0, 1.0)
-    assertSlice(res, "map(zeros(3), x: double -> x + 1.0)")
+    val res = DoubleArrayValue.of(1.0, 1.0, 1.0)
+    assertArray(res, "map(zeros(3), x: double -> x + 1.0)")
   }
 
   @Test
   fun filterDouble() {
-    assertSlice(zeros(0), "filter(zeros(3), x: double -> x > 0.0)")
-    assertSlice(zeros(3), "filter(zeros(3), x: double -> x == 0.0)")
+    assertArray(zeros(0), "filter(zeros(3), x: double -> x > 0.0)")
+    assertArray(zeros(3), "filter(zeros(3), x: double -> x == 0.0)")
   }
 
   @Test
@@ -60,14 +60,14 @@ class SliceIntegrationTest {
 
   @Test
   fun slice() {
-    assertSlice(zeros(5), "zeros(5)[*:*]")
-    assertSlice(zeros(5), "zeros(5)[1:5]")
-    assertSlice(zeros(1), "zeros(5)[1:1]")
-    assertSlice(zeros(2), "zeros(5)[1:2]")
-    assertSlice(zeros(2), "zeros(5)[4:5]")
-    assertSlice(zeros(3), "zeros(5)[3:*]")
-    assertSlice(zeros(3), "zeros(5)[*:3]")
-    assertSlice(zeros(1), "zeros(5)[*:3][3:*]")
+    assertArray(zeros(5), "zeros(5)[*:*]")
+    assertArray(zeros(5), "zeros(5)[1:5]")
+    assertArray(zeros(1), "zeros(5)[1:1]")
+    assertArray(zeros(2), "zeros(5)[1:2]")
+    assertArray(zeros(2), "zeros(5)[4:5]")
+    assertArray(zeros(3), "zeros(5)[3:*]")
+    assertArray(zeros(3), "zeros(5)[*:3]")
+    assertArray(zeros(1), "zeros(5)[*:3][3:*]")
   }
 
   private fun assertResult(expected: Any, expression: String) {
@@ -75,8 +75,8 @@ class SliceIntegrationTest {
     Assert.assertEquals(expected, result)
   }
 
-  private fun <T> assertSlice(expected: SliceValue<T>, expression: String) {
-    val result = compiler.eval(expression, env) as SliceValue<*>
+  private fun <T> assertArray(expected: ArrayValue<T>, expression: String) {
+    val result = compiler.eval(expression, env) as ArrayValue<*>
     Assert.assertEquals(expected.toList(), result.toList())
   }
 
@@ -90,5 +90,5 @@ class SliceIntegrationTest {
   }
 }
 
-private fun zeros(n: Int) = DoubleSliceValue.of(*DoubleArray(n))
+private fun zeros(n: Int) = DoubleArrayValue.of(*DoubleArray(n))
 

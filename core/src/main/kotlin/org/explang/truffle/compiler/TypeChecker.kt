@@ -1,5 +1,6 @@
 package org.explang.truffle.compiler
 
+import org.explang.syntax.ArrayType
 import org.explang.syntax.BINARY_OPERATORS
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
@@ -15,7 +16,6 @@ import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
 import org.explang.syntax.FuncType
-import org.explang.syntax.SliceType
 import org.explang.syntax.Type
 import org.explang.syntax.UNARY_OPERATORS
 
@@ -75,14 +75,14 @@ class TypeChecker(
   override fun visitIndex(index: ExIndex<Analyzer.Tag>) {
     visitChildren(index, Unit)
     // Check the indexee is a slice.
-    check(index, index.indexee.typeTag is SliceType) {
+    check(index, index.indexee.typeTag is ArrayType) {
       "Indexee ${index.indexee} is not indexable"
     }
     // Check the indexer is an integer or integral range.
     val indexerType = index.indexer.typeTag
     index.typeTag = when {
-      indexerType.satisfies(Type.LONG) -> index.indexee.typeTag.asSlice().element()
-      indexerType.satisfies(Type.range(Type.LONG)) -> index.indexee.typeTag.asSlice()
+      indexerType.satisfies(Type.LONG) -> index.indexee.typeTag.asArray().element()
+      indexerType.satisfies(Type.range(Type.LONG)) -> index.indexee.typeTag.asArray()
       else -> throw CompileError(
           "Cannot index ${index.indexee.typeTag} with ${index.indexer.typeTag}", index)
     }

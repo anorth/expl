@@ -14,7 +14,7 @@ import kotlin.math.sign
  * Indices are 1-based and positive, though the implementation leaves room for arbitrary indexes
  * in the future (c.f. Julia, FORTRAN).
  */
-sealed class SliceValue<T>(
+sealed class ArrayValue<T>(
     // Zero-based indices into an underlying array giving a traditional half-open range,
     // but that range might be descending with a negative step.
     private val start: Int,
@@ -26,28 +26,28 @@ sealed class SliceValue<T>(
   // Gets a value by 1-based index.
   operator fun get(index: Int): T {
     if (index < 1 || index > size)
-      throw IndexOutOfBoundsException("Index $index out of range for slice of $size")
+      throw IndexOutOfBoundsException("Index $index out of range for array of $size")
     return getUnmapped(start + (index - 1) * step) // Convert to zero-based
   }
 
-  override fun iterator(): Iterator<T> = SliceIterator()
+  override fun iterator(): Iterator<T> = ArrayIterator()
   override fun toString() = toList().toString()
 
-  /** Takes a slice of this slice. */
-  fun slice(slicer: SlicerValue): SliceValue<T> {
+  /** Takes a slice of this array. */
+  fun slice(slicer: SlicerValue): ArrayValue<T> {
     return makeSlice(size, slicer) { newStart, newEnd, newStep ->
       reslice(start + newStart * step, start + newEnd * step, step * newStep)
     }
   }
 
-  abstract fun filter(predicate: (T) -> Boolean): SliceValue<T>
+  abstract fun filter(predicate: (T) -> Boolean): ArrayValue<T>
 
   protected abstract fun getUnmapped(index: Int): T
-  protected abstract fun reslice(start: Int, end: Int, step: Int): SliceValue<T>
+  protected abstract fun reslice(start: Int, end: Int, step: Int): ArrayValue<T>
 
   // Needs to be an inner class to access getUnmapped. An alternative would be to pass that
   // method by reference.
-  private inner class SliceIterator : Iterator<T> {
+  private inner class ArrayIterator : Iterator<T> {
     private var nextIdx = start
     private var hasNext = if (step > 0) start < end else start > end
 
@@ -65,23 +65,23 @@ sealed class SliceValue<T>(
   }
 }
 
-class BooleanSliceValue(private val array: BooleanArray, start: Int, end: Int, step: Int) :
-    SliceValue<Boolean>(start, end, step) {
+class BooleanArrayValue(private val array: BooleanArray, start: Int, end: Int, step: Int) :
+    ArrayValue<Boolean>(start, end, step) {
   companion object {
 
-    fun of(vararg vs: Boolean) = BooleanSliceValue(vs, 0, vs.size, 1)
+    fun of(vararg vs: Boolean) = BooleanArrayValue(vs, 0, vs.size, 1)
     fun of(array: BooleanArray, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
-          BooleanSliceValue(array, start, end, step)
+          BooleanArrayValue(array, start, end, step)
         }
   }
 
   override fun getUnmapped(index: Int) = array[index]
 
-  override fun reslice(start: Int, end: Int, step: Int) = BooleanSliceValue(array, start, end, step)
+  override fun reslice(start: Int, end: Int, step: Int) = BooleanArrayValue(array, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
-  override inline fun filter(predicate: (Boolean) -> Boolean): SliceValue<Boolean> {
+  override inline fun filter(predicate: (Boolean) -> Boolean): ArrayValue<Boolean> {
     val arr = BooleanArray(size)
     var nextIdx = 0
     for (d in this) {
@@ -93,22 +93,22 @@ class BooleanSliceValue(private val array: BooleanArray, start: Int, end: Int, s
   }
 }
 
-class LongSliceValue(private val array: LongArray, start: Int, end: Int, step: Int) :
-    SliceValue<Long>(start, end, step) {
+class LongArrayValue(private val array: LongArray, start: Int, end: Int, step: Int) :
+    ArrayValue<Long>(start, end, step) {
   companion object {
-    fun of(vararg vs: Long) = LongSliceValue(vs, 0, vs.size, 1)
+    fun of(vararg vs: Long) = LongArrayValue(vs, 0, vs.size, 1)
     fun of(array: LongArray, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
-          LongSliceValue(array, start, end, step)
+          LongArrayValue(array, start, end, step)
         }
   }
 
   override fun getUnmapped(index: Int) = array[index]
 
-  override fun reslice(start: Int, end: Int, step: Int) = LongSliceValue(array, start, end, step)
+  override fun reslice(start: Int, end: Int, step: Int) = LongArrayValue(array, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
-  override inline fun filter(predicate: (Long) -> Boolean): SliceValue<Long> {
+  override inline fun filter(predicate: (Long) -> Boolean): ArrayValue<Long> {
     val arr = LongArray(size)
     var nextIdx = 0
     for (d in this) {
@@ -120,22 +120,22 @@ class LongSliceValue(private val array: LongArray, start: Int, end: Int, step: I
   }
 }
 
-class DoubleSliceValue(private val array: DoubleArray, start: Int, end: Int, step: Int) :
-    SliceValue<Double>(start, end, step) {
+class DoubleArrayValue(private val array: DoubleArray, start: Int, end: Int, step: Int) :
+    ArrayValue<Double>(start, end, step) {
   companion object {
-    fun of(vararg vs: Double) = DoubleSliceValue(vs, 0, vs.size, 1)
+    fun of(vararg vs: Double) = DoubleArrayValue(vs, 0, vs.size, 1)
     fun of(array: DoubleArray, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
-          DoubleSliceValue(array, start, end, step)
+          DoubleArrayValue(array, start, end, step)
         }
   }
 
   override fun getUnmapped(index: Int) = array[index]
 
-  override fun reslice(start: Int, end: Int, step: Int) = DoubleSliceValue(array, start, end, step)
+  override fun reslice(start: Int, end: Int, step: Int) = DoubleArrayValue(array, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
-  override inline fun filter(predicate: (Double) -> Boolean): SliceValue<Double> {
+  override inline fun filter(predicate: (Double) -> Boolean): ArrayValue<Double> {
     val arr = DoubleArray(size)
     var nextIdx = 0
     for (d in this) {
@@ -147,28 +147,28 @@ class DoubleSliceValue(private val array: DoubleArray, start: Int, end: Int, ste
   }
 }
 
-class ObjectSliceValue<T>(
+class ObjectArrayValue<T>(
     private val array: Array<T>,
     val implType: Class<T>,
     val elementType: Type,
-    start: Int, end: Int, step: Int) : SliceValue<T>(start, end, step) {
+    start: Int, end: Int, step: Int) : ArrayValue<T>(start, end, step) {
   companion object {
     fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>) =
-        ObjectSliceValue(array, implType, elementType, 0, array.size, 1)
+        ObjectArrayValue(array, implType, elementType, 0, array.size, 1)
 
     fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
-          ObjectSliceValue(array, implType, elementType, start, end, step)
+          ObjectArrayValue(array, implType, elementType, start, end, step)
         }
   }
 
   override fun getUnmapped(index: Int) = array[index]
 
   override fun reslice(start: Int, end: Int, step: Int) =
-      ObjectSliceValue(array, implType, elementType, start, end, step)
+      ObjectArrayValue(array, implType, elementType, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
-  override inline fun filter(predicate: (T) -> Boolean): SliceValue<T> {
+  override inline fun filter(predicate: (T) -> Boolean): ArrayValue<T> {
     @Suppress("UNCHECKED_CAST")
     val arr = java.lang.reflect.Array.newInstance(implType, size) as Array<T>
     var nextIdx = 0
@@ -182,7 +182,7 @@ class ObjectSliceValue<T>(
 }
 
 private inline fun <T> makeSlice(size: Int, slicer: SlicerValue,
-    construct: (Int, Int, Int) -> SliceValue<T>): SliceValue<T> {
+    construct: (Int, Int, Int) -> ArrayValue<T>): ArrayValue<T> {
   // Resolve nulls to 1-based, inclusive indices and check bounds.
   val step = slicer.step
   val up = step.sign > 0
@@ -211,16 +211,16 @@ private inline fun <T> makeSlice(size: Int, slicer: SlicerValue,
 }
 
 // Not Kotlin extensions so as to be visible from Java.
-inline fun <T, R> fold(slice: SliceValue<T>, initial: R, operation: (R, T) -> R): R =
-    slice.fold(initial, operation)
+inline fun <T, R> fold(array: ArrayValue<T>, initial: R, operation: (R, T) -> R): R =
+    array.fold(initial, operation)
 
-inline fun <T> reduce(slice: SliceValue<T>, acc: (T, T) -> T): T =
-    slice.reduce(acc)
+inline fun <T> reduce(array: ArrayValue<T>, acc: (T, T) -> T): T =
+    array.reduce(acc)
 
-inline fun <T> mapToDouble(slice: SliceValue<T>, mapper: (T) -> Double): SliceValue<Double> {
-  val mapped = DoubleArray(slice.size)
-  for (i in 0 until slice.size) {
-    mapped[i] = mapper(slice[i + 1])
+inline fun <T> mapToDouble(array: ArrayValue<T>, mapper: (T) -> Double): ArrayValue<Double> {
+  val mapped = DoubleArray(array.size)
+  for (i in 0 until array.size) {
+    mapped[i] = mapper(array[i + 1])
   }
-  return DoubleSliceValue.of(*mapped)
+  return DoubleArrayValue.of(*mapped)
 }

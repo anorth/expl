@@ -14,7 +14,7 @@ public final class Builtins {
   static {
     addBuiltinsFromClass(MathBuiltins.class);
     addBuiltinsFromClass(RangeBuiltins.class);
-    addBuiltinsFromClass(SliceBuiltins.class);
+    addBuiltinsFromClass(ArrayBuiltins.class);
   }
 
   private static void addBuiltinsFromClass(Class<?> clazz) {

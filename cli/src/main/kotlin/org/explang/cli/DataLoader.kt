@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.node.DoubleNode
 import com.fasterxml.jackson.databind.node.IntNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
-import org.explang.array.BooleanSliceValue
-import org.explang.array.DoubleSliceValue
+import org.explang.array.BooleanArrayValue
+import org.explang.array.DoubleArrayValue
 import org.explang.syntax.Type
 import java.io.File
 
@@ -60,7 +60,7 @@ class DataLoader {
 
   private fun loadArray(array: ArrayNode): Datum {
     return if (array.size() == 0) {
-      return Datum(Type.slice(Type.BOOL), BooleanSliceValue.of())
+      return Datum(Type.array(Type.BOOL), BooleanArrayValue.of())
     } else {
       val first = array.get(0)
       if (first.isNumber) {
@@ -77,6 +77,6 @@ class DataLoader {
     for (i in 0..values.lastIndex) {
       values[i] = array[i].doubleValue()
     }
-    return Datum(Type.slice(Type.DOUBLE), DoubleSliceValue.of(*values))
+    return Datum(Type.array(Type.DOUBLE), DoubleArrayValue.of(*values))
   }
 }

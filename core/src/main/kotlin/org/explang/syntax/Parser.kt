@@ -295,9 +295,7 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
       }
       else -> { // Array/slice
         val elType = ctx.typeExpression(0)
-        val size = ctx.INTEGER()
-        return if (size == null) Type.slice(makeType(elType))
-        else Type.array(makeType(elType), size.text.toInt())
+        return Type.array(makeType(elType))
       }
     }
   }

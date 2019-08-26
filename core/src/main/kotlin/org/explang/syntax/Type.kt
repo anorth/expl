@@ -24,18 +24,15 @@ sealed class Type constructor(
     @JvmStatic
     fun range(element: Type) = RangeType(element)
     @JvmStatic
-    fun array(element: Type, length: Int) = ArrayType(element, length)
-    @JvmStatic
-    fun slice(element: Type) = SliceType(element)
+    fun array(element: Type) = ArrayType(element)
   }
 
   fun name() = name
   override fun toString() = name
 
   open fun asRange(): RangeType = throw RuntimeTypeError("$this is not a range")
-  open fun asSlice(): SliceType = throw RuntimeTypeError("$this is not a range")
+  open fun asArray(): ArrayType = throw RuntimeTypeError("$this is not a range")
   open fun asFunc(): FuncType = throw RuntimeTypeError("$this is not a function")
-  open fun asArray(): ArrayType = throw RuntimeTypeError("$this is not an array")
 
   /** Whether a value of this type is acceptable where an [other] is required */
   open fun satisfies(other: Type) = this == other
@@ -113,20 +110,16 @@ class RangeType(
   }
 }
 
-/** A 1-dimensional fixed-length array type. */
+/** A 1-dimensional array. */
 class ArrayType(
-    private val element: Type,
-    private val length: Int
-) : Type(arrayTypeName(element, length)) {
+    private val element: Type
+) : Type(arrayTypeName(element, null)) {
   fun element() = element
-  fun length() = length
 
   override fun asArray() = this
 
   override fun satisfies(other: Type): Boolean {
-    return other is ArrayType &&
-        element == other.element &&
-        length == other.length
+    return other is ArrayType && element == other.element
   }
 
   override fun equals(other: Any?): Boolean {
@@ -134,35 +127,6 @@ class ArrayType(
     if (javaClass != other?.javaClass) return false
 
     other as ArrayType
-    if (element != other.element) return false
-    if (length != other.length) return false
-    return true
-  }
-
-  override fun hashCode(): Int {
-    var result = element.hashCode()
-    result = 31 * result + length
-    return result
-  }
-}
-
-/** A 1-dimensional slice of an array */
-class SliceType(
-    private val element: Type
-) : Type(arrayTypeName(element, null)) {
-  fun element() = element
-
-  override fun asSlice() = this
-
-  override fun satisfies(other: Type): Boolean {
-    return other is SliceType && element == other.element
-  }
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (javaClass != other?.javaClass) return false
-
-    other as SliceType
     if (element != other.element) return false
     return true
   }

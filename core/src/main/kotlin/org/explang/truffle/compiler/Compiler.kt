@@ -37,7 +37,7 @@ import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.Longs
 import org.explang.truffle.nodes.ObjectNodes
 import org.explang.truffle.nodes.Ranges
-import org.explang.truffle.nodes.Slices
+import org.explang.truffle.nodes.Arrays
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 
@@ -116,8 +116,8 @@ private class TruffleBuilder private constructor(
     val indexee = visit(index.indexee)
     val indexer = visit(index.indexer)
     return when {
-      indexer.type().satisfies(Type.LONG) -> Slices.index(indexee, indexer)
-      indexer.type().satisfies(Type.range(Type.LONG)) -> Slices.slice(indexee, indexer)
+      indexer.type().satisfies(Type.LONG) -> Arrays.index(indexee, indexer)
+      indexer.type().satisfies(Type.range(Type.LONG)) -> Arrays.slice(indexee, indexer)
       else -> throw CompileError("Can't index $indexee with $indexer", index)
     }
   }
