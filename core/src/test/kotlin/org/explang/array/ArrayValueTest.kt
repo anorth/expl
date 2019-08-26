@@ -8,26 +8,26 @@ class ArrayValueTest {
   @Test
   fun array() {
     val a = longArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    val all = SlicerValue.ALL
-    val allExplicit = SlicerValue(1, 10, 1)
-    val first = SlicerValue(1, 1, 1)
-    val second = SlicerValue(2, 2, 1)
-    val three = SlicerValue(null, 3, 1)
-    val last = SlicerValue(10, null, 1)
-    val secondLast = SlicerValue(9, 9, 1)
-    val lastThree = SlicerValue(8, null, 1)
+    val all = LongRangeValue(null, null, 1)
+    val allExplicit = LongRangeValue(1, 10, 1)
+    val first = LongRangeValue(1, 1, 1)
+    val second = LongRangeValue(2, 2, 1)
+    val three = LongRangeValue(null, 3, 1)
+    val last = LongRangeValue(10, null, 1)
+    val secondLast = LongRangeValue(9, 9, 1)
+    val lastThree = LongRangeValue(8, null, 1)
 
-    val skipFirst = SlicerValue(2, null, 1)
-    val skipLast = SlicerValue(null, 9, 1)
-    val skipEnds = SlicerValue(2, 9, 1)
-    val skipTwoEnds = SlicerValue(3, 8, 1)
+    val skipFirst = LongRangeValue(2, null, 1)
+    val skipLast = LongRangeValue(null, 9, 1)
+    val skipEnds = LongRangeValue(2, 9, 1)
+    val skipTwoEnds = LongRangeValue(3, 8, 1)
 
-    val odds = SlicerValue(1, null, 2)
-    val evens = SlicerValue(2, null, 2)
-    val threeOdds = SlicerValue(1, 5, 2)
-    val threeEvens = SlicerValue(2, 6, 2)
-    val lastThreeOdds = SlicerValue(5, null, 2)
-    val lastThreeEvens = SlicerValue(6, null, 2)
+    val odds = LongRangeValue(1, null, 2)
+    val evens = LongRangeValue(2, null, 2)
+    val threeOdds = LongRangeValue(1, 5, 2)
+    val threeEvens = LongRangeValue(2, 6, 2)
+    val lastThreeOdds = LongRangeValue(5, null, 2)
+    val lastThreeEvens = LongRangeValue(6, null, 2)
     // Descending versions are exercised in verification.
 
 
@@ -55,10 +55,10 @@ class ArrayValueTest {
     verifySlice(listOf(6L, 8, 10), a, lastThreeEvens)
 
     val outOfBounds = listOf(
-        SlicerValue(0, 1, 1),
-        SlicerValue(1, 0, -1),
-        SlicerValue(null, 11, 1),
-        SlicerValue(11, null, -1)
+        LongRangeValue(0, 1, 1),
+        LongRangeValue(1, 0, -1),
+        LongRangeValue(null, 11, 1),
+        LongRangeValue(11, null, -1)
     )
 
     outOfBounds.forEach {
@@ -75,15 +75,15 @@ class ArrayValueTest {
   fun emptySlices() {
     val a = longArrayOf(1, 2, 3)
 
-    val before1 = SlicerValue(1, 0, 1)
+    val before1 = LongRangeValue(1, 0, 1)
 
-    val after1 = SlicerValue(1, 2, -1)
-    val before2 = SlicerValue(2, 1, 1)
+    val after1 = LongRangeValue(1, 2, -1)
+    val before2 = LongRangeValue(2, 1, 1)
 
-    val after2 = SlicerValue(2, 3, -1)
-    val before3 = SlicerValue(3, 2, 1)
+    val after2 = LongRangeValue(2, 3, -1)
+    val before3 = LongRangeValue(3, 2, 1)
 
-    val after3 = SlicerValue(3, 4, -1)
+    val after3 = LongRangeValue(3, 4, -1)
 
     verifySlice(listOf(), a, before1, reversible = false)
     verifySlice(listOf(), a, after1)
@@ -96,8 +96,8 @@ class ArrayValueTest {
   @Test
   fun emptyArray() {
     val a = longArrayOf()
-    val all = SlicerValue(null, null, 1)
-    val before1  = SlicerValue(1, 0, 1)
+    val all = LongRangeValue(null, null, 1)
+    val before1  = LongRangeValue(1, 0, 1)
 
     verifySlice(listOf(), a, all)
     verifySlice(listOf(), a, before1, reversible = false)
@@ -106,16 +106,16 @@ class ArrayValueTest {
   @Test
   fun singleton() {
     val a = longArrayOf(1L)
-    val all = SlicerValue.ALL
-    val first = SlicerValue(null, 1, 1)
-    val last = SlicerValue(1, null, 1)
+    val all = LongRangeValue(null, null, 1)
+    val first = LongRangeValue(null, 1, 1)
+    val last = LongRangeValue(1, null, 1)
 
     verifySlice(listOf(1L), a, all)
     verifySlice(listOf(1L), a, first)
     verifySlice(listOf(1L), a, last)
 
-    val before1 = SlicerValue(1, 0, 1)
-    val after1 = SlicerValue(1, 2, -1)
+    val before1 = LongRangeValue(1, 0, 1)
+    val after1 = LongRangeValue(1, 2, -1)
 
     verifySlice(listOf(), a, before1, reversible = false)
     verifySlice(listOf(), a, after1, reversible = false)
@@ -124,10 +124,10 @@ class ArrayValueTest {
   @Test
   fun reslice() {
     val a = longArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    val all = SlicerValue.ALL
-    val first = SlicerValue(1, 1, 1)
-    val three = SlicerValue(1, 3, 1)
-    val evens = SlicerValue(2, null, 2)
+    val all = LongRangeValue(null, null, 1)
+    val first = LongRangeValue(1, 1, 1)
+    val three = LongRangeValue(1, 3, 1)
+    val evens = LongRangeValue(2, null, 2)
 
     val base = LongArrayValue.of(a, all)
     verifySlice(a.toList(), base)
@@ -146,10 +146,10 @@ class ArrayValueTest {
   }
 }
 
-fun verifySlice(expected: List<Long>, data: LongArray, slicer: SlicerValue,
+fun verifySlice(expected: List<Long>, data: LongArray, range: LongRangeValue,
     reversible: Boolean = true) {
-  val slice = LongArrayValue.of(data, slicer)
-  assertEquals(slicer.toString(), expected.size, slice.size)
+  val slice = LongArrayValue.of(data, range)
+  assertEquals(range.toString(), expected.size, slice.size)
   // Verify the slice as specified
   verifySlice(expected, slice)
 
@@ -159,7 +159,7 @@ fun verifySlice(expected: List<Long>, data: LongArray, slicer: SlicerValue,
   if (reversible) {
     // Verify the reversed (descending) slice matches the reversed expectation.
     val rexpected = expected.reversed()
-    val rslice = LongArrayValue.of(data, slicer.reversed())
+    val rslice = LongArrayValue.of(data, range.reversed())
     verifySlice(rexpected, rslice)
   }
 }

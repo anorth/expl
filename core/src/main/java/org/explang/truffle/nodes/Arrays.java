@@ -2,7 +2,7 @@ package org.explang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.explang.array.ArrayValue;
-import org.explang.array.SlicerValue;
+import org.explang.array.LongRangeValue;
 import org.explang.truffle.ExplFunction;
 
 /**
@@ -41,7 +41,7 @@ public final class Arrays {
       @Override
       public ArrayValue<?> executeObject(VirtualFrame frame) {
         ArrayValue<?> target = (ArrayValue<?>) indexee.executeObject(frame);
-        SlicerValue slicer = (SlicerValue) indexer.executeObject(frame);
+        LongRangeValue slicer = (LongRangeValue) indexer.executeObject(frame);
         return target.slice(slicer);
       }
     };

@@ -34,8 +34,8 @@ sealed class ArrayValue<T>(
   override fun toString() = toList().toString()
 
   /** Takes a slice of this array. */
-  fun slice(slicer: SlicerValue): ArrayValue<T> {
-    return makeSlice(size, slicer) { newStart, newEnd, newStep ->
+  fun slice(range: LongRangeValue): ArrayValue<T> {
+    return makeSlice(size, range) { newStart, newEnd, newStep ->
       reslice(start + newStart * step, start + newEnd * step, step * newStep)
     }
   }
@@ -70,8 +70,8 @@ class BooleanArrayValue(private val array: BooleanArray, start: Int, end: Int, s
   companion object {
 
     fun of(vararg vs: Boolean) = BooleanArrayValue(vs, 0, vs.size, 1)
-    fun of(array: BooleanArray, slicer: SlicerValue) =
-        makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
+    fun of(array: BooleanArray, range: LongRangeValue) =
+        makeSlice(array.size, range) { start: Int, end: Int, step: Int ->
           BooleanArrayValue(array, start, end, step)
         }
   }
@@ -97,8 +97,8 @@ class LongArrayValue(private val array: LongArray, start: Int, end: Int, step: I
     ArrayValue<Long>(start, end, step) {
   companion object {
     fun of(vararg vs: Long) = LongArrayValue(vs, 0, vs.size, 1)
-    fun of(array: LongArray, slicer: SlicerValue) =
-        makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
+    fun of(array: LongArray, range: LongRangeValue) =
+        makeSlice(array.size, range) { start: Int, end: Int, step: Int ->
           LongArrayValue(array, start, end, step)
         }
   }
@@ -124,8 +124,8 @@ class DoubleArrayValue(private val array: DoubleArray, start: Int, end: Int, ste
     ArrayValue<Double>(start, end, step) {
   companion object {
     fun of(vararg vs: Double) = DoubleArrayValue(vs, 0, vs.size, 1)
-    fun of(array: DoubleArray, slicer: SlicerValue) =
-        makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
+    fun of(array: DoubleArray, range: LongRangeValue) =
+        makeSlice(array.size, range) { start: Int, end: Int, step: Int ->
           DoubleArrayValue(array, start, end, step)
         }
   }
@@ -156,8 +156,8 @@ class ObjectArrayValue<T>(
     fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>) =
         ObjectArrayValue(array, implType, elementType, 0, array.size, 1)
 
-    fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>, slicer: SlicerValue) =
-        makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
+    fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>, range: LongRangeValue) =
+        makeSlice(array.size, range) { start: Int, end: Int, step: Int ->
           ObjectArrayValue(array, implType, elementType, start, end, step)
         }
   }
@@ -181,33 +181,35 @@ class ObjectArrayValue<T>(
   }
 }
 
-private inline fun <T> makeSlice(size: Int, slicer: SlicerValue,
+private inline fun <T> makeSlice(size: Int, range: LongRangeValue,
     construct: (Int, Int, Int) -> ArrayValue<T>): ArrayValue<T> {
   // Resolve nulls to 1-based, inclusive indices and check bounds.
-  val step = slicer.step
+  val step = range.step
   val up = step.sign > 0
   val first = when {
-    slicer.first != null -> slicer.first.also {
+    range.first != null -> range.first.also {
       // Index 1 is always a valid first, even for (empty slices of) empty arrays.
       if (it < 1 || it > maxOf(1, size))
         throw IndexOutOfBoundsException("Index $it out of range for array of $size")
     }
-    up -> 1
-    else -> size
+    up -> 1L
+    else -> size.toLong()
   }
   val last = when {
-    slicer.last != null -> slicer.last.also {
+    range.last != null -> range.last.also {
       // Last may be out of range for empty slices, if |step| is 1 and the last is `first-step`.
-      if ((step.absoluteValue == 1 && it != first - step) && (it < 1 || it > size))
+      if ((step.absoluteValue == 1L && it != first - step) && (it < 1 || it > size))
         throw IndexOutOfBoundsException("Index $it out of range for array of $size")
 
     }
-    up -> size
-    else -> 1
+    up -> size.toLong()
+    else -> 1L
   }
 
   // Resolve to zero-based indices into the underlying.
-  return construct(first - 1, last - 1 + step.sign, step)
+  // Indices are Ints rather than Longs only due to underlying JVM limitations.
+  return construct(Math.toIntExact(first - 1), Math.toIntExact(last - 1 + step.sign),
+      Math.toIntExact(step))
 }
 
 // Not Kotlin extensions so as to be visible from Java.
