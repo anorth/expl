@@ -8,7 +8,7 @@ class SliceValueTest {
   @Test
   fun array() {
     val a = longArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    val all = SlicerValue(null, null, 1)
+    val all = SlicerValue.ALL
     val allExplicit = SlicerValue(1, 10, 1)
     val first = SlicerValue(1, 1, 1)
     val second = SlicerValue(2, 2, 1)
@@ -106,7 +106,7 @@ class SliceValueTest {
   @Test
   fun singleton() {
     val a = longArrayOf(1L)
-    val all = SlicerValue(null, null, 1)
+    val all = SlicerValue.ALL
     val first = SlicerValue(null, 1, 1)
     val last = SlicerValue(1, null, 1)
 
@@ -120,6 +120,30 @@ class SliceValueTest {
     verifySlice(listOf(), a, before1, reversible = false)
     verifySlice(listOf(), a, after1, reversible = false)
   }
+
+  @Test
+  fun reslice() {
+    val a = longArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val all = SlicerValue.ALL
+    val first = SlicerValue(1, 1, 1)
+    val three = SlicerValue(1, 3, 1)
+    val evens = SlicerValue(2, null, 2)
+
+    val base = LongSliceValue.of(a, all)
+    verifySlice(a.toList(), base)
+    verifySlice(a.toList(), base.slice(all))
+    verifySlice(listOf(1L), base.slice(first))
+    verifySlice(listOf(1L, 2, 3), base.slice(three))
+    verifySlice(listOf(2L, 4, 6, 8, 10), base.slice(evens))
+
+    verifySlice(listOf(2L), base.slice(evens).slice(first))
+    verifySlice(listOf(2L, 4, 6), base.slice(evens).slice(three))
+    verifySlice(listOf(4L, 8L), base.slice(evens).slice(evens))
+
+    verifySlice(listOf(1L), base.slice(three).slice(first))
+    verifySlice(listOf(1L, 2, 3), base.slice(three).slice(three))
+    verifySlice(listOf(2L), base.slice(three).slice(evens))
+  }
 }
 
 fun verifySlice(expected: List<Long>, data: LongArray, slicer: SlicerValue,
@@ -127,10 +151,7 @@ fun verifySlice(expected: List<Long>, data: LongArray, slicer: SlicerValue,
   val slice = LongSliceValue.of(data, slicer)
   assertEquals(slicer.toString(), expected.size, slice.size)
   // Verify the slice as specified
-  assertEquals(expected, slice.toList())
-  for (i in expected.indices) {
-    assertEquals(expected[i], slice[i])
-  }
+  verifySlice(expected, slice)
 
   // Not all reversed slices are equal to the reverse of the expected value. E.g. if selecting
   // odds, the reversed slice is only equivalent to reversed expectation if the target array is
@@ -139,10 +160,13 @@ fun verifySlice(expected: List<Long>, data: LongArray, slicer: SlicerValue,
     // Verify the reversed (descending) slice matches the reversed expectation.
     val rexpected = expected.reversed()
     val rslice = LongSliceValue.of(data, slicer.reversed())
-    assertEquals(rexpected.size, rslice.size)
-    assertEquals(rexpected, rslice.toList())
-    for (i in rexpected.indices) {
-      assertEquals(rexpected[i], rslice[i])
-    }
+    verifySlice(rexpected, rslice)
+  }
+}
+
+private fun verifySlice(expected: List<Long>, slice: SliceValue<Long>) {
+  assertEquals(expected, slice.toList())
+  for (i in expected.indices) {
+    assertEquals(expected[i], slice[i + 1])
   }
 }

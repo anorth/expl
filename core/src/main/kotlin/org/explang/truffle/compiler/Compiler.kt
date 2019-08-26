@@ -6,10 +6,12 @@ import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
 import org.explang.syntax.ExIf
+import org.explang.syntax.ExIndex
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExParameter
+import org.explang.syntax.ExRangeOp
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
@@ -34,6 +36,8 @@ import org.explang.truffle.nodes.IfNode
 import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.Longs
 import org.explang.truffle.nodes.ObjectNodes
+import org.explang.truffle.nodes.Ranges
+import org.explang.truffle.nodes.Slices
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 
@@ -108,15 +112,33 @@ private class TruffleBuilder private constructor(
     return FunctionCallNode(fn, args)
   }
 
-  override fun visitUnaryOp(unop: ExUnaryOp<Analyzer.Tag>): ExpressionNode {
-    val child = visit(unop.operand)
-    return UNOPS[child.type()]!![unop.operator]!!(child)
+  override fun visitIndex(index: ExIndex<Analyzer.Tag>): ExpressionNode {
+    val indexee = visit(index.indexee)
+    val indexer = visit(index.indexer)
+    return when {
+      indexer.type().satisfies(Type.LONG) -> Slices.index(indexee, indexer)
+      indexer.type().satisfies(Type.range(Type.LONG)) -> Slices.slice(indexee, indexer)
+      else -> throw CompileError("Can't index $indexee with $indexer", index)
+    }
   }
 
-  override fun visitBinaryOp(binop: ExBinaryOp<Analyzer.Tag>): ExpressionNode {
-    val left = visit(binop.left)
-    val right = visit(binop.right)
-    return BINOPS[left.type()]!![binop.operator]!!(left, right)
+  override fun visitUnaryOp(op: ExUnaryOp<Analyzer.Tag>): ExpressionNode {
+    val child = visit(op.operand)
+    return UNOPS[child.type()]!![op.operator]!!(child)
+  }
+
+  override fun visitBinaryOp(op: ExBinaryOp<Analyzer.Tag>): ExpressionNode {
+    val left = visit(op.left)
+    val right = visit(op.right)
+    return BINOPS[left.type()]!![op.operator]!!(left, right)
+  }
+
+  override fun visitRangeOp(op: ExRangeOp<Analyzer.Tag>): ExpressionNode {
+    return Ranges.constructor(
+        op.first?.let(this@TruffleBuilder::visit),
+        op.last?.let(this@TruffleBuilder::visit),
+        op.step?.let(this@TruffleBuilder::visit)
+    )
   }
 
   override fun visitIf(iff: ExIf<Analyzer.Tag>) =

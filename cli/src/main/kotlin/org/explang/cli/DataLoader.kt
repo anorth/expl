@@ -60,7 +60,7 @@ class DataLoader {
 
   private fun loadArray(array: ArrayNode): Datum {
     return if (array.size() == 0) {
-      return Datum(Type.slice(Type.BOOL), BooleanSliceValue.of(BooleanArray(0)))
+      return Datum(Type.slice(Type.BOOL), BooleanSliceValue.of())
     } else {
       val first = array.get(0)
       if (first.isNumber) {
@@ -77,6 +77,6 @@ class DataLoader {
     for (i in 0..values.lastIndex) {
       values[i] = array[i].doubleValue()
     }
-    return Datum(Type.slice(Type.DOUBLE), DoubleSliceValue.of(values))
+    return Datum(Type.slice(Type.DOUBLE), DoubleSliceValue.of(*values))
   }
 }

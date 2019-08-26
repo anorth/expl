@@ -13,6 +13,7 @@ public final class Builtins {
 
   static {
     addBuiltinsFromClass(MathBuiltins.class);
+    addBuiltinsFromClass(RangeBuiltins.class);
     addBuiltinsFromClass(SliceBuiltins.class);
   }
 

@@ -5,14 +5,17 @@ import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
 import org.explang.syntax.ExIf
+import org.explang.syntax.ExIndex
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExParameter
+import org.explang.syntax.ExRangeOp
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
 import org.explang.syntax.FuncType
+import org.explang.syntax.SliceType
 import org.explang.syntax.Type
 import org.explang.syntax.UNARY_OPERATORS
 
@@ -28,7 +31,6 @@ class TypeChecker(
     private val resolver: Resolver,
     private val builtins: Map<String, Type>
 ) : ExTree.Visitor<Analyzer.Tag, Unit> {
-
   data class Result(
       val resolutions: Map<Scope.Resolution, Type>
   )
@@ -70,22 +72,60 @@ class TypeChecker(
     call.typeTag = calleeType.result()
   }
 
-  override fun visitUnaryOp(unop: ExUnaryOp<Analyzer.Tag>) {
-    visit(unop.operand)
-    assert(unop.operand.typeTag != Type.NONE) { "Untyped operand" }
-    val op = UNARY_OPERATORS.withOperandType(unop.operator, unop.operand.typeTag)
-    unop.typeTag = op.resultType
+  override fun visitIndex(index: ExIndex<Analyzer.Tag>) {
+    visitChildren(index, Unit)
+    // Check the indexee is a slice.
+    check(index, index.indexee.typeTag is SliceType) {
+      "Indexee ${index.indexee} is not indexable"
+    }
+    // Check the indexer is an integer or integral range.
+    val indexerType = index.indexer.typeTag
+    index.typeTag = when {
+      indexerType.satisfies(Type.LONG) -> index.indexee.typeTag.asSlice().element()
+      indexerType.satisfies(Type.range(Type.LONG)) -> index.indexee.typeTag.asSlice()
+      else -> throw CompileError(
+          "Cannot index ${index.indexee.typeTag} with ${index.indexer.typeTag}", index)
+    }
   }
 
-  override fun visitBinaryOp(binop: ExBinaryOp<Analyzer.Tag>) {
-    visitChildren(binop, Unit)
+  override fun visitUnaryOp(op: ExUnaryOp<Analyzer.Tag>) {
+    visit(op.operand)
+    assert(op.operand.typeTag != Type.NONE) { "Untyped operand" }
+    val opType = UNARY_OPERATORS.withOperandType(op.operator, op.operand.typeTag)
+    op.typeTag = opType.resultType
+  }
+
+  override fun visitBinaryOp(op: ExBinaryOp<Analyzer.Tag>) {
+    visitChildren(op, Unit)
 
     // All binops have similarly-typed operands
-    checkTypesMatch(binop, binop.left, binop.right)
+    checkTypesMatch(op, op.left, op.right)
 
     // Propagate operator result type upward
-    val op = BINARY_OPERATORS.withOperandType(binop.operator, binop.left.typeTag)
-    binop.typeTag = op.resultType
+    val opType = BINARY_OPERATORS.withOperandType(op.operator, op.left.typeTag)
+    op.typeTag = opType.resultType
+  }
+
+  override fun visitRangeOp(op: ExRangeOp<Analyzer.Tag>) {
+    visitChildren(op, Unit)
+    // For now, all must be longs. Double to be supported later.
+    op.first?.let {
+      check(it, it.typeTag == Type.LONG) {
+        "Invalid type ${it.typeTag} for range first"
+      }
+    }
+    op.last?.let {
+      check(it, it.typeTag == Type.LONG) {
+        "Invalid type ${it.typeTag} for range last"
+      }
+    }
+    op.step?.let {
+      check(it, it.typeTag == Type.LONG) {
+        "Invalid type ${it.typeTag} for range step"
+      }
+    }
+
+    op.typeTag = Type.range(Type.LONG)
   }
 
   override fun visitIf(iff: ExIf<Analyzer.Tag>) {

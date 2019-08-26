@@ -121,6 +121,12 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return ExCall(ctx.range(), tag(), fn, args)
   }
 
+  override fun visitIndexEx(ctx: ExplParser.IndexExContext): ExTree<T> {
+    val target = visit(ctx.expression())
+    val indexer = visit(ctx.index().expression())
+    return ExIndex(ctx.range(), tag(), target, indexer)
+  }
+
   override fun visitUnaryEx(ctx: ExplParser.UnaryExContext) =
       ExUnaryOp(ctx.range(), tag(), ctx.getChild(0).text, visit(ctx.expression()))
 
@@ -143,6 +149,40 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     val left = visit(ctx.expression(0))
     val right = visit(ctx.expression(1))
     return ExBinaryOp(ctx.range(), tag(), ctx.getChild(1).text, left, right)
+  }
+
+  override fun visitStepRangeEx(ctx: ExplParser.StepRangeExContext): ExTree<T> {
+    val first = visit(ctx.expression(0))
+    return if (ctx.TIMES() == null) {
+      val last = ctx.expression(1)?.let(this::visit)
+      val step = ctx.expression(2)?.let(this::visit)
+      ExRangeOp(ctx.range(), tag(), first, last, step)
+    } else {
+      val step = ctx.expression(1)?.let(this::visit)
+      ExRangeOp(ctx.range(), tag(), first, null, step)
+    }
+  }
+
+  override fun visitRightStepRangeEx(ctx: ExplParser.RightStepRangeExContext): ExTree<T> {
+    return if (ctx.TIMES().size == 1) {
+      val last = ctx.expression(0)?.let(this::visit)
+      val step = ctx.expression(1)?.let(this::visit)
+      ExRangeOp(ctx.range(), tag(), null, last, step)
+    } else {
+      val step = ctx.expression(0)?.let(this::visit)
+      ExRangeOp(ctx.range(), tag(), null, null, step)
+    }
+  }
+
+  override fun visitRangeEx(ctx: ExplParser.RangeExContext): ExTree<T> {
+    val first = visit(ctx.expression(0))
+    val last = ctx.expression(1)?.let(this::visit)
+    return ExRangeOp(ctx.range(), tag(), first, last, null)
+  }
+
+  override fun visitRightRangeEx(ctx: ExplParser.RightRangeExContext): ExTree<T> {
+    val last = ctx.expression()?.let(this::visit)
+    return ExRangeOp(ctx.range(), tag(), null, last, null)
   }
 
   override fun visitComparativeEx(ctx: ExplParser.ComparativeExContext): ExBinaryOp<T> {

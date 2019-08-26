@@ -9,12 +9,15 @@ package org.explang.array
  *
  * Indices are ints (rather than longs) only due to the JVM limitation on array size.
  */
-class SlicerValue(
+data class SlicerValue(
     val first: Int? = null,
     val last: Int? = null,
-    val step: Int = 1
+    // Defaults to -1 if last < first, else 1.
+    val step: Int
 ) {
   companion object {
+    fun of(first: Int? = null, last: Int? = null, step: Int? = null) =
+        SlicerValue(first, last, step ?: impliedStep(first, last))
     val ALL = SlicerValue(null, null, 1)
   }
 
@@ -30,10 +33,13 @@ class SlicerValue(
     b.append(first?.toString() ?: "")
     b.append(":")
     b.append(last?.toString() ?: "")
-    if (step != 1) {
+    if (step != impliedStep(first, last)) {
       b.append(":")
       b.append(step)
     }
     return b.toString()
   }
 }
+
+private fun impliedStep(first: Int?, last: Int?) =
+    if ((last ?: Int.MAX_VALUE) < (first ?: -Int.MAX_VALUE)) -1 else 1

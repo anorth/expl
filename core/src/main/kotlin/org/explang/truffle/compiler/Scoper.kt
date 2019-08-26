@@ -4,10 +4,12 @@ import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall
 import org.explang.syntax.ExIf
+import org.explang.syntax.ExIndex
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExLet
 import org.explang.syntax.ExLiteral
 import org.explang.syntax.ExParameter
+import org.explang.syntax.ExRangeOp
 import org.explang.syntax.ExSymbol
 import org.explang.syntax.ExTree
 import org.explang.syntax.ExUnaryOp
@@ -52,21 +54,13 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
 
   private var currentScope: Scope = rootScope
 
-  override fun visitCall(call: ExCall<T>) {
-    visitChildren(call, Unit)
-  }
+  override fun visitCall(call: ExCall<T>) = visitChildren(call, Unit)
+  override fun visitIndex(index: ExIndex<T>) = visitChildren(index, Unit)
+  override fun visitUnaryOp(op: ExUnaryOp<T>) = visitChildren(op, Unit)
+  override fun visitBinaryOp(op: ExBinaryOp<T>) = visitChildren(op, Unit)
+  override fun visitRangeOp(op: ExRangeOp<T>) = visitChildren(op, Unit)
 
-  override fun visitUnaryOp(unop: ExUnaryOp<T>) {
-    visitChildren(unop, Unit)
-  }
-
-  override fun visitBinaryOp(binop: ExBinaryOp<T>) {
-    visitChildren(binop, Unit)
-  }
-
-  override fun visitIf(iff: ExIf<T>) {
-    visitChildren(iff, Unit)
-  }
+  override fun visitIf(iff: ExIf<T>) = visitChildren(iff, Unit)
 
   override fun visitLet(let: ExLet<T>) {
     val scope = BindingScope(let, currentScope)

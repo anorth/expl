@@ -8,10 +8,17 @@ package org.explang.parser;
 // Thank goodness ANTLR 4 supports direct left recursion.
 expression
    : expression arguments                              # CallEx
+   | expression index                                  # IndexEx
    | (PLUS | MINUS | NOT) expression                   # UnaryEx
    | <assoc=right> expression POW expression           # ExponentiationEx
    | expression (TIMES | DIV) expression               # MultiplicativeEx
    | expression (PLUS | MINUS) expression              # AdditiveEx
+   // The * symbol means "all". I would really like to remove it but couldn't figure out parsing
+   // of : as a binary *or* ternary operator.
+   | expression COLON (expression|TIMES) COLON expression   # StepRangeEx
+   | TIMES COLON (expression|TIMES) COLON expression        # RightStepRangeEx
+   | expression COLON (expression|TIMES)                    # RangeEx
+   | TIMES COLON (expression|TIMES)                         # RightRangeEx
    | expression (LT | LE | GT | GE) expression         # ComparativeEx
    | expression (EQ | NEQ) expression                  # EqualityEx
    | expression (AND | OR | XOR) expression            # ConjunctionEx
@@ -24,6 +31,9 @@ expression
    ;
 
 arguments: LPAREN (expression (COMMA expression)*)? RPAREN ;
+
+index
+  : LBRACKET expression RBRACKET;
 
 binding
   : symbol ASSIGN expression

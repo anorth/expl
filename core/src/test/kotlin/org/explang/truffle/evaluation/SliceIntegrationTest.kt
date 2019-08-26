@@ -4,10 +4,12 @@ import org.explang.array.DoubleSliceValue
 import org.explang.array.SliceValue
 import org.explang.truffle.compiler.Environment
 import org.explang.truffle.compiler.TestCompiler
+import org.hamcrest.Matchers
 import org.junit.Assert
 import org.junit.Test
+import kotlin.reflect.KClass
 
-class ArraysIntegrationTest {
+class SliceIntegrationTest {
   private val compiler = TestCompiler(debug = false)
   private val env = Environment.withBuiltins()
 
@@ -19,7 +21,7 @@ class ArraysIntegrationTest {
 
   @Test
   fun mapDouble() {
-    val res = DoubleSliceValue.of(doubleArrayOf(1.0, 1.0, 1.0))
+    val res = DoubleSliceValue.of(1.0, 1.0, 1.0)
     assertSlice(res, "map(zeros(3), x: double -> x + 1.0)")
   }
 
@@ -46,6 +48,28 @@ class ArraysIntegrationTest {
       |in sum(zeros(3))""".trimMargin())
   }
 
+  @Test
+  fun index() {
+    assertResult(0.0, "zeros(3)[1]")
+    assertResult(0.0, "zeros(3)[2]")
+    assertResult(0.0, "zeros(3)[3]")
+    assertException(IndexOutOfBoundsException::class, "zeros(0)[1]")
+    assertException(IndexOutOfBoundsException::class, "zeros(3)[0]")
+    assertException(IndexOutOfBoundsException::class, "zeros(3)[4]")
+  }
+
+  @Test
+  fun slice() {
+    assertSlice(zeros(5), "zeros(5)[*:*]")
+    assertSlice(zeros(5), "zeros(5)[1:5]")
+    assertSlice(zeros(1), "zeros(5)[1:1]")
+    assertSlice(zeros(2), "zeros(5)[1:2]")
+    assertSlice(zeros(2), "zeros(5)[4:5]")
+    assertSlice(zeros(3), "zeros(5)[3:*]")
+    assertSlice(zeros(3), "zeros(5)[*:3]")
+    assertSlice(zeros(1), "zeros(5)[*:3][3:*]")
+  }
+
   private fun assertResult(expected: Any, expression: String) {
     val result = compiler.eval(expression, env)
     Assert.assertEquals(expected, result)
@@ -55,7 +79,16 @@ class ArraysIntegrationTest {
     val result = compiler.eval(expression, env) as SliceValue<*>
     Assert.assertEquals(expected.toList(), result.toList())
   }
+
+  private fun assertException(expected: KClass<out Throwable>, expression: String) {
+    try {
+      val result = compiler.eval(expression, env)
+      Assert.fail("Unexpected success: $result, expected $expected")
+    } catch (e: Throwable) {
+      Assert.assertThat(e, Matchers.instanceOf(expected.java))
+    }
+  }
 }
 
-private fun zeros(n: Int) = DoubleSliceValue.of(DoubleArray(n))
+private fun zeros(n: Int) = DoubleSliceValue.of(*DoubleArray(n))
 

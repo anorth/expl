@@ -20,8 +20,10 @@ sealed class ExTree<T> {
    */
   interface Visitor<T, V> {
     fun visitCall(call: ExCall<T>): V
-    fun visitUnaryOp(unop: ExUnaryOp<T>): V
-    fun visitBinaryOp(binop: ExBinaryOp<T>): V
+    fun visitIndex(index: ExIndex<T>): V
+    fun visitUnaryOp(op: ExUnaryOp<T>): V
+    fun visitBinaryOp(op: ExBinaryOp<T>): V
+    fun visitRangeOp(op: ExRangeOp<T>): V
     fun visitIf(iff: ExIf<T>): V
     fun visitLet(let: ExLet<T>): V
     fun visitBinding(binding: ExBinding<T>): V
@@ -62,6 +64,17 @@ class ExCall<T>(
   override fun toString() = "call($callee, ${args.joinToString(",")})"
 }
 
+class ExIndex<T>(
+    override val tokenRange: IntRange,
+    override val tag: T,
+    val indexee: ExTree<T>,
+    val indexer: ExTree<T>
+) : ExTree<T>() {
+  override val children get() = listOf(indexee, indexer)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitIndex(this)
+  override fun toString() = "index($indexee, $indexer)"
+}
+
 class ExUnaryOp<T>(
     override val tokenRange: IntRange,
     override val tag: T,
@@ -83,6 +96,18 @@ class ExBinaryOp<T>(
   override val children get() = listOf(left, right)
   override fun <V> accept(v: Visitor<T, V>) = v.visitBinaryOp(this)
   override fun toString() = "$operator($left, $right)"
+}
+
+class ExRangeOp<T>(
+    override val tokenRange: IntRange,
+    override val tag: T,
+    val first: ExTree<T>?,
+    val last: ExTree<T>?,
+    val step: ExTree<T>?
+) : ExTree<T>() {
+  override val children get() = listOfNotNull(first, last, step)
+  override fun <V> accept(v: Visitor<T, V>) = v.visitRangeOp(this)
+  override fun toString() = "range($first, $last, $step)"
 }
 
 class ExIf<T>(

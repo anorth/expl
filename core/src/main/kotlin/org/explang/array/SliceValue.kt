@@ -1,7 +1,6 @@
 package org.explang.array
 
 import org.explang.syntax.Type
-import java.util.Arrays
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
@@ -12,31 +11,42 @@ import kotlin.math.sign
  * Multiple slices of the same array thus share the same storage. However, a small slice may pin a
  * very large array in memory.
  *
- * Indices are zero-based and positive, though the implementation leaves room for arbitrary indexes
+ * Indices are 1-based and positive, though the implementation leaves room for arbitrary indexes
  * in the future (c.f. Julia, FORTRAN).
  */
 sealed class SliceValue<T>(
-    // Indices into [array] giving a traditional half-open range, but that range might
-    // be descending with a negative step.
+    // Zero-based indices into an underlying array giving a traditional half-open range,
+    // but that range might be descending with a negative step.
     private val start: Int,
     private val end: Int,
     private val step: Int
 ) : Iterable<T> {
   val size = maxOf(0, ((end - start) / step) + if ((end - start) % step != 0) 1 else 0)
+
+  // Gets a value by 1-based index.
   operator fun get(index: Int): T {
-    if (index < 0 || index >= size)
-        throw IndexOutOfBoundsException("Index $index too large for slice of $size")
-    return getUnmapped(start + (index * step))
+    if (index < 1 || index > size)
+      throw IndexOutOfBoundsException("Index $index out of range for slice of $size")
+    return getUnmapped(start + (index - 1) * step) // Convert to zero-based
   }
 
   override fun iterator(): Iterator<T> = SliceIterator()
   override fun toString() = toList().toString()
 
-  protected abstract fun getUnmapped(index: Int): T
+  /** Takes a slice of this slice. */
+  fun slice(slicer: SlicerValue): SliceValue<T> {
+    return makeSlice(size, slicer) { newStart, newEnd, newStep ->
+      reslice(start + newStart * step, start + newEnd * step, step * newStep)
+    }
+  }
+
   abstract fun filter(predicate: (T) -> Boolean): SliceValue<T>
 
+  protected abstract fun getUnmapped(index: Int): T
+  protected abstract fun reslice(start: Int, end: Int, step: Int): SliceValue<T>
+
   // Needs to be an inner class to access getUnmapped. An alternative would be to pass that
-  // function by reference.
+  // method by reference.
   private inner class SliceIterator : Iterator<T> {
     private var nextIdx = start
     private var hasNext = if (step > 0) start < end else start > end
@@ -55,11 +65,11 @@ sealed class SliceValue<T>(
   }
 }
 
-
-class BooleanSliceValue(val array: BooleanArray, start: Int, end: Int, step: Int) :
+class BooleanSliceValue(private val array: BooleanArray, start: Int, end: Int, step: Int) :
     SliceValue<Boolean>(start, end, step) {
   companion object {
-    fun of(array: BooleanArray) = BooleanSliceValue(array, 0, array.size, 1)
+
+    fun of(vararg vs: Boolean) = BooleanSliceValue(vs, 0, vs.size, 1)
     fun of(array: BooleanArray, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
           BooleanSliceValue(array, start, end, step)
@@ -67,6 +77,8 @@ class BooleanSliceValue(val array: BooleanArray, start: Int, end: Int, step: Int
   }
 
   override fun getUnmapped(index: Int) = array[index]
+
+  override fun reslice(start: Int, end: Int, step: Int) = BooleanSliceValue(array, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (Boolean) -> Boolean): SliceValue<Boolean> {
@@ -77,14 +89,14 @@ class BooleanSliceValue(val array: BooleanArray, start: Int, end: Int, step: Int
         arr[nextIdx++] = d
       }
     }
-    return of(Arrays.copyOfRange(arr, 0, nextIdx))
+    return of(*arr.copyOfRange(0, nextIdx))
   }
 }
 
-class LongSliceValue(val array: LongArray, start: Int, end: Int, step: Int) :
+class LongSliceValue(private val array: LongArray, start: Int, end: Int, step: Int) :
     SliceValue<Long>(start, end, step) {
   companion object {
-    fun of(array: LongArray) = LongSliceValue(array, 0, array.size, 1)
+    fun of(vararg vs: Long) = LongSliceValue(vs, 0, vs.size, 1)
     fun of(array: LongArray, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
           LongSliceValue(array, start, end, step)
@@ -92,6 +104,8 @@ class LongSliceValue(val array: LongArray, start: Int, end: Int, step: Int) :
   }
 
   override fun getUnmapped(index: Int) = array[index]
+
+  override fun reslice(start: Int, end: Int, step: Int) = LongSliceValue(array, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (Long) -> Boolean): SliceValue<Long> {
@@ -102,14 +116,14 @@ class LongSliceValue(val array: LongArray, start: Int, end: Int, step: Int) :
         arr[nextIdx++] = d
       }
     }
-    return of(Arrays.copyOfRange(arr, 0, nextIdx))
+    return of(*arr.copyOfRange(0, nextIdx))
   }
 }
 
-class DoubleSliceValue(val array: DoubleArray, start: Int, end: Int, step: Int) :
+class DoubleSliceValue(private val array: DoubleArray, start: Int, end: Int, step: Int) :
     SliceValue<Double>(start, end, step) {
   companion object {
-    fun of(array: DoubleArray) = DoubleSliceValue(array, 0, array.size, 1)
+    fun of(vararg vs: Double) = DoubleSliceValue(vs, 0, vs.size, 1)
     fun of(array: DoubleArray, slicer: SlicerValue) =
         makeSlice(array.size, slicer) { start: Int, end: Int, step: Int ->
           DoubleSliceValue(array, start, end, step)
@@ -117,6 +131,8 @@ class DoubleSliceValue(val array: DoubleArray, start: Int, end: Int, step: Int) 
   }
 
   override fun getUnmapped(index: Int) = array[index]
+
+  override fun reslice(start: Int, end: Int, step: Int) = DoubleSliceValue(array, start, end, step)
 
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (Double) -> Boolean): SliceValue<Double> {
@@ -127,12 +143,12 @@ class DoubleSliceValue(val array: DoubleArray, start: Int, end: Int, step: Int) 
         arr[nextIdx++] = d
       }
     }
-    return of(Arrays.copyOfRange(arr, 0, nextIdx))
+    return of(*arr.copyOfRange(0, nextIdx))
   }
 }
 
 class ObjectSliceValue<T>(
-    val array: Array<T>,
+    private val array: Array<T>,
     val implType: Class<T>,
     val elementType: Type,
     start: Int, end: Int, step: Int) : SliceValue<T>(start, end, step) {
@@ -148,6 +164,9 @@ class ObjectSliceValue<T>(
 
   override fun getUnmapped(index: Int) = array[index]
 
+  override fun reslice(start: Int, end: Int, step: Int) =
+      ObjectSliceValue(array, implType, elementType, start, end, step)
+
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (T) -> Boolean): SliceValue<T> {
     @Suppress("UNCHECKED_CAST")
@@ -158,7 +177,7 @@ class ObjectSliceValue<T>(
         arr[nextIdx++] = d
       }
     }
-    return of(implType, elementType, Arrays.copyOfRange(arr, 0, nextIdx))
+    return of(implType, elementType, arr.copyOfRange(0, nextIdx))
   }
 }
 
@@ -187,6 +206,7 @@ private inline fun <T> makeSlice(size: Int, slicer: SlicerValue,
     else -> 1
   }
 
+  // Resolve to zero-based indices into the underlying.
   return construct(first - 1, last - 1 + step.sign, step)
 }
 
@@ -200,7 +220,7 @@ inline fun <T> reduce(slice: SliceValue<T>, acc: (T, T) -> T): T =
 inline fun <T> mapToDouble(slice: SliceValue<T>, mapper: (T) -> Double): SliceValue<Double> {
   val mapped = DoubleArray(slice.size)
   for (i in 0 until slice.size) {
-    mapped[i] = mapper(slice[i])
+    mapped[i] = mapper(slice[i + 1])
   }
-  return DoubleSliceValue.of(mapped)
+  return DoubleSliceValue.of(*mapped)
 }
