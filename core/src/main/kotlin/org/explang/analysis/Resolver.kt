@@ -1,4 +1,4 @@
-package org.explang.truffle.compiler
+package org.explang.analysis
 
 import org.explang.syntax.ExLambda
 import org.explang.syntax.ExSymbol

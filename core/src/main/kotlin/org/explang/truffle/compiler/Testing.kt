@@ -2,6 +2,7 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
+import org.explang.analysis.CompileError
 import org.explang.syntax.TestParser
 import org.explang.truffle.nodes.ExpressionNode
 

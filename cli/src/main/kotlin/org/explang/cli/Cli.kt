@@ -5,8 +5,8 @@ import com.oracle.truffle.api.frame.FrameDescriptor
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import org.explang.syntax.Parser
-import org.explang.truffle.compiler.Analyzer
-import org.explang.truffle.compiler.CompileError
+import org.explang.analysis.Analyzer
+import org.explang.analysis.CompileError
 import org.explang.truffle.compiler.Compiler
 import org.explang.truffle.compiler.Environment
 import org.explang.truffle.nodes.ExpressionNode

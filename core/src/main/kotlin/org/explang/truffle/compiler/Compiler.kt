@@ -2,6 +2,10 @@ package org.explang.truffle.compiler
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameDescriptor
+import org.explang.analysis.Analyzer
+import org.explang.analysis.CompileError
+import org.explang.analysis.Scope
+import org.explang.analysis.check
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExBinding
 import org.explang.syntax.ExCall

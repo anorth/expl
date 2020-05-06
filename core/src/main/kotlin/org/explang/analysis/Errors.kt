@@ -1,4 +1,4 @@
-package org.explang.truffle.compiler
+package org.explang.analysis
 
 import org.explang.syntax.ExTree
 

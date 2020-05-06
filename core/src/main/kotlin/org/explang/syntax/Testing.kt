@@ -1,6 +1,6 @@
 package org.explang.syntax
 
-import org.explang.truffle.compiler.Analyzer
+import org.explang.analysis.Analyzer
 import org.junit.Assert.fail
 
 class TestParser(debug: Boolean) {
