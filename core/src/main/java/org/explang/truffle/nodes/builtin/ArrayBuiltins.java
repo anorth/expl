@@ -1,19 +1,17 @@
 package org.explang.truffle.nodes.builtin;
 
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.DirectCallNode;
-import org.explang.array.DoubleArrayValue;
 import org.explang.array.ArrayValue;
 import org.explang.array.ArrayValueKt;
+import org.explang.array.DoubleArrayValue;
 import org.explang.truffle.ExplFunction;
 import org.explang.truffle.nodes.ArgReadNode;
 
 import static org.explang.syntax.Type.BOOL;
 import static org.explang.syntax.Type.DOUBLE;
 import static org.explang.syntax.Type.LONG;
-import static org.explang.syntax.Type.function;
 import static org.explang.syntax.Type.array;
+import static org.explang.syntax.Type.function;
 
 @SuppressWarnings("unused") // Installed via reflection
 public final class ArrayBuiltins {
@@ -34,6 +32,7 @@ public final class ArrayBuiltins {
 
   public static BuiltInNode filter() {
     // 1-d arrays only
+    // TODO: parametric polymorphism
     return new BuiltInNode("filter", array(DOUBLE), array(DOUBLE), function(BOOL, DOUBLE)) {
       @Override
       @SuppressWarnings("unchecked")
@@ -41,7 +40,7 @@ public final class ArrayBuiltins {
         ArrayValue<Double> s = ArgReadNode.readObject(frame, 0, ArrayValue.class);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
-        Call1 caller = new Call1(f);
+        Callers.Call1 caller = new Callers.Call1(f);
         return s.filter(caller::callBoolean);
       }
     };
@@ -58,7 +57,7 @@ public final class ArrayBuiltins {
         // Actually doing the function call here will be slower than necessary. We want to inline
         // this at compile time. That might require special effort since map is a built-in,
         // where more general inlining strategies can't help.
-        Call1 caller = new Call1(f);
+        Callers.Call1 caller = new Callers.Call1(f);
         return ArrayValueKt.mapToDouble(s, caller::callDouble);
       }
     };
@@ -74,7 +73,7 @@ public final class ArrayBuiltins {
         double init = ArgReadNode.readDouble(frame, 1);
         ExplFunction f = ArgReadNode.readFunction(frame, 2);
 
-        Call2 caller = new Call2(f);
+        Callers.Call2 caller = new Callers.Call2(f);
         return ArrayValueKt.fold(s, init, caller::callDouble);
       }
     };
@@ -88,50 +87,10 @@ public final class ArrayBuiltins {
         ArrayValue<Double> s = ArgReadNode.readObject(frame, 0, ArrayValue.class);
         ExplFunction f = ArgReadNode.readFunction(frame, 1);
 
-        Call2 caller = new Call2(f);
+        Callers.Call2 caller = new Callers.Call2(f);
         return ArrayValueKt.reduce(s, caller::callDouble);
       }
     };
   }
 
-  /** Wraps a call to a unary function */
-  private static class Call1 {
-    private final DirectCallNode node;
-    private final Object[] args = new Object[2];
-
-    Call1(ExplFunction fn) {
-      this.node = Truffle.getRuntime().createDirectCallNode(fn.callTarget());
-      args[0] = fn.closure().orElse(null);
-    }
-
-    boolean callBoolean(Object arg) {
-      args[1] = arg;
-      return (boolean) node.call(args);
-    }
-    double callDouble(Object arg) {
-      args[1] = arg;
-      return (double) node.call(args);
-    }
-  }
-
-  private static class Call2 {
-    private final DirectCallNode node;
-    private final Object[] args = new Object[3];
-
-    Call2(ExplFunction fn) {
-      this.node = Truffle.getRuntime().createDirectCallNode(fn.callTarget());
-      args[0] = fn.closure().orElse(null);
-    }
-
-    boolean callBoolean(Object a1, Object a2) {
-      args[1] = a1;
-      args[2] = a2;
-      return (boolean) node.call(args);
-    }
-    double callDouble(Object a1, Object a2) {
-      args[1] = a1;
-      args[2] = a2;
-      return (double) node.call(args);
-    }
-  }
 }

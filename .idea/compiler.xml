@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.graalvm.truffle/truffle-api/1.0.0-rc9/ce3e355e166904c5a199813e3511c5250b383d23/truffle-api-1.0.0-rc9.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.graalvm.truffle/truffle-dsl-processor/1.0.0-rc9/7c8f9485184c1527456275ce753b5e3745a9bdf9/truffle-dsl-processor-1.0.0-rc9.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.graalvm.sdk/graal-sdk/1.0.0-rc9/7c05dafad3a8c1300c89626b24acff2df2c1e875/graal-sdk-1.0.0-rc9.jar" />
+        </processorPath>
+        <module name="core_main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="1.8" />
+  </component>
+</project>

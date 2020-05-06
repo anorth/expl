@@ -24,6 +24,7 @@ import org.explang.truffle.Encloser
 import org.explang.truffle.ExplFunction
 import org.explang.truffle.FrameBinding
 import org.explang.truffle.nodes.ArgReadNode
+import org.explang.truffle.nodes.Arrays
 import org.explang.truffle.nodes.BindingNode
 import org.explang.truffle.nodes.Booleans
 import org.explang.truffle.nodes.CallRootNode
@@ -37,7 +38,6 @@ import org.explang.truffle.nodes.LetNode
 import org.explang.truffle.nodes.Longs
 import org.explang.truffle.nodes.ObjectNodes
 import org.explang.truffle.nodes.Ranges
-import org.explang.truffle.nodes.Arrays
 import org.explang.truffle.nodes.SymbolNode
 import org.explang.truffle.nodes.builtin.StaticBound
 

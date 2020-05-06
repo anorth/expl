@@ -1,9 +1,11 @@
 package org.explang.array
 
+import kotlin.math.sign
+
 /**
  * A possibly-open-ended range of numbers.
  */
-interface RangeValue<T> {
+interface RangeValue<T> : Iterable<T> {
   val first: T?
   val last: T?
   val step: T
@@ -27,6 +29,23 @@ data class LongRangeValue(
 
   fun reversed() = LongRangeValue(last, first, -step)
 
+  override fun iterator(): Iterator<Long> {
+    check(first != null && last != null) { "Can't iterate open-ended range $this" }
+    return object : Iterator<Long> {
+      var next: Long = first
+      override fun hasNext(): Boolean {
+        val sign = (last - next).sign
+        return sign == 0 || sign == step.sign
+      }
+
+      override fun next(): Long {
+        val it = next
+        next += step
+        return it
+      }
+    }
+  }
+
   override fun toString() = rangeToString(first, last, step, impliedStep(first, last))
 }
 
@@ -48,7 +67,39 @@ data class DoubleRangeValue(
 
   fun reversed() = DoubleRangeValue(last, first, -step)
 
+  override fun iterator(): Iterator<Double> {
+    check(first != null && last != null) { "Can't iterate open-ended range $this" }
+    return object : Iterator<Double> {
+      var next: Double = first
+      override fun hasNext(): Boolean {
+        val sign = (last - next).sign
+        return sign == 0.0 || sign == step.sign
+      }
+
+      override fun next(): Double {
+        val it = next
+        next += step
+        return it
+      }
+    }
+  }
+
   override fun toString() = rangeToString(first, last, step, impliedStep(first, last))
+}
+
+// Not Kotlin extensions so as to be visible from Java.
+inline fun <T, R> fold(range: RangeValue<T>, initial: R, operation: (R, T) -> R): R =
+    range.fold(initial, operation)
+
+inline fun <T> reduce(range: RangeValue<T>, acc: (T, T) -> T): T =
+    range.reduce(acc)
+
+inline fun <T> mapToLong(range: RangeValue<T>, mapper: (T) -> Long): ArrayValue<Long> {
+  val mapped = mutableListOf<Long>()
+  for (v in range) {
+    mapped.add(mapper(v))
+  }
+  return LongArrayValue.of(*mapped.toLongArray())
 }
 
 private fun impliedStep(first: Long?, last: Long?) =
@@ -59,9 +110,9 @@ private fun impliedStep(first: Double?, last: Double?) =
 
 private fun <T> rangeToString(first: T?, last: T?, step: T, impliedStep: T): String {
   val b = StringBuilder()
-  b.append(first?.toString() ?: "")
+  b.append(first?.toString() ?: "*")
   b.append(":")
-  b.append(last?.toString() ?: "")
+  b.append(last?.toString() ?: "*")
   if (step != impliedStep) {
     b.append(":")
     b.append(step)
