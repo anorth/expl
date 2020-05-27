@@ -1,18 +1,6 @@
 package org.explang.analysis
 
-import org.explang.syntax.ExBinaryOp
-import org.explang.syntax.ExBinding
-import org.explang.syntax.ExCall
-import org.explang.syntax.ExIf
-import org.explang.syntax.ExIndex
-import org.explang.syntax.ExLambda
-import org.explang.syntax.ExLet
-import org.explang.syntax.ExLiteral
-import org.explang.syntax.ExParameter
-import org.explang.syntax.ExRangeOp
-import org.explang.syntax.ExSymbol
-import org.explang.syntax.ExTree
-import org.explang.syntax.ExUnaryOp
+import org.explang.syntax.*
 
 /**
  * AST visitor which resolves symbols to scopes in which they are defined.
@@ -73,6 +61,7 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   override fun visitBinding(binding: ExBinding<T>) {
     assert(currentScope is BindingScope) { "Encountered binding without enclosing binding scope" }
     // Define the binding before visiting the value, thus supporting recursive resolution.
+    // TODO: move this up to the let to support mutual recursion.
     val resolution = currentScope.define(binding.symbol)
     resolutions[binding.symbol] = resolution // Resolve the bound symbol to "itself"
     binding.value.accept(this)
