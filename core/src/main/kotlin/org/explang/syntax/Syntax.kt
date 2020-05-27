@@ -1,10 +1,10 @@
 package org.explang.syntax
 
 /**
-} * Pure syntax tree representation with a generic tag object for metadata. Nodes are immutable.
+ * Pure syntax tree representation with a generic tag object for metadata. Nodes are immutable.
  * This corresponds closely to the grammar (de-sugared).
  *
- * No explicit type information, scoping or reference to Graal/Truffle, but these may be stored
+ * No explicit type information, scoping or reference to compilation outputs, but these may be stored
  * in the tag (which might be internally mutable).
  *
  * Note: subtypes intentionally use identity-based equals and hashcode for efficient use

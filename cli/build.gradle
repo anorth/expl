@@ -20,4 +20,4 @@ run {
 }
 
 // Build native image after shadowJar with
-// native-image -cp cli/build/libs/cli-1.0-SNAPSHOT-all.jar --tool:truffle org.explang.cli.CliKt
+// native-image -jar cli/build/libs/cli-1.0-SNAPSHOT-all.jar --no-fallback

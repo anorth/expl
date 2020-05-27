@@ -1,15 +1,12 @@
 package org.explang.cli
 
-import com.oracle.truffle.api.Truffle
-import com.oracle.truffle.api.frame.FrameDescriptor
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
-import org.explang.syntax.Parser
 import org.explang.analysis.Analyzer
 import org.explang.analysis.CompileError
-import org.explang.truffle.compiler.Compiler
-import org.explang.truffle.compiler.Environment
-import org.explang.truffle.nodes.ExpressionNode
+import org.explang.interpreter.Environment
+import org.explang.interpreter.Interpreter
+import org.explang.syntax.Parser
 
 // See https://github.com/xenomachina/kotlin-argparser
 class Args(parser: ArgParser) {
@@ -34,7 +31,7 @@ class Cli(args: Args) {
       trace = args.trace || args.showAll
   )
 
-  private val compiler = Compiler(
+  private val interpreter = Interpreter(
       printAnalysis = args.showAnalysis || args.showAll
   )
 
@@ -47,16 +44,7 @@ class Cli(args: Args) {
   fun run(expression: String) {
     val env = Environment.withBuiltins()
     loader.forEach(env::addValue)
-    val node = compile(expression, env)
-    node?.let {
-      val topFrame = Truffle.getRuntime().createVirtualFrame(arrayOfNulls(0), FrameDescriptor())
-      val result = it.executeDeclaredType(topFrame)
-      println("*Result*")
-      println(result)
-    }
-  }
 
-  private fun compile(expression: String, env: Environment): ExpressionNode? {
     val parse = parser.parse(expression) { Analyzer.Tag() }
     parse.error?.let { error ->
       println("*Parse failed*")
@@ -64,7 +52,9 @@ class Cli(args: Args) {
     }
     parse.syntax?.let { syntax ->
       try {
-        return compiler.compile(syntax, env)
+        val result = interpreter.evaluate(syntax, env)
+        println("*Result*")
+        println(result)
       } catch (e: CompileError) {
         println("*Compile failed*")
         println(expression)
@@ -72,7 +62,6 @@ class Cli(args: Args) {
         println(e.message)
       }
     }
-    return null
   }
 }
 
