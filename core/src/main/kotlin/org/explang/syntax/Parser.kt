@@ -14,7 +14,6 @@ import org.explang.parser.ExplBaseVisitor
 import org.explang.parser.ExplLexer
 import org.explang.parser.ExplParser
 
-
 /**
  * Parses text into abstract syntax trees.
  *
@@ -30,24 +29,43 @@ class Parser(
    * @param <T> type of the AST tag data structure
    */
   class Result<T>(
-    val tokens: List<Token>,
-    val parse: ExplParser.ExpressionContext,
-    val syntax: ExTree<T>?,
-    val error: ParseError? = null
-  )
+      val input: String,
+      val tokens: List<Token>,
+      val parse: ExplParser.ExpressionContext,
+      val syntax: ExTree<T>?,
+      val error: ParseError? = null
+  ) {
+    fun ok() = syntax != null
+    fun failed() = error != null
+
+    fun errorDetail(): String {
+      return error?.detail(input) ?: "<no parse error>"
+    }
+  }
 
   /** A failure to parse. */
   class ParseError(
       val line: Int,
       val charPositionInLine: Int,
-      val msg: String
-  )
+      val reason: String
+  ) {
+    override fun toString() = "Line ${line}:${charPositionInLine} $reason"
+
+    fun detail(input: String): String {
+      val lines = listOf(
+          toString(),
+          "> " + input.lineSequence().drop(line - 1).firstOrNull(),
+          "> " + " ".repeat(charPositionInLine) + "^"
+      )
+      return lines.joinToString("\n")
+    }
+  }
 
   /**
    * @param s string to parse
    * @param tag factory for empty analysis tags
    */
-  fun <T> parse(s: String, tag: () -> T ): Result<T> {
+  fun <T> parse(s: String, tag: () -> T): Result<T> {
     val lexer = ExplLexer(CharStreams.fromString(s))
     val tokens = CommonTokenStream(lexer)
 
@@ -105,7 +123,7 @@ class Parser(
       null
     }
 
-    return Result(tokens.tokens, parseTree, ast, error)
+    return Result(s, tokens.tokens, parseTree, ast, error)
   }
 }
 

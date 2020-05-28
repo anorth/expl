@@ -20,6 +20,8 @@ class TestInterpreter(debug: Boolean) {
     } catch (e: CompileError) {
       println("*Evaluation failed*")
       println(e.message)
+      println(parse.input)
+      println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
       throw e
     }
   }

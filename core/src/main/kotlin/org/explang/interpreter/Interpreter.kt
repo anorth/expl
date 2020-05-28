@@ -1,7 +1,6 @@
 package org.explang.interpreter
 
 import org.explang.analysis.Analyzer
-import org.explang.analysis.CompileError
 import org.explang.analysis.Scope
 import org.explang.array.ArrayValue
 import org.explang.array.LongRangeValue
@@ -57,7 +56,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     return when {
       idxType.satisfies(Type.LONG) -> EvalResult(indexee.get(Math.toIntExact(indexer as Long))!!)
       idxType.satisfies(Type.range(Type.LONG)) -> EvalResult(indexee.slice(indexer as LongRangeValue))
-      else -> throw CompileError("Can't index $indexee with $indexer", index)
+      else -> throw EvalError("Can't index $indexee with $indexer", index)
     }
   }
 
@@ -139,16 +138,16 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
         is Scope.Resolution.Closure -> closure[it.identifier] = frame.getClosure(it.identifier)
         is Scope.Resolution.Argument -> closure[it.identifier] = frame.getArg(it.index)
         is Scope.Resolution.Unresolved ->
-          throw CompileError("Unbound capture ${it.symbol}", lambda)
+          throw EvalError("Unbound capture ${it.symbol}", lambda)
         is Scope.Resolution.Environment ->
-          throw CompileError("Capture ${it.symbol} is a builtin", lambda)
+          throw EvalError("Capture ${it.symbol} is a builtin", lambda)
       }
     }
     return EvalResult(Function(lambda.body, closure))
   }
 
   override fun visitParameter(parameter: ExParameter<Analyzer.Tag>): EvalResult {
-    throw CompileError("not used", parameter)
+    throw EvalError("not used", parameter)
   }
 
   override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>): EvalResult {
@@ -165,7 +164,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
       is Scope.Resolution.Closure -> frame.getClosure(id)
       is Scope.Resolution.Environment -> EvalResult(env.getBuiltin(id))
       is Scope.Resolution.Unresolved ->
-        throw CompileError("Unbound symbol ${resolution.symbol}", symbol)
+        throw EvalError("Unbound symbol ${resolution.symbol}", symbol)
     }
   }
 

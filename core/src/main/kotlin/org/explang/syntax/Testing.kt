@@ -13,8 +13,8 @@ class TestParser(debug: Boolean) {
 
   fun parse(expression: String): Parser.Result<Analyzer.Tag> {
     val parse = parser.parse(expression) { Analyzer.Tag() }
-    parse.error?.let { error ->
-      fail("Parse failed ${error.line}:${error.charPositionInLine} ${error.msg}")
+    if (parse.failed()) {
+      fail(parse.errorDetail())
     }
     return parse
   }

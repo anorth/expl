@@ -1,5 +1,6 @@
 package org.explang.syntax
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -16,14 +17,14 @@ class ParserTest {
   fun extraneousTokens() {
     val p = parse("1 + 2 a")
     assertNotNull(p.error)
-    assertTrue("trailing" in p.error!!.msg)
+    assertTrue("trailing" in p.error!!.reason)
   }
 
   @Test
   fun testSyntaxErrorTruncatedExpression() {
     val p = parse("let a = 1")
     assertNotNull(p.error)
-    assertTrue("expecting" in p.error!!.msg)
+    assertTrue("expecting" in p.error!!.reason)
   }
 
   @Test
@@ -31,7 +32,7 @@ class ParserTest {
     val p = parse("let f = (x) -> 2*x")
     assertNotNull(p.error)
     // This is not the best error message
-    assertTrue("expecting" in p.error!!.msg)
+    assertTrue("expecting" in p.error!!.reason)
   }
 }
 

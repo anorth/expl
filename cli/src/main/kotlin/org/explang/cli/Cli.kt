@@ -48,7 +48,7 @@ class Cli(args: Args) {
     val parse = parser.parse(expression) { Analyzer.Tag() }
     parse.error?.let { error ->
       println("*Parse failed*")
-      println("Line ${error.line}:${error.charPositionInLine} ${error.msg}")
+      println(error.detail(expression))
     }
     parse.syntax?.let { syntax ->
       try {
@@ -57,7 +57,7 @@ class Cli(args: Args) {
         println(result)
       } catch (e: CompileError) {
         println("*Compile failed*")
-        println(expression)
+        println(parse.input)
         println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
         println(e.message)
       }
