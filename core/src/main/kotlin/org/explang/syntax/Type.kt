@@ -30,6 +30,9 @@ sealed class Type constructor(
   fun name() = name
   override fun toString() = name
 
+  open fun isFunc(): Boolean = false
+  open fun isArray(): Boolean = false
+
   open fun asRange(): RangeType = throw RuntimeTypeError("$this is not a range")
   open fun asArray(): ArrayType = throw RuntimeTypeError("$this is not a range")
   open fun asFunc(): FuncType = throw RuntimeTypeError("$this is not a function")
@@ -67,6 +70,7 @@ class FuncType(
   fun result() = result
   fun parameters() = parameters
 
+  override fun isFunc() = true
   override fun asFunc() = this
 
   override fun satisfies(other: Type) = other is FuncType &&
@@ -116,6 +120,7 @@ class ArrayType(
 ) : Type(arrayTypeName(element, null)) {
   fun element() = element
 
+  override fun isArray() = true
   override fun asArray() = this
 
   override fun satisfies(other: Type): Boolean {

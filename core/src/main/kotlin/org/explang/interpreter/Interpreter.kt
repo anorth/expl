@@ -9,7 +9,9 @@ import kotlin.math.pow
 
 data class EvalResult(val value: Any)
 
-val NIL = EvalResult(object {})
+val NIL = EvalResult(object {
+  override fun toString() = "NIL"
+})
 
 class EvalError(msg: String, val tree: ExTree<Analyzer.Tag>?) : Exception(msg)
 
@@ -101,9 +103,31 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
 
   override fun visitLet(let: ExLet<Analyzer.Tag>): EvalResult {
     val top = stack.last()
-    // Copy the frame to add new local bindings.
+    // Copy the frame to add new local bindings, lexical scoping.
     stack[stack.lastIndex] = top.copy()
-    let.bindings.map { it.accept(this) }
+
+    // Add symbols for functions to frame before visiting bound value (for [mutual] recursion).
+    for (binding in let.bindings) {
+      if (binding.value.tag.type.isFunc())
+        stack.last().setLocal(binding.symbol.name, NIL)
+    }
+
+    // Visit bound values, and remember the functions so they can be set in closures after all are resolved.
+    val functions = mutableMapOf<String, EvalResult>()
+    for (binding in let.bindings) {
+      val r = binding.accept(this)
+      // The second part of the test is needed to distinguish builtins from functions.
+      // Would not be necessary if they shared an interface (and the builtins could ignore the call).
+      if (binding.value.tag.type.isFunc() && r.value is Function) {
+        functions[binding.symbol.name] = r
+      }
+    }
+
+    // Set function references in closures for recursive reference.
+    for ((_, v) in functions) {
+      (v.value as Function).resolveClosure(functions)
+    }
+
     try {
       return let.bound.accept(this)
     } finally {
@@ -114,14 +138,8 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
 
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>): EvalResult {
     // Note: the symbol node is not visited.
-    // Add symbol to frame before visiting bound value (for recursion).
-    // TODO: move this up to the let, for mutual recursion.
-    stack.last().setLocal(binding.symbol.name, NIL)
-
     val value = binding.value.accept(this)
     stack.last().setLocal(binding.symbol.name, value)
-    // Set function name in its own closure for recursive reference.
-    (value.value as? Function)?.resolveClosure(binding.symbol.name, value)
     return value
   }
 

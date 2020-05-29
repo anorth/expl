@@ -2,7 +2,7 @@ package org.explang.analysis
 
 import org.explang.syntax.ExTree
 
-class CompileError(msg: String, val tree: ExTree<Analyzer.Tag>) : Exception(msg)
+class CompileError(msg: String, val tree: ExTree<*>) : Exception(msg)
 
 inline fun check(tree: ExTree<Analyzer.Tag>, predicate: Boolean, msg: () -> String) {
   if (!predicate) {

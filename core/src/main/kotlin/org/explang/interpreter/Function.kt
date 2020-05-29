@@ -23,10 +23,18 @@ class Function(
     return body.accept(ctx)
   }
 
-  fun resolveClosure(name: String, value: EvalResult) {
+  fun resolveClosure(resolved: Map<String, EvalResult>) {
+    for ((n, v) in resolved) {
+      resolvedClosedValue(n, v)
+    }
+  }
+
+  private fun resolvedClosedValue(name: String, value: EvalResult) {
     val prev = closure[name]
-    check(prev == null || prev == NIL) { "Name $name is not NIL in $closure" }
-    closure[name] = value
+    // Replace value only if it was set explicitly to be resolved later.
+    if (prev == NIL) {
+      closure[name] = value
+    }
   }
 }
 

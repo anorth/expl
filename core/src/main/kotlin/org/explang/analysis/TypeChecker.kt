@@ -141,6 +141,15 @@ class TypeChecker(
   }
 
   override fun visitLet(let: ExLet<Analyzer.Tag>) {
+    // Set types for bound lambdas carrying type annotations, which may recursively call each other or themselves.
+    // Set the type for the symbol *before* visiting the bodies.
+    for (binding in let.bindings) {
+      if (binding.value is ExLambda && binding.value.annotation != Type.NONE) {
+        val resolution = resolver.resolve(binding.symbol)
+        symbolTypes[resolution] = binding.value.type()
+      }
+    }
+
     visitChildren(let, Unit) // Visits bindings and then bound expression
     // Propagate bound expression type upwards
     let.typeTag = let.bound.typeTag
@@ -148,12 +157,6 @@ class TypeChecker(
 
   override fun visitBinding(binding: ExBinding<Analyzer.Tag>) {
     val resolution = resolver.resolve(binding.symbol)
-    // Special case for bound lambdas carrying type annotations, which may recursively call
-    // themselves. Set the type for the symbol *before* visiting the body.
-    if (binding.value is ExLambda && binding.value.annotation != Type.NONE) {
-      symbolTypes[resolution] = binding.value.type()
-    }
-
     visit(binding.value)
     val valueType = binding.value.typeTag
     assert(valueType != Type.NONE) { "No type for bound expression" }
@@ -179,8 +182,8 @@ class TypeChecker(
           "but returns ${lambda.body.typeTag}"
     }
 
-    lambda.typeTag =  Type.function(lambda.body.typeTag,
-      *lambda.parameters.map(ExParameter<*>::annotation).toTypedArray())
+    lambda.typeTag = Type.function(lambda.body.typeTag,
+        *lambda.parameters.map(ExParameter<*>::annotation).toTypedArray())
   }
 
   override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) {

@@ -1,5 +1,6 @@
 package org.explang.interpreter
 
+import org.explang.analysis.CompileError
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -91,8 +92,19 @@ class InterpreterIntegrationTest {
     assertResult(2L, "let a = 1 in let b = a+1 in b")
     assertResult(3L, "let a = 1 in let b = a+1 in a+b")
 
-    // Not yet implemented
-//    assertResult(2.0, "let a = 1 in let a = a*2 in a")
+    // Shadowing
+    assertResult(2L, "let a = 1 in let a = 2 in a")
+
+    // Mutual reference
+    assertResult(1L, "let a = 1, b = a in b")
+    // For now, declarations must be made in dependency-sorted order.
+//    assertResult(1L, "let a = b, b = 1 in a")
+
+    // Dependency cycles
+    assertCompileError("let a = b, b = a in a")
+    assertCompileError("let a = b+1, b = a+1 in a")
+    assertCompileError("let a = a in a")
+    assertCompileError("let a = 1 in let a = a in a")
   }
 
   @Test
@@ -117,8 +129,14 @@ class InterpreterIntegrationTest {
 
   @Test
   fun recursion() {
+    // Simple recursion
     assertResult(0L, "let f = (x: long): long -> if x == 0 then 0 else f(x-1) in f(1)")
-    // TODO: mutual recursion and other trickier binding cases
+
+    // Mutual recursion
+    assertResult(true, """let 
+      |even = (x: long): bool -> if x == 0 then true else not odd(x-1),
+      |odd = (x: long): bool -> not even(x)
+      |in even(2)""".trimMargin())
 
     // Factorial
     assertResult(120L, "let f = (x: long): long -> if x <= 1 then 1 else x * f(x-1) in f(5)")
@@ -144,12 +162,20 @@ class InterpreterIntegrationTest {
   @Test
   fun builtins() {
     assertResult(Math.sqrt(2.0), "sqrt(2.0)")
-    assertResult(Math.sqrt(2.0), "let s = sqrt in s(2.0)")
     assertResult(Math.sqrt(2.0), "let s(x: double) = sqrt(x) in s(2.0)")
+    assertResult(Math.sqrt(2.0), "let s = sqrt in s(2.0)")
   }
 
   private fun assertResult(expected: Any, expression: String) {
     val result = interpreter.eval(expression, env)
     Assert.assertEquals(expected, result)
+  }
+
+  private fun assertCompileError(expression: String) {
+    try {
+      val result = interpreter.eval(expression, env)
+      Assert.fail("Expected compilation error, got result $result")
+    } catch (expected: CompileError) {
+    }
   }
 }
