@@ -40,7 +40,7 @@ class Interpreter(
 }
 
 private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Environment) :
-    ExTree.Visitor<Analyzer.Tag, EvalResult>, EvalContext {
+    ExTree.Visitor<Analyzer.Tag, EvalResult>, CallContext {
 
   private val resolver = analysis.resolver
   private val stack = mutableListOf(Frame())
@@ -48,7 +48,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
   override fun visitCall(call: ExCall<Analyzer.Tag>): EvalResult {
     val callee = call.callee.accept(this).value as Callable
     val args = call.args.map { it.accept(this) }
-    return this.call(callee, args)
+    return callee.call(this, args)
   }
 
   override fun visitIndex(index: ExIndex<Analyzer.Tag>): EvalResult {
@@ -186,14 +186,21 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     }
   }
 
-  override fun call(callee: Callable, args: List<EvalResult>): EvalResult {
-    val frame = Frame(args, closure = callee.closure())
+  ///// EvalContext implementation /////
+
+  override fun evaluate(tree: ExTree<Analyzer.Tag>): EvalResult {
+    return tree.accept(this)
+  }
+
+  override fun pushFrame(frame: Frame) {
     stack.add(frame)
-    try {
-      return callee.invoke(frame, this)
-    } finally {
-      stack.removeAt(stack.lastIndex)
+  }
+
+  override fun popFrame() {
+    if (stack.isEmpty()) {
+      throw EvalError("stack is empty", null)
     }
+    stack.removeAt(stack.lastIndex)
   }
 }
 
