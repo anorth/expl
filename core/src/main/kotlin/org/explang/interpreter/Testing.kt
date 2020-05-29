@@ -20,7 +20,8 @@ class TestInterpreter(debug: Boolean) {
     } catch (e: CompileError) {
       println("*Evaluation failed*")
       println(e.message)
-      println(parse.input)
+      // TODO: figure out how to extract only the line of input in question and point to the right character.
+      println(parse.input.replace("\n", " "))
       println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
       throw e
     }

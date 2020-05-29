@@ -15,6 +15,12 @@ class InterpreterIntegrationTest {
   }
 
   @Test
+  fun foo() {
+    assertResult(2L, "1 + 1")
+    assertResult(2L, "1 * 2")
+  }
+
+  @Test
   fun literals() {
     assertResult(0L, "0")
     assertResult(1L, "1")

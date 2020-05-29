@@ -5,7 +5,6 @@ import org.explang.analysis.Scope
 import org.explang.array.ArrayValue
 import org.explang.array.LongRangeValue
 import org.explang.syntax.*
-import kotlin.math.pow
 
 data class EvalResult(val value: Any)
 
@@ -63,25 +62,13 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
   }
 
   override fun visitUnaryOp(op: ExUnaryOp<Analyzer.Tag>): EvalResult {
-    val left = op.operand.accept(this)
-    val operator = UNOPS[op.operand.tag.type]!![op.operator]
-    return if (operator != null)
-      operator(left)
-    else throw EvalError("unknown unup ${op.operator} for type ${op.operand.tag.type}", op)
+    // Syntactic operators should be transformed to calls.
+    throw EvalError("Unexpected unary operator", op)
   }
 
   override fun visitBinaryOp(op: ExBinaryOp<Analyzer.Tag>): EvalResult {
-    val left = op.left.accept(this)
-    val right = op.right.accept(this)
-    val operator = when (op.left.tag.type) {
-      PrimType.BOOL -> BOOLOPS[op.operator]
-      PrimType.LONG -> LONGOPS[op.operator]
-      PrimType.DOUBLE -> DOUBLEOPS[op.operator]
-      else -> throw EvalError("unknown binop type", op)
-    }
-    return if (operator != null)
-      operator(left, right)
-    else throw EvalError("unknown operator ${op.operator} for type ${op.left.tag.type}", op)
+    // Syntactic operators should be transformed to calls.
+    throw EvalError("Unexpected binary operator", op)
   }
 
   override fun visitRangeOp(op: ExRangeOp<Analyzer.Tag>): EvalResult {
@@ -180,7 +167,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
       is Scope.Resolution.Argument -> frame.getArg(resolution.index)
       is Scope.Resolution.Local -> frame.getLocal(id)
       is Scope.Resolution.Closure -> frame.getClosure(id)
-      is Scope.Resolution.Environment -> EvalResult(env.getBuiltin(id))
+      is Scope.Resolution.Environment -> EvalResult(env.getBuiltin(id, symbol.tag.type))
       is Scope.Resolution.Unresolved ->
         throw EvalError("Unbound symbol ${resolution.symbol}", symbol)
     }
@@ -203,53 +190,3 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     stack.removeAt(stack.lastIndex)
   }
 }
-
-private val UNOPS = mapOf(
-    Type.BOOL to mapOf(
-        "not" to { a: EvalResult -> EvalResult(!(a.value as Boolean)) }
-    ),
-    Type.LONG to mapOf(
-        "-" to { a: EvalResult -> EvalResult(-(a.value as Long)) }
-    ),
-    Type.DOUBLE to mapOf(
-        "-" to { a: EvalResult -> EvalResult(-(a.value as Double)) }
-    )
-)
-
-private val BOOLOPS = mapOf(
-    "==" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Boolean == b.value as Boolean) },
-    "<>" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Boolean != b.value as Boolean) },
-    "and" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Boolean && b.value as Boolean) },
-    "or" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Boolean || b.value as Boolean) },
-    "xor" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Boolean xor b.value as Boolean) }
-)
-
-private val LONGOPS = mapOf(
-    "^" to { a: EvalResult, b: EvalResult ->
-      EvalResult((a.value as Long).toDouble().pow((b.value as Long).toDouble()).toLong())
-    },
-    "*" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long * b.value as Long) },
-    "/" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long / b.value as Long) },
-    "+" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long + b.value as Long) },
-    "-" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long - b.value as Long) },
-    "<" to { a: EvalResult, b: EvalResult -> EvalResult((a.value as Long) < b.value as Long) },
-    "<=" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long <= b.value as Long) },
-    ">" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long > b.value as Long) },
-    ">=" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long >= b.value as Long) },
-    "==" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long == b.value as Long) },
-    "<>" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Long != b.value as Long) }
-)
-
-private val DOUBLEOPS = mapOf(
-    "^" to { a: EvalResult, b: EvalResult -> EvalResult((a.value as Double).pow((b.value as Double))) },
-    "*" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double * b.value as Double) },
-    "/" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double / b.value as Double) },
-    "+" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double + b.value as Double) },
-    "-" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double - b.value as Double) },
-    "<" to { a: EvalResult, b: EvalResult -> EvalResult((a.value as Double) < b.value as Double) },
-    "<=" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double <= b.value as Double) },
-    ">" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double > b.value as Double) },
-    ">=" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double >= b.value as Double) },
-    "==" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double == b.value as Double) },
-    "<>" to { a: EvalResult, b: EvalResult -> EvalResult(a.value as Double != b.value as Double) }
-)

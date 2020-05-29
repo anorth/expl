@@ -1,23 +1,6 @@
 package org.explang.analysis
 
-import org.explang.syntax.ArrayType
-import org.explang.syntax.BINARY_OPERATORS
-import org.explang.syntax.ExBinaryOp
-import org.explang.syntax.ExBinding
-import org.explang.syntax.ExCall
-import org.explang.syntax.ExIf
-import org.explang.syntax.ExIndex
-import org.explang.syntax.ExLambda
-import org.explang.syntax.ExLet
-import org.explang.syntax.ExLiteral
-import org.explang.syntax.ExParameter
-import org.explang.syntax.ExRangeOp
-import org.explang.syntax.ExSymbol
-import org.explang.syntax.ExTree
-import org.explang.syntax.ExUnaryOp
-import org.explang.syntax.FuncType
-import org.explang.syntax.Type
-import org.explang.syntax.UNARY_OPERATORS
+import org.explang.syntax.*
 
 /**
  * Infers types for all nodes in the syntax tree.
@@ -29,7 +12,7 @@ import org.explang.syntax.UNARY_OPERATORS
  */
 class TypeChecker(
     private val resolver: Resolver,
-    private val builtins: Map<String, Type>
+    private val builtins: Map<String, List<Type>>
 ) : ExTree.Visitor<Analyzer.Tag, Unit> {
   data class Result(
       val resolutions: Map<Scope.Resolution, Type>
@@ -37,7 +20,7 @@ class TypeChecker(
 
   companion object {
     fun computeTypes(tree: ExTree<Analyzer.Tag>, resolver: Resolver,
-        builtins: Map<String, Type>): Result {
+        builtins: Map<String, List<Type>>): Result {
       val checker = TypeChecker(resolver, builtins)
       checker.visit(tree)
       return Result(checker.symbolTypes)
@@ -52,13 +35,30 @@ class TypeChecker(
   private val symbolTypes = mutableMapOf<Scope.Resolution, Type>()
 
   override fun visitCall(call: ExCall<Analyzer.Tag>) {
-    // Visit callee and argument expressions, which must all become fully typed.
+    // Visit callee and argument expressions. The arguments must become fully typed, and the callee must at least
+    // have some candidates.
     visitChildren(call, Unit)
-
     val callee = call.callee
     val args = call.args
+
+    if (callee.typeTag == Type.NONE) {
+      val argTypes = args.map(ExTree<Analyzer.Tag>::typeTag).toTypedArray()
+      for (candidate in callee.tag.typeCandidates) {
+        if (!candidate.isFunc()) {
+          throw CompileError("Type candidate for callee $callee is ${candidate}, not a function", callee)
+        }
+        if (candidate.asFunc().parameters().contentEquals(argTypes)) {
+          callee.typeTag = candidate
+          break
+        }
+      }
+      if (callee.typeTag == Type.NONE) {
+        throw CompileError("No type for $callee", callee)
+      }
+    }
+
     val calleeType = callee.typeTag as? FuncType
-        ?: throw CompileError("Callee $callee is not a function", callee)
+        ?: throw CompileError("Callee $callee is ${callee.typeTag}, not a function", callee)
     val formalParamTypes = calleeType.parameters()
     check(call, args.size == formalParamTypes.size) {
       "Expected ${formalParamTypes.size} arguments, got ${args.size}"
@@ -89,21 +89,11 @@ class TypeChecker(
   }
 
   override fun visitUnaryOp(op: ExUnaryOp<Analyzer.Tag>) {
-    visit(op.operand)
-    assert(op.operand.typeTag != Type.NONE) { "Untyped operand" }
-    val opType = UNARY_OPERATORS.withOperandType(op.operator, op.operand.typeTag)
-    op.typeTag = opType.resultType
+    throw CompileError("Unexpected unary operator", op)
   }
 
   override fun visitBinaryOp(op: ExBinaryOp<Analyzer.Tag>) {
-    visitChildren(op, Unit)
-
-    // All binops have similarly-typed operands
-    checkTypesMatch(op, op.left, op.right)
-
-    // Propagate operator result type upward
-    val opType = BINARY_OPERATORS.withOperandType(op.operator, op.left.typeTag)
-    op.typeTag = opType.resultType
+    throw CompileError("Unexpected binary operator", op)
   }
 
   override fun visitRangeOp(op: ExRangeOp<Analyzer.Tag>) {
@@ -215,32 +205,40 @@ class TypeChecker(
     while (resolution is Scope.Resolution.Closure) {
       resolution = resolution.capture
     }
-    val type = if (resolution is Scope.Resolution.Environment) {
-      builtins[resolution.identifier]
-    } else {
-      symbolTypes[resolution]
-    }
-    if (type != null) {
-      // Set the type for the free closure resolutions
-      resolution = initialResolution
-      while (resolution is Scope.Resolution.Closure) {
-        symbolTypes[resolution] = type
-        resolution = resolution.capture
+    if (resolution is Scope.Resolution.Environment) {
+      val candidates = builtins[resolution.identifier]
+      if (candidates != null && candidates.isNotEmpty()) {
+        symbol.tag.typeCandidates.addAll(candidates)
+        if (candidates.size == 1) {
+          symbol.typeTag = candidates[0]
+        }
+      } else {
+        throw CompileError("No type for $resolution", symbol)
       }
-      symbol.typeTag = type
     } else {
-      throw CompileError("No type for $resolution", symbol)
+      val type = symbolTypes[resolution]
+      if (type != null) {
+        // Set the type for the free closure resolutions.
+        resolution = initialResolution
+        while (resolution is Scope.Resolution.Closure) {
+          symbolTypes[resolution] = type
+          resolution = resolution.capture
+        }
+        symbol.typeTag = type
+      } else {
+        throw CompileError("No type for $resolution", symbol)
+      }
     }
   }
+}
 
-  ///// Private implementation /////
+///// Private implementation /////
 
-  // Enforces two trees have the same type.
-  private fun checkTypesMatch(parent: ExTree<Analyzer.Tag>, left: ExTree<Analyzer.Tag>,
-      right: ExTree<Analyzer.Tag>) {
-    check(parent, left.typeTag == right.typeTag) {
-      "Incompatible types for $parent: ${left.typeTag}, ${right.typeTag}"
-    }
+// Enforces two trees have the same type.
+private fun checkTypesMatch(parent: ExTree<Analyzer.Tag>, left: ExTree<Analyzer.Tag>,
+    right: ExTree<Analyzer.Tag>) {
+  check(parent, left.typeTag == right.typeTag) {
+    "Incompatible types for $parent: ${left.typeTag}, ${right.typeTag}"
   }
 }
 

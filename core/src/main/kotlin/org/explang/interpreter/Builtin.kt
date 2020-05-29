@@ -15,19 +15,79 @@ import org.explang.syntax.Type.Companion.LONG
 import org.explang.syntax.Type.Companion.array
 import org.explang.syntax.Type.Companion.function
 import org.explang.syntax.Type.Companion.range
+import java.math.BigInteger
+import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
 
-abstract class BuiltinFunction(
+open class BuiltinFunction(
     val name: String,
-    val funcType: FuncType,
+    val type: FuncType,
     val body: (List<EvalResult>, CallContext) -> Any) : Callable {
   override fun call(ctx: CallContext, args: List<EvalResult>) = EvalResult(body(args, ctx))
 }
 
+val OPERATORS = listOf(
+    // Unary operators
+    BuiltinFunction("not", function(BOOL, BOOL)) { args, ctx -> !(args[0].value as Boolean) },
+    BuiltinFunction("-", function(LONG, LONG)) { args, ctx -> -(args[0].value as Long) },
+    BuiltinFunction("-", function(DOUBLE, DOUBLE)) { args, ctx -> -(args[0].value as Double) },
+
+    // Boolean operators
+    BuiltinFunction("==",
+        function(BOOL, BOOL, BOOL)) { args, ctx -> args[0].value as Boolean == args[1].value as Boolean },
+    BuiltinFunction("<>",
+        function(BOOL, BOOL, BOOL)) { args, ctx -> args[0].value as Boolean != args[1].value as Boolean },
+    BuiltinFunction("and",
+        function(BOOL, BOOL, BOOL)) { args, ctx -> args[0].value as Boolean and args[1].value as Boolean },
+    BuiltinFunction("or",
+        function(BOOL, BOOL, BOOL)) { args, ctx -> args[0].value as Boolean or args[1].value as Boolean },
+    BuiltinFunction("xor",
+        function(BOOL, BOOL, BOOL)) { args, ctx -> args[0].value as Boolean xor args[1].value as Boolean },
+
+    // Long operators
+    BuiltinFunction("^", function(LONG, LONG, LONG)) { args, ctx ->
+      (args[0].value as Long).toBigInteger().pow(Math.toIntExact(args[1].value as Long)).longValueExact()
+    },
+    BuiltinFunction("*", function(LONG, LONG, LONG)) { args, ctx -> args[0].value as Long * args[1].value as Long },
+    BuiltinFunction("/", function(LONG, LONG, LONG)) { args, ctx -> args[0].value as Long / args[1].value as Long },
+    BuiltinFunction("+", function(LONG, LONG, LONG)) { args, ctx -> args[0].value as Long + args[1].value as Long },
+    BuiltinFunction("-", function(LONG, LONG, LONG)) { args, ctx -> args[0].value as Long - args[1].value as Long },
+    BuiltinFunction("<", function(BOOL, LONG, LONG)) { args, ctx -> (args[0].value as Long) < args[1].value as Long },
+    BuiltinFunction("<=", function(BOOL, LONG, LONG)) { args, ctx -> args[0].value as Long <= args[1].value as Long },
+    BuiltinFunction(">", function(BOOL, LONG, LONG)) { args, ctx -> args[0].value as Long > args[1].value as Long },
+    BuiltinFunction(">=", function(BOOL, LONG, LONG)) { args, ctx -> args[0].value as Long >= args[1].value as Long },
+    BuiltinFunction("==", function(BOOL, LONG, LONG)) { args, ctx -> args[0].value as Long == args[1].value as Long },
+    BuiltinFunction("<>", function(BOOL, LONG, LONG)) { args, ctx -> args[0].value as Long != args[1].value as Long },
+
+    // Double operators
+    BuiltinFunction("^",
+        function(DOUBLE, DOUBLE, DOUBLE)) { args, ctx -> (args[0].value as Double).pow(args[1].value as Double) },
+    BuiltinFunction("*",
+        function(DOUBLE, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double * args[1].value as Double },
+    BuiltinFunction("/",
+        function(DOUBLE, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double / args[1].value as Double },
+    BuiltinFunction("+",
+        function(DOUBLE, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double + args[1].value as Double },
+    BuiltinFunction("-",
+        function(DOUBLE, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double - args[1].value as Double },
+    BuiltinFunction("<",
+        function(BOOL, DOUBLE, DOUBLE)) { args, ctx -> (args[0].value as Double) < args[1].value as Double },
+    BuiltinFunction("<=",
+        function(BOOL, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double <= args[1].value as Double },
+    BuiltinFunction(">",
+        function(BOOL, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double > args[1].value as Double },
+    BuiltinFunction(">=",
+        function(BOOL, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double >= args[1].value as Double },
+    BuiltinFunction("==",
+        function(BOOL, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double == args[1].value as Double },
+    BuiltinFunction("<>",
+        function(BOOL, DOUBLE, DOUBLE)) { args, ctx -> args[0].value as Double != args[1].value as Double }
+)
+
 @Suppress("UNCHECKED_CAST")
 val BUILTINS = listOf(
-    // Math
+    // Math builtins
     make("sqrt", function(DOUBLE, DOUBLE)) { args, ctx -> sqrt(args[0].value as Double) },
     make("sign", function(DOUBLE, DOUBLE)) { args, ctx -> (args[0].value as Double).sign },
     make("positive", function(BOOL, DOUBLE)) { args, ctx -> (args[0].value as Double) > 0.0 },

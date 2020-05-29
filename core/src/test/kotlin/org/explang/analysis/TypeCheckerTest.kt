@@ -1,5 +1,6 @@
 package org.explang.analysis
 
+import org.explang.interpreter.Environment
 import org.explang.syntax.ExBinaryOp
 import org.explang.syntax.ExCall
 import org.explang.syntax.ExIf
@@ -27,6 +28,7 @@ class TypeCheckerTest {
   )
 
   private val parser = TestParser(debug = false)
+  private val intrinsics = Environment.withOperators().types()
 
   @Test
   fun literals() {
@@ -38,7 +40,7 @@ class TypeCheckerTest {
   @Test
   fun unaryOps() {
     check("-1").let {
-      assertEquals(LONG, (it.tree as ExUnaryOp).operand.tag.type)
+      assertEquals(LONG, (it.tree as ExCall).args[0].tag.type)
       assertEquals(LONG, it.tree.tag.type)
     }
   }
@@ -71,12 +73,12 @@ class TypeCheckerTest {
     }
     check("let a = 1 in 1 + a").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
-      val binOp = let.bound as ExBinaryOp
+      val binOp = let.bound as ExCall
       assertEquals(LONG, let.tag.type)
       assertEquals(LONG, binOp.tag.type)
-      assertEquals(LONG, binOp.left.tag.type)
-      assertEquals(LONG, binOp.right.tag.type) // Inferred
-      assertEquals(LONG, symbols[resolver.resolve(binOp.right as ExSymbol<*>)])
+      assertEquals(LONG, binOp.args[0].tag.type)
+      assertEquals(LONG, binOp.args[1].tag.type) // Inferred
+      assertEquals(LONG, symbols[resolver.resolve(binOp.args[1] as ExSymbol<*>)])
     }
     check("let a = 1, b = a+a in a+b").let { (tree, resolver, symbols) ->
       val let = tree as ExLet
@@ -273,7 +275,8 @@ class TypeCheckerTest {
 
   @Test
   fun builtins() {
-    check("sqrt(2.0)", mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, _) ->
+    val builtins = mapOf("sqrt" to listOf(function(DOUBLE, DOUBLE)))
+    check("sqrt(2.0)", builtins).let { (tree, resolver, _) ->
       val call = tree as ExCall
       val builtin = call.callee as ExSymbol
 
@@ -283,8 +286,7 @@ class TypeCheckerTest {
       assertTrue(resolver.resolve(builtin) is Scope.Resolution.Environment)
     }
 
-    check("let x = 2.0 in sqrt(x)",
-        mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, _) ->
+    check("let x = 2.0 in sqrt(x)", builtins).let { (tree, resolver, _) ->
       val let = tree as ExLet
       val call = let.bound as ExCall
       val builtin = call.callee as ExSymbol
@@ -296,8 +298,7 @@ class TypeCheckerTest {
       assertTrue(resolver.resolve(builtin) is Scope.Resolution.Environment)
     }
 
-    check("let s(x: double) = sqrt(x) in s(2.0)",
-        mapOf("sqrt" to function(DOUBLE, DOUBLE))).let { (tree, resolver, symbols) ->
+    check("let s(x: double) = sqrt(x) in s(2.0)", builtins).let { (tree, resolver, symbols) ->
       val let = tree as ExLet
       val binding = let.bindings[0]
       val lambda = binding.value as ExLambda
@@ -317,10 +318,11 @@ class TypeCheckerTest {
     }
   }
 
-  private fun check(s: String, builtins: Map<String, Type> = mapOf()): Result {
+  private fun check(s: String, builtins: Map<String, List<Type>> = mapOf()): Result {
+    val env = intrinsics + builtins
     val tree = parser.parse(s).syntax!!
-    val resolver = Scoper.buildResolver(tree, builtins.keys)
-    val types = TypeChecker.computeTypes(tree, resolver, builtins)
+    val resolver = Scoper.buildResolver(tree, env.keys)
+    val types = TypeChecker.computeTypes(tree, resolver, env)
     return Result(tree, resolver, types.resolutions)
   }
 }

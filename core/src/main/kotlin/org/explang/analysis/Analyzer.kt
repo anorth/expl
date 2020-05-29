@@ -8,7 +8,10 @@ import org.explang.syntax.Type
  */
 class Analyzer {
   class Tag(
-      var type: Type = Type.NONE
+      // Resolved concrete type.
+      var type: Type = Type.NONE,
+      // Candidate concrete types.
+      val typeCandidates: MutableList<Type> = mutableListOf()
   )
 
   class Analysis(
@@ -24,7 +27,7 @@ class Analyzer {
     }
   }
 
-  fun analyze(tree: ExTree<Tag>, environment: Map<String, Type>): Analysis {
+  fun analyze(tree: ExTree<Tag>, environment: Map<String, List<Type>>): Analysis {
     val resolver = Scoper.buildResolver(tree, environment.keys)
     val types = TypeChecker.computeTypes(tree, resolver, environment) // Updates node tags in-place
     return Analysis(resolver, types.resolutions)

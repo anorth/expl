@@ -10,7 +10,7 @@ import kotlin.system.measureNanoTime
 class BenchmarkIntegrationTest {
   private val parser = TestParser(debug = false)
   private val interpreter = TestInterpreter(debug = false)
-  private val env = Environment()
+  private val env = Environment.withBuiltins()
 
   @Test
   fun fibonacci() {
