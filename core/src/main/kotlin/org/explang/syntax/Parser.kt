@@ -258,7 +258,7 @@ private class AstBuilder : ExplBaseVisitor<ExTree>() {
     return ExBinaryOp(ctx.range(), ctx.getChild(1).text, left, right)
   }
 
-  private fun makeArguments(ctx: ExplParser.ArgumentsContext) = ctx.expression().map(::visit)
+  private fun makeArguments(ctx: ExplParser.ArgumentsContext) = ctx.expression().map(::visit).toTypedArray()
 
   private fun makeFormalParameters(paramCtxs: List<ExplParser.ParameterContext>) =
       paramCtxs.map(this::visitParameter)

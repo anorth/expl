@@ -9,11 +9,11 @@ interface CallContext {
 }
 
 interface Callable {
-  fun call(ctx: CallContext, args: List<EvalResult>): EvalResult
+  fun call(ctx: CallContext, args: Array<EvalResult>): EvalResult
 }
 
 class Frame(
-    val args: List<EvalResult> = listOf(),
+    val args: Array<EvalResult> = arrayOf(),
     val locals: MutableMap<String, EvalResult> = mutableMapOf(),
     val closure: Map<String, EvalResult> = mapOf()
 ) {

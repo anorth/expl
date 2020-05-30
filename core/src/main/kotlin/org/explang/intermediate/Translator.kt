@@ -1,5 +1,6 @@
 package org.explang.intermediate
 
+import org.explang.common.mapArr
 import org.explang.syntax.*
 
 /**
@@ -14,7 +15,7 @@ class SyntaxTranslator {
 private class Translator : ExTree.Visitor<ITree> {
   override fun visitCall(call: ExCall): ICall {
     val callee = call.callee.accept(this)
-    val args = call.args.map { it.accept(this) }
+    val args = call.args.mapArr(ITree::class.java) { it.accept(this) }
     return ICall(call, Type.NONE, callee, args)
   }
 
@@ -22,25 +23,25 @@ private class Translator : ExTree.Visitor<ITree> {
     // Desugar operators into calls.
     // They may be optimized to direct intrinsics after static scope resolution.
     val callee = ISymbol(index, Type.NONE, "[]")
-    val args = listOf(index.indexee.accept(this), index.indexer.accept(this))
+    val args = arrayOf(index.indexee.accept(this), index.indexer.accept(this))
     return ICall(index, Type.NONE, callee, args)
   }
 
   override fun visitUnaryOp(op: ExUnaryOp): ITree {
     val callee = ISymbol(op, Type.NONE, op.operator)
-    val args = listOf(op.operand.accept(this))
+    val args = arrayOf(op.operand.accept(this))
     return ICall(op, Type.NONE, callee, args)
   }
 
   override fun visitBinaryOp(op: ExBinaryOp): ITree {
     val callee = ISymbol(op, Type.NONE, op.operator)
-    val args = listOf(op.left.accept(this), op.right.accept(this))
+    val args = arrayOf(op.left.accept(this), op.right.accept(this))
     return ICall(op, Type.NONE, callee, args)
   }
 
   override fun visitRangeOp(op: ExRangeOp): ITree {
     val callee = ISymbol(op, Type.NONE, ":")
-    val args = listOf(op.first?.accept(this) ?: INull(null, Type.NONE),
+    val args = arrayOf(op.first?.accept(this) ?: INull(null, Type.NONE),
         op.last?.accept(this) ?: INull(null, Type.NONE),
         op.step?.accept(this) ?: INull(null, Type.NONE))
     return ICall(op, Type.NONE, callee, args)

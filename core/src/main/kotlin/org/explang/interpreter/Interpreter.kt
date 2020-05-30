@@ -1,5 +1,6 @@
 package org.explang.interpreter
 
+import org.explang.common.mapArr
 import org.explang.compiler.*
 import org.explang.intermediate.*
 import org.explang.syntax.ExTree
@@ -55,8 +56,7 @@ private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
 
   override fun visitCall(call: ICall): EvalResult {
     val callee = call.callee.accept(this).value as Callable
-    // PERF: Building the args array list is slow.
-    val args = call.args.map { it.accept(this) }
+    val args = call.args.mapArr(EvalResult::class.java) { it.accept(this) }
     return callee.call(this, args)
   }
 

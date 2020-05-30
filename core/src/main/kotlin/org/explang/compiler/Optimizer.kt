@@ -1,5 +1,6 @@
 package org.explang.compiler
 
+import org.explang.common.mapArr
 import org.explang.intermediate.*
 
 class Optimizer(private val resolver: LookupResolver, private val env: CompilationEnvironment) {
@@ -33,7 +34,7 @@ private class Inliner(
 
 private open class TreeTransformer(private val resolver: LookupResolver) : ITree.Visitor<ITree> {
   override fun visitCall(call: ICall): ITree {
-    return call.with(call.callee.accept(this), call.args.map { it.accept(this) })
+    return call.with(call.callee.accept(this), call.args.mapArr(ITree::class.java) { it.accept(this) })
   }
 
   override fun visitIf(iff: IIf): ITree {

@@ -42,7 +42,7 @@ sealed class ExTree {
 class ExCall(
     override val tokenRange: IntRange,
     val callee: ExTree,
-    val args: List<ExTree>
+    val args: Array<ExTree>
 ) : ExTree() {
   override fun children() = listOf(callee) + args
   override fun <V> accept(v: Visitor<V>) = v.visitCall(this)

@@ -60,12 +60,12 @@ class ICall(
     syntax: ExTree?,
     type: Type,
     val callee: ITree,
-    val args: List<ITree>
+    val args: Array<ITree>
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(callee) + args
   override fun <V> accept(v: Visitor<V>) = v.visitCall(this)
   override fun toString() = "call($callee, ${args.joinToString(",")})"
-  fun with(callee: ITree, args: List<ITree>) = ICall(syntax, type, callee, args)
+  fun with(callee: ITree, args: Array<ITree>) = ICall(syntax, type, callee, args)
 }
 
 class IIf(
