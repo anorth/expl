@@ -11,7 +11,7 @@ import org.explang.syntax.Type
  * as container keys.
  */
 sealed class ITree(
-    val syntax: ExTree<*>?,
+    val syntax: ExTree?,
     type: Type = Type.NONE,
     val typeCandidates: MutableList<Type> = mutableListOf()
 ) {
@@ -57,7 +57,7 @@ sealed class ITree(
 }
 
 class ICall(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val callee: ITree,
     val args: List<ITree>
 ) : ITree(syntax) {
@@ -67,7 +67,7 @@ class ICall(
 }
 
 class IIf(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val test: ITree,
     val left: ITree,
     val right: ITree
@@ -78,7 +78,7 @@ class IIf(
 }
 
 class ILet(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val bindings: List<IBinding>,
     val bound: ITree
 ) : ITree(syntax) {
@@ -88,7 +88,7 @@ class ILet(
 }
 
 class IBinding(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val symbol: ISymbol,
     val value: ITree
 ) : ITree(syntax) {
@@ -98,7 +98,7 @@ class IBinding(
 }
 
 class ILambda(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val parameters: List<IParameter>,
     val annotation: Type,
     val body: ITree
@@ -109,7 +109,7 @@ class ILambda(
 }
 
 class IParameter(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val symbol: ISymbol,
     val annotation: Type
 ) : ITree(syntax) {
@@ -119,7 +119,7 @@ class IParameter(
 }
 
 class ILiteral<L : Any>(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val implType: Class<L>,
     val value: L
 ) : ITree(syntax) {
@@ -129,7 +129,7 @@ class ILiteral<L : Any>(
 }
 
 class ISymbol(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val name: String
 ) : ITree(syntax) {
   override fun children() = listOf<ITree>()
@@ -138,7 +138,7 @@ class ISymbol(
 }
 
 class IIntrinsic(
-    syntax: ExTree<*>,
+    syntax: ExTree,
     val args: List<ITree>,
     val name: String
 ) : ITree(syntax) {
@@ -146,7 +146,7 @@ class IIntrinsic(
   override fun <V> accept(v: Visitor<V>) = v.visitIntrinsic(this)
 }
 
-class INull(syntax: ExTree<*>?) : ITree(syntax) {
+class INull(syntax: ExTree?) : ITree(syntax) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitNull(this)
 }

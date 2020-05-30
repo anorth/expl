@@ -78,7 +78,7 @@ val OPERATORS = listOf(
 
     // Long array operators
     BuiltinFunction("[]", function(LONG, array(LONG), LONG)) { args, _ ->
-      (args[0].value as LongArrayValue).get(Math.toIntExact(args[1].value as Long))
+      (args[0].value as LongArrayValue)[Math.toIntExact(args[1].value as Long)]
     },
     BuiltinFunction("[]", function(array(LONG), array(LONG), range(LONG))) { args, _ ->
       (args[0].value as LongArrayValue).slice((args[1].value as LongRangeValue))
@@ -86,7 +86,7 @@ val OPERATORS = listOf(
 
     // Double array operators
     BuiltinFunction("[]", function(DOUBLE, array(DOUBLE), LONG)) { args, _ ->
-      (args[0].value as DoubleArrayValue).get(Math.toIntExact(args[1].value as Long))
+      (args[0].value as DoubleArrayValue)[Math.toIntExact(args[1].value as Long)]
     },
     BuiltinFunction("[]", function(array(DOUBLE), array(DOUBLE), range(LONG))) { args, _ ->
       (args[0].value as DoubleArrayValue).slice((args[1].value as LongRangeValue))

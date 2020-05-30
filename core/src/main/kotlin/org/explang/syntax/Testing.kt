@@ -1,6 +1,5 @@
 package org.explang.syntax
 
-import org.explang.analysis.Analyzer
 import org.junit.Assert.fail
 
 class TestParser(debug: Boolean) {
@@ -11,8 +10,8 @@ class TestParser(debug: Boolean) {
       trace = debug
   )
 
-  fun parse(expression: String): Parser.Result<Analyzer.Tag> {
-    val parse = parser.parse(expression) { Analyzer.Tag() }
+  fun parse(expression: String): Parser.Result {
+    val parse = parser.parse(expression)
     if (parse.failed()) {
       fail(parse.errorDetail())
     }

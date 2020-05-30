@@ -45,7 +45,7 @@ class TypeChecker(
     if (callee.type == Type.NONE) {
       // Hack special handling for "*" in range operators until we have nullable types or optional arguments.
       // Set all args to the same type; if none specify a type ("*:*"), use LONG.
-      val nullArgType: Type = args.firstOrNull() { it.type != Type.NONE }?.type ?: Type.LONG
+      val nullArgType: Type = args.firstOrNull { it.type != Type.NONE }?.type ?: Type.LONG
       for (arg in args) {
         if (arg.type == Type.NONE) {
           arg.type = nullArgType
@@ -74,7 +74,7 @@ class TypeChecker(
       "Expected ${formalParamTypes.size} arguments, got ${args.size}"
     }
     for (i in formalParamTypes.indices) {
-      check(args[i], args[i].type?.satisfies(formalParamTypes[i]) ?: false) {
+      check(args[i], args[i].type.satisfies(formalParamTypes[i])) {
         "Argument $i expected ${formalParamTypes[i]}, got ${args[i].type}"
       }
     }

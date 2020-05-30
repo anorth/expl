@@ -6,13 +6,6 @@ import org.explang.syntax.Type
  * Analyses a syntax tree for binding and type information.
  */
 class Analyzer {
-  class Tag(
-      // Resolved concrete type.
-      var type: Type = Type.NONE,
-      // Candidate concrete types.
-      val typeCandidates: MutableList<Type> = mutableListOf()
-  )
-
   class Analysis(
       // Symbol resolver
       val resolver: Resolver,

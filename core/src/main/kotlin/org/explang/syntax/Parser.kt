@@ -25,14 +25,11 @@ class Parser(
     private val printAst: Boolean = false,
     private val trace: Boolean = false
 ) {
-  /**
-   * @param <T> type of the AST tag data structure
-   */
-  class Result<T>(
+  class Result(
       val input: String,
       val tokens: List<Token>,
       val parse: ExplParser.ExpressionContext,
-      val syntax: ExTree<T>?,
+      val syntax: ExTree?,
       val error: ParseError? = null
   ) {
     fun ok() = syntax != null
@@ -61,11 +58,7 @@ class Parser(
     }
   }
 
-  /**
-   * @param s string to parse
-   * @param tag factory for empty analysis tags
-   */
-  fun <T> parse(s: String, tag: () -> T): Result<T> {
+  fun parse(s: String): Result {
     val lexer = ExplLexer(CharStreams.fromString(s))
     val tokens = CommonTokenStream(lexer)
 
@@ -113,7 +106,7 @@ class Parser(
     // be syntactically valid, so the AST builder can fail. I must decide whether to make the AST
     // builder robust to partial trees, or just fail here before the AST.
     val ast = if (error == null) {
-      AstBuilder(tag).visit(parseTree).also {
+      AstBuilder().visit(parseTree).also {
         if (printAst) {
           println("*AST*")
           println(it)
@@ -128,25 +121,25 @@ class Parser(
 }
 
 /** A parse tree visitor that constructs an AST */
-private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T>>() {
+private class AstBuilder : ExplBaseVisitor<ExTree>() {
   override fun visit(tree: ParseTree) = super.visit(tree)!!
 
   ///// expression /////
 
-  override fun visitCallEx(ctx: ExplParser.CallExContext): ExCall<T> {
+  override fun visitCallEx(ctx: ExplParser.CallExContext): ExCall {
     val fn = visit(ctx.expression())
     val args = makeArguments(ctx.arguments())
-    return ExCall(ctx.range(), tag(), fn, args)
+    return ExCall(ctx.range(), fn, args)
   }
 
-  override fun visitIndexEx(ctx: ExplParser.IndexExContext): ExTree<T> {
+  override fun visitIndexEx(ctx: ExplParser.IndexExContext): ExTree {
     val target = visit(ctx.expression())
     val indexer = visit(ctx.index().expression())
-    return ExIndex(ctx.range(), tag(), target, indexer)
+    return ExIndex(ctx.range(), target, indexer)
   }
 
   override fun visitUnaryEx(ctx: ExplParser.UnaryExContext) =
-      ExUnaryOp(ctx.range(), tag(), ctx.getChild(0).text, visit(ctx.expression()))
+      ExUnaryOp(ctx.range(), ctx.getChild(0).text, visit(ctx.expression()))
 
   override fun visitExponentiationEx(ctx: ExplParser.ExponentiationExContext) = makeBinaryOp(ctx)
 
@@ -154,38 +147,38 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   override fun visitAdditiveEx(ctx: ExplParser.AdditiveExContext) = makeBinaryOp(ctx)
 
-  override fun visitStepRangeEx(ctx: ExplParser.StepRangeExContext): ExTree<T> {
+  override fun visitStepRangeEx(ctx: ExplParser.StepRangeExContext): ExTree {
     val first = visit(ctx.expression(0))
     return if (ctx.TIMES() == null) {
       val last = ctx.expression(1)?.let(this::visit)
       val step = ctx.expression(2)?.let(this::visit)
-      ExRangeOp(ctx.range(), tag(), first, last, step)
+      ExRangeOp(ctx.range(), first, last, step)
     } else {
       val step = ctx.expression(1)?.let(this::visit)
-      ExRangeOp(ctx.range(), tag(), first, null, step)
+      ExRangeOp(ctx.range(), first, null, step)
     }
   }
 
-  override fun visitRightStepRangeEx(ctx: ExplParser.RightStepRangeExContext): ExTree<T> {
+  override fun visitRightStepRangeEx(ctx: ExplParser.RightStepRangeExContext): ExTree {
     return if (ctx.TIMES().size == 1) {
       val last = ctx.expression(0)?.let(this::visit)
       val step = ctx.expression(1)?.let(this::visit)
-      ExRangeOp(ctx.range(), tag(), null, last, step)
+      ExRangeOp(ctx.range(), null, last, step)
     } else {
       val step = ctx.expression(0)?.let(this::visit)
-      ExRangeOp(ctx.range(), tag(), null, null, step)
+      ExRangeOp(ctx.range(), null, null, step)
     }
   }
 
-  override fun visitRangeEx(ctx: ExplParser.RangeExContext): ExTree<T> {
+  override fun visitRangeEx(ctx: ExplParser.RangeExContext): ExTree {
     val first = visit(ctx.expression(0))
     val last = ctx.expression(1)?.let(this::visit)
-    return ExRangeOp(ctx.range(), tag(), first, last, null)
+    return ExRangeOp(ctx.range(), first, last, null)
   }
 
-  override fun visitRightRangeEx(ctx: ExplParser.RightRangeExContext): ExTree<T> {
+  override fun visitRightRangeEx(ctx: ExplParser.RightRangeExContext): ExTree {
     val last = ctx.expression()?.let(this::visit)
-    return ExRangeOp(ctx.range(), tag(), null, last, null)
+    return ExRangeOp(ctx.range(), null, last, null)
   }
 
   override fun visitComparativeEx(ctx: ExplParser.ComparativeExContext) = makeBinaryOp(ctx)
@@ -194,23 +187,23 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   override fun visitConjunctionEx(ctx: ExplParser.ConjunctionExContext) = makeBinaryOp(ctx)
 
-  override fun visitLiteralEx(ctx: ExplParser.LiteralExContext): ExTree<T> {
+  override fun visitLiteralEx(ctx: ExplParser.LiteralExContext): ExTree {
     return visit(ctx.literal())
   }
 
-  override fun visitIfEx(ctx: ExplParser.IfExContext) = ExIf(ctx.range(), tag(),
+  override fun visitIfEx(ctx: ExplParser.IfExContext) = ExIf(ctx.range(),
       visit(ctx.expression(0)),
       visit(ctx.expression(1)),
       visit(ctx.expression(2)))
 
   override fun visitLetEx(ctx: ExplParser.LetExContext) =
-      ExLet(ctx.range(), tag(), ctx.binding().map(this::visitBinding), visit(ctx.expression()))
+      ExLet(ctx.range(), ctx.binding().map(this::visitBinding), visit(ctx.expression()))
 
-  override fun visitParenthesizedEx(ctx: ExplParser.ParenthesizedExContext): ExTree<T> {
+  override fun visitParenthesizedEx(ctx: ExplParser.ParenthesizedExContext): ExTree {
     return visit(ctx.expression())
   }
 
-  override fun visitLambdaEx(ctx: ExplParser.LambdaExContext): ExLambda<T> {
+  override fun visitLambdaEx(ctx: ExplParser.LambdaExContext): ExLambda {
     val (params, ret) = ctx.lambdaParameters().let { p ->
       if (p.parameter() != null) {
         // Sugar for single-parameter anonymous lambdas
@@ -224,7 +217,7 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   ///// Sub-rules /////
 
-  override fun visitBinding(ctx: ExplParser.BindingContext): ExBinding<T> {
+  override fun visitBinding(ctx: ExplParser.BindingContext): ExBinding {
     val value = if (ctx.formalParameters() != null) {
       // Sugar for named function definitions.
       makeLambda(ctx, ctx.formalParameters().parameter(),
@@ -234,35 +227,35 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
       // Simple binding.
       visit(ctx.expression())
     }
-    return ExBinding(ctx.range(), tag(), visitSymbol(ctx.symbol()), value)
+    return ExBinding(ctx.range(), visitSymbol(ctx.symbol()), value)
   }
 
-  override fun visitParameter(ctx: ExplParser.ParameterContext): ExParameter<T> {
-    return ExParameter(ctx.range(), tag(), visitSymbol(ctx.symbol()),
+  override fun visitParameter(ctx: ExplParser.ParameterContext): ExParameter {
+    return ExParameter(ctx.range(), visitSymbol(ctx.symbol()),
         makeType(ctx.typeAnnotation()))
   }
 
   override fun visitSymbol(ctx: ExplParser.SymbolContext) =
-      ExSymbol(ctx.range(), tag(), ctx.text)
+      ExSymbol(ctx.range(), ctx.text)
 
-  override fun visitNumber(ctx: ExplParser.NumberContext): ExLiteral<T, *> {
+  override fun visitNumber(ctx: ExplParser.NumberContext): ExLiteral<*> {
     return when {
-      ctx.INTEGER() != null -> ExLiteral(ctx.range(), tag(), Long::class.java, ctx.text.toLong())
-      ctx.FLOAT() != null -> ExLiteral(ctx.range(), tag(), Double::class.java, ctx.text.toDouble())
+      ctx.INTEGER() != null -> ExLiteral(ctx.range(), Long::class.java, ctx.text.toLong())
+      ctx.FLOAT() != null -> ExLiteral(ctx.range(), Double::class.java, ctx.text.toDouble())
       else -> throw RuntimeException("Unrecognized numeric literal ${ctx.text}")
     }
   }
 
   override fun visitBool(ctx: ExplParser.BoolContext) =
-      ExLiteral(ctx.range(), tag(), Boolean::class.java, ctx.text!!.toBoolean())
+      ExLiteral(ctx.range(), Boolean::class.java, ctx.text!!.toBoolean())
 
   ///// Internals /////
 
-  private fun makeBinaryOp(ctx: ExplParser.ExpressionContext): ExBinaryOp<T> {
+  private fun makeBinaryOp(ctx: ExplParser.ExpressionContext): ExBinaryOp {
     // Left-associativity is handled by the grammar.
     val left = visit(ctx.getChild(0))
     val right = visit(ctx.getChild(2))
-    return ExBinaryOp(ctx.range(), tag(), ctx.getChild(1).text, left, right)
+    return ExBinaryOp(ctx.range(), ctx.getChild(1).text, left, right)
   }
 
   private fun makeArguments(ctx: ExplParser.ArgumentsContext) = ctx.expression().map(::visit)
@@ -300,24 +293,24 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   private fun makeLambda(ctx: ParserRuleContext, paramCtxs: List<ExplParser.ParameterContext>,
       annotation: Type, bodyCtx: ExplParser.ExpressionContext) =
-      ExLambda(ctx.range(), tag(), makeFormalParameters(paramCtxs), annotation, visit(bodyCtx))
+      ExLambda(ctx.range(), makeFormalParameters(paramCtxs), annotation, visit(bodyCtx))
 
-  override fun visitArguments(ctx: ExplParser.ArgumentsContext?): ExTree<T> {
+  override fun visitArguments(ctx: ExplParser.ArgumentsContext?): ExTree {
     assert(false) { "Unused" }
     return super.visitArguments(ctx)
   }
 
-  override fun visitFormalParameters(ctx: ExplParser.FormalParametersContext?): ExTree<T> {
+  override fun visitFormalParameters(ctx: ExplParser.FormalParametersContext?): ExTree {
     assert(false) { "Unused" }
     return super.visitFormalParameters(ctx)
   }
 
-  override fun visitTypeAnnotation(ctx: ExplParser.TypeAnnotationContext?): ExTree<T> {
+  override fun visitTypeAnnotation(ctx: ExplParser.TypeAnnotationContext?): ExTree {
     assert(false) { "Unused" }
     return super.visitTypeAnnotation(ctx)
   }
 
-  override fun visitTypePrimitive(ctx: ExplParser.TypePrimitiveContext?): ExTree<T> {
+  override fun visitTypePrimitive(ctx: ExplParser.TypePrimitiveContext?): ExTree {
     assert(false) { "Unused" }
     return super.visitTypePrimitive(ctx)
   }

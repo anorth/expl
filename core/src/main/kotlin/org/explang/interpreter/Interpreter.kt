@@ -25,7 +25,7 @@ class Interpreter(
    * @param env environment symbols, including built-ins and external data
    */
   @Throws(EvalError::class)
-  fun evaluate(tree: ExTree<Analyzer.Tag>, env: Environment): EvalResult {
+  fun evaluate(tree: ExTree, env: Environment): EvalResult {
     val compiler = IntermediateCompiler()
     val intermediate = compiler.transform(tree)
 

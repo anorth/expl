@@ -35,8 +35,7 @@ class DataLoader {
 
   fun loadJsonToEnv(path: String) {
     println(File(path).absolutePath)
-    val json = mapper.readTree(File(path))
-    when (json) {
+    when (val json = mapper.readTree(File(path))) {
       is ArrayNode -> data["data"] = loadArray(json)
       is ObjectNode -> {
         for (elm in json.fields()) {

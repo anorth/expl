@@ -4,6 +4,7 @@ import org.explang.analysis.CompileError
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import kotlin.math.sqrt
 
 class InterpreterIntegrationTest {
   private val interpreter = TestInterpreter(debug = false)
@@ -167,9 +168,9 @@ class InterpreterIntegrationTest {
 
   @Test
   fun builtins() {
-    assertResult(Math.sqrt(2.0), "sqrt(2.0)")
-    assertResult(Math.sqrt(2.0), "let s(x: double) = sqrt(x) in s(2.0)")
-    assertResult(Math.sqrt(2.0), "let s = sqrt in s(2.0)")
+    assertResult(sqrt(2.0), "sqrt(2.0)")
+    assertResult(sqrt(2.0), "let s(x: double) = sqrt(x) in s(2.0)")
+    assertResult(sqrt(2.0), "let s = sqrt in s(2.0)")
   }
 
   private fun assertResult(expected: Any, expression: String) {

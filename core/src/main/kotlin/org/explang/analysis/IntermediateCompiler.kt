@@ -3,20 +3,19 @@ package org.explang.analysis
 import org.explang.syntax.*
 
 class IntermediateCompiler {
-  fun <T> transform(syntax: ExTree<T>): ITree {
-    val itree = syntax.accept(SyntaxTransformer())
-    return itree
+  fun transform(syntax: ExTree): ITree {
+    return syntax.accept(SyntaxTransformer())
   }
 }
 
-private class SyntaxTransformer<T> : ExTree.Visitor<T, ITree> {
-  override fun visitCall(call: ExCall<T>): ICall {
+private class SyntaxTransformer : ExTree.Visitor<ITree> {
+  override fun visitCall(call: ExCall): ICall {
     val callee = call.callee.accept(this)
     val args = call.args.map { it.accept(this) }
     return ICall(call, callee, args)
   }
 
-  override fun visitIndex(index: ExIndex<T>): ITree {
+  override fun visitIndex(index: ExIndex): ITree {
     // Desugar operators into calls.
     // They may be optimized to direct intrinsics after static scope resolution.
     val callee = ISymbol(index, "[]")
@@ -24,19 +23,19 @@ private class SyntaxTransformer<T> : ExTree.Visitor<T, ITree> {
     return ICall(index, callee, args)
   }
 
-  override fun visitUnaryOp(op: ExUnaryOp<T>): ITree {
+  override fun visitUnaryOp(op: ExUnaryOp): ITree {
     val callee = ISymbol(op, op.operator)
     val args = listOf(op.operand.accept(this))
     return ICall(op, callee, args)
   }
 
-  override fun visitBinaryOp(op: ExBinaryOp<T>): ITree {
+  override fun visitBinaryOp(op: ExBinaryOp): ITree {
     val callee = ISymbol(op, op.operator)
     val args = listOf(op.left.accept(this), op.right.accept(this))
     return ICall(op, callee, args)
   }
 
-  override fun visitRangeOp(op: ExRangeOp<T>): ITree {
+  override fun visitRangeOp(op: ExRangeOp): ITree {
     val callee = ISymbol(op, ":")
     val args = listOf(op.first?.accept(this) ?: INull(null),
         op.last?.accept(this) ?: INull(null),
@@ -44,27 +43,27 @@ private class SyntaxTransformer<T> : ExTree.Visitor<T, ITree> {
     return ICall(op, callee, args)
   }
 
-  override fun visitIf(iff: ExIf<T>) =
+  override fun visitIf(iff: ExIf) =
       IIf(iff, iff.test.accept(this), iff.left.accept(this), iff.right.accept(this))
 
-  override fun visitLet(let: ExLet<T>) =
+  override fun visitLet(let: ExLet) =
       ILet(let, let.bindings.map(this::visitBinding), let.bound.accept(this))
 
-  override fun visitBinding(binding: ExBinding<T>) =
+  override fun visitBinding(binding: ExBinding) =
       IBinding(binding, this.visitSymbol(binding.symbol), binding.value.accept(this))
 
-  override fun visitLambda(lambda: ExLambda<T>): ITree {
+  override fun visitLambda(lambda: ExLambda): ITree {
     return ILambda(lambda, lambda.parameters.map(this::visitParameter), lambda.annotation, lambda.body.accept(this))
   }
 
-  override fun visitParameter(parameter: ExParameter<T>) =
+  override fun visitParameter(parameter: ExParameter) =
       IParameter(parameter, visitSymbol(parameter.symbol), parameter.annotation)
 
-  override fun visitLiteral(literal: ExLiteral<T, *>) = iliteral(literal)
+  override fun visitLiteral(literal: ExLiteral<*>) = iliteral(literal)
 
-  override fun visitSymbol(symbol: ExSymbol<T>) = ISymbol(symbol, symbol.name)
+  override fun visitSymbol(symbol: ExSymbol) = ISymbol(symbol, symbol.name)
 }
 
-private fun <T, L : Any> iliteral(syntax: ExLiteral<T, L>): ILiteral<L> {
+private fun <L : Any> iliteral(syntax: ExLiteral<L>): ILiteral<L> {
   return ILiteral(syntax, syntax.type, syntax.value)
 }

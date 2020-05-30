@@ -1,6 +1,5 @@
 package org.explang.interpreter
 
-import org.explang.analysis.Analyzer
 import org.explang.analysis.CompileError
 import org.explang.syntax.Parser
 import org.explang.syntax.TestParser
@@ -14,7 +13,7 @@ class TestInterpreter(debug: Boolean) {
     return evaluate(parse, env)
   }
 
-  fun evaluate(parse: Parser.Result<Analyzer.Tag>, env: Environment): Any {
+  fun evaluate(parse: Parser.Result, env: Environment): Any {
     try {
       return interpreter.evaluate(parse.syntax!!, env).value
     } catch (e: CompileError) {
@@ -23,7 +22,7 @@ class TestInterpreter(debug: Boolean) {
       // TODO: figure out how to extract only the line of input in question and point to the right character.
       println(parse.input.replace("\n", " "))
       e.tree.syntax?.let {
-        println(" ".repeat(parse.tokens[it.tokenRange.start].startIndex) + "^")
+        println(" ".repeat(parse.tokens[it.tokenRange.first].startIndex) + "^")
       }
       throw e
     }

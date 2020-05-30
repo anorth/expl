@@ -35,9 +35,7 @@ class ParserTest {
   }
 }
 
-private fun parse(expression: String): Parser.Result<Unit> {
+private fun parse(expression: String): Parser.Result {
   val parser = Parser()
-  return parser.parse(expression, notag)
+  return parser.parse(expression)
 }
-
-private val notag = { Unit }

@@ -2,7 +2,6 @@ package org.explang.cli
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
-import org.explang.analysis.Analyzer
 import org.explang.analysis.CompileError
 import org.explang.interpreter.Environment
 import org.explang.interpreter.Interpreter
@@ -45,7 +44,7 @@ class Cli(args: Args) {
     val env = Environment.withBuiltins()
     loader.forEach(env::addValue)
 
-    val parse = parser.parse(expression) { Analyzer.Tag() }
+    val parse = parser.parse(expression)
     parse.error?.let { error ->
       println("*Parse failed*")
       println(error.detail(expression))
@@ -58,7 +57,9 @@ class Cli(args: Args) {
       } catch (e: CompileError) {
         println("*Compile failed*")
         println(parse.input)
-        println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
+        e.tree.syntax?.let {
+          println(" ".repeat(parse.tokens[it.tokenRange.first].startIndex) + "^")
+        }
         println(e.message)
       }
     }
