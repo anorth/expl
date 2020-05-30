@@ -1,5 +1,6 @@
 package org.explang.analysis
 
+import org.explang.intermediate.*
 import org.explang.syntax.FuncType
 import org.explang.syntax.Type
 
@@ -20,8 +21,7 @@ class TypeChecker(
   )
 
   companion object {
-    fun computeTypes(tree: ITree, resolver: Resolver,
-        builtins: Map<String, List<Type>>): Result {
+    fun computeTypes(tree: ITree, resolver: Resolver, builtins: Map<String, List<Type>>): Result {
       val checker = TypeChecker(resolver, builtins)
       tree.accept(checker)
       return Result(checker.symbolTypes)

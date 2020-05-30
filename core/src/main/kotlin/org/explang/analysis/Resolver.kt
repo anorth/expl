@@ -1,5 +1,8 @@
 package org.explang.analysis
 
+import org.explang.intermediate.ILambda
+import org.explang.intermediate.ISymbol
+
 /** Resolves symbol occurences to bindings or arguments. */
 interface Resolver {
   /** Resolves a symbol. */

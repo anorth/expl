@@ -1,6 +1,6 @@
 package org.explang.interpreter
 
-import org.explang.analysis.ITree
+import org.explang.intermediate.ITree
 
 class Function(
     val body: ITree,

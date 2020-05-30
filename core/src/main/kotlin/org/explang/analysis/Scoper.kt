@@ -1,5 +1,7 @@
 package org.explang.analysis
 
+import org.explang.intermediate.*
+
 /**
  * Intermediate tree visitor which resolves symbols to scopes in which they are defined.
  */

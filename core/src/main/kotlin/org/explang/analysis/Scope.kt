@@ -1,5 +1,10 @@
 package org.explang.analysis
 
+import org.explang.intermediate.ILambda
+import org.explang.intermediate.ILet
+import org.explang.intermediate.ISymbol
+import org.explang.intermediate.ITree
+
 class NameError(msg: String, val tree: ITree) : RuntimeException(msg)
 
 /**

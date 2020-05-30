@@ -1,6 +1,6 @@
 package org.explang.interpreter
 
-import org.explang.analysis.ITree
+import org.explang.intermediate.ITree
 
 interface CallContext {
   fun evaluate(tree: ITree): EvalResult

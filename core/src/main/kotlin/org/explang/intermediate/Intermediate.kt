@@ -1,4 +1,4 @@
-package org.explang.analysis
+package org.explang.intermediate
 
 import org.explang.syntax.ExTree
 import org.explang.syntax.Type
@@ -41,7 +41,7 @@ sealed class ITree(
       if (field == Type.NONE) {
         field = value
       } else {
-        check(this, field == value) {
+        org.explang.analysis.check(this, field == value) {
           "Conflicting types for $this: $field, $value"
         }
       }

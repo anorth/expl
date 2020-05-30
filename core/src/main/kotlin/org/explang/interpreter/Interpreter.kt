@@ -1,6 +1,7 @@
 package org.explang.interpreter
 
 import org.explang.analysis.*
+import org.explang.intermediate.*
 import org.explang.syntax.ExTree
 
 data class EvalResult(val value: Any)
@@ -26,8 +27,8 @@ class Interpreter(
    */
   @Throws(EvalError::class)
   fun evaluate(tree: ExTree, env: Environment): EvalResult {
-    val compiler = IntermediateCompiler()
-    val intermediate = compiler.transform(tree)
+    val compiler = SyntaxTranslator()
+    val intermediate = compiler.translate(tree)
 
     val envTypes = env.types()
     val analyzer = Analyzer()

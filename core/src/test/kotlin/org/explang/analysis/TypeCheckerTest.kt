@@ -1,5 +1,12 @@
 package org.explang.analysis
 
+import org.explang.intermediate.ICall
+import org.explang.intermediate.IIf
+import org.explang.intermediate.ILambda
+import org.explang.intermediate.ILet
+import org.explang.intermediate.ISymbol
+import org.explang.intermediate.ITree
+import org.explang.intermediate.SyntaxTranslator
 import org.explang.interpreter.Environment
 import org.explang.syntax.TestParser
 import org.explang.syntax.Type
@@ -20,7 +27,7 @@ class TypeCheckerTest {
   )
 
   private val parser = TestParser(debug = false)
-  private val compiler = IntermediateCompiler()
+  private val compiler = SyntaxTranslator()
   private val intrinsics = Environment.withOperators().types()
 
   @Test
@@ -314,7 +321,7 @@ class TypeCheckerTest {
   private fun check(s: String, builtins: Map<String, List<Type>> = mapOf()): Result {
     val env = intrinsics + builtins
     val syntax = parser.parse(s).syntax!!
-    val tree = compiler.transform(syntax)
+    val tree = compiler.translate(syntax)
     val resolver = Scoper.buildResolver(tree, env.keys)
     val types = TypeChecker.computeTypes(tree, resolver, env)
     return Result(tree, resolver, types.resolutions)

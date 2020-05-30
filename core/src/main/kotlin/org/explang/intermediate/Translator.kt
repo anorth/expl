@@ -1,9 +1,12 @@
-package org.explang.analysis
+package org.explang.intermediate
 
 import org.explang.syntax.*
 
-class IntermediateCompiler {
-  fun transform(syntax: ExTree): ITree {
+/**
+ * Translates a pure syntax tree into an intermediate tree for further compilation steps.
+ */
+class SyntaxTranslator {
+  fun translate(syntax: ExTree): ITree {
     return syntax.accept(SyntaxTransformer())
   }
 }
@@ -44,20 +47,25 @@ private class SyntaxTransformer : ExTree.Visitor<ITree> {
   }
 
   override fun visitIf(iff: ExIf) =
-      IIf(iff, iff.test.accept(this), iff.left.accept(this), iff.right.accept(this))
+      IIf(iff, iff.test.accept(this), iff.left.accept(this),
+          iff.right.accept(this))
 
   override fun visitLet(let: ExLet) =
-      ILet(let, let.bindings.map(this::visitBinding), let.bound.accept(this))
+      ILet(let, let.bindings.map(this::visitBinding),
+          let.bound.accept(this))
 
   override fun visitBinding(binding: ExBinding) =
-      IBinding(binding, this.visitSymbol(binding.symbol), binding.value.accept(this))
+      IBinding(binding, this.visitSymbol(binding.symbol),
+          binding.value.accept(this))
 
   override fun visitLambda(lambda: ExLambda): ITree {
-    return ILambda(lambda, lambda.parameters.map(this::visitParameter), lambda.annotation, lambda.body.accept(this))
+    return ILambda(lambda, lambda.parameters.map(this::visitParameter),
+        lambda.annotation, lambda.body.accept(this))
   }
 
   override fun visitParameter(parameter: ExParameter) =
-      IParameter(parameter, visitSymbol(parameter.symbol), parameter.annotation)
+      IParameter(parameter, visitSymbol(parameter.symbol),
+          parameter.annotation)
 
   override fun visitLiteral(literal: ExLiteral<*>) = iliteral(literal)
 

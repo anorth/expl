@@ -1,5 +1,6 @@
 package org.explang.analysis
 
+import org.explang.intermediate.ITree
 import org.explang.syntax.Type
 
 /**
