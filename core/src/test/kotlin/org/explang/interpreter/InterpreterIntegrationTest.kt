@@ -1,6 +1,6 @@
 package org.explang.interpreter
 
-import org.explang.analysis.CompileError
+import org.explang.compiler.CompileError
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test

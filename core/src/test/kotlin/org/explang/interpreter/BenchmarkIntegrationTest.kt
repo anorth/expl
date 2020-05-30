@@ -14,17 +14,21 @@ class BenchmarkIntegrationTest {
 
   @Test
   fun fibonacci() {
-    val tree = parser.parse("""let
+    val compStart = System.nanoTime()
+    val parse = parser.parse("""let
       |f = (x: long): long -> if x <= 2 then 1 else f(x-1) + f(x-2)
       |in f(30)""".trimMargin())
-    val ret = interpreter.evaluate(tree, env)
+    val comp = interpreter.compile(parse, env)
+    val ret = interpreter.evaluate(comp, env)
+    val compEnd = System.nanoTime()
+    println("Compiled in ${(compEnd-compStart)/1000000} ms")
     assertEquals(832040L, ret)
 
     // Warm-up
     println("Warming up")
     for (i in 1..15) {
       val duration = measureNanoTime {
-        interpreter.evaluate(tree, env)
+        interpreter.evaluate(comp, env)
       }
       println("$duration ns")
     }
@@ -34,7 +38,7 @@ class BenchmarkIntegrationTest {
     var totalDuration = 0L
     for (i in 1..iterations) {
       totalDuration += measureNanoTime {
-        interpreter.evaluate(tree, env)
+        interpreter.evaluate(comp, env)
       }
     }
 

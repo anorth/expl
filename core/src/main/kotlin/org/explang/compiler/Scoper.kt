@@ -1,4 +1,4 @@
-package org.explang.analysis
+package org.explang.compiler
 
 import org.explang.intermediate.*
 
@@ -8,7 +8,7 @@ import org.explang.intermediate.*
 class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
   companion object {
     /** Computes scopes and symbol resolutions for a tree. */
-    fun buildResolver(tree: ITree, builtins: Set<String>): Resolver {
+    fun buildResolver(tree: ITree, builtins: Set<String>): LookupResolver {
       val rootScope = RootScope(tree, builtins)
       val scoped = Scoper(rootScope)
       tree.accept(scoped)
@@ -18,7 +18,9 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
       return LookupResolver(scoped.resolutions, captured)
     }
 
-    private fun computeCapturedSymbols(resolutions: Iterable<Scope.Resolution>): Map<ILambda, Set<Scope.Resolution>> {
+    @Suppress("UNCHECKED_CAST")
+    private fun computeCapturedSymbols(resolutions: Iterable<Scope.Resolution>):
+        MutableMap<ILambda, Set<Scope.Resolution>> {
       val captured = mutableMapOf<ILambda, MutableSet<Scope.Resolution>>()
       resolutions.forEach {
         var res = it
@@ -30,7 +32,7 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
           throw CompileError(res.toString(), res.symbol)
         }
       }
-      return captured
+      return captured as  MutableMap<ILambda, Set<Scope.Resolution>>
     }
   }
 
@@ -106,7 +108,7 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
     }
   }
 
-  override fun visitIntrinsic(intrinsic: IIntrinsic) {}
+  override fun visitBuiltin(builtin: IBuiltin<*>) {}
 
   override fun visitNull(n: INull) {}
 }

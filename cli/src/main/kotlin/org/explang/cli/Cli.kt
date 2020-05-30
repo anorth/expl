@@ -2,7 +2,7 @@ package org.explang.cli
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
-import org.explang.analysis.CompileError
+import org.explang.compiler.CompileError
 import org.explang.interpreter.Environment
 import org.explang.interpreter.Interpreter
 import org.explang.syntax.Parser

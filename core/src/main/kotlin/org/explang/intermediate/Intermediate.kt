@@ -12,8 +12,8 @@ import org.explang.syntax.Type
  */
 sealed class ITree(
     val syntax: ExTree?,
-    type: Type = Type.NONE,
-    val typeCandidates: MutableList<Type> = mutableListOf()
+    type: Type,
+    val typeCandidates: MutableList<Type>
 ) {
   /** A visitor for trees. */
   interface Visitor<V> {
@@ -25,7 +25,7 @@ sealed class ITree(
     fun visitParameter(parameter: IParameter): V
     fun visitLiteral(literal: ILiteral<*>): V
     fun visitSymbol(symbol: ISymbol): V
-    fun visitIntrinsic(intrinsic: IIntrinsic): V
+    fun visitBuiltin(builtin: IBuiltin<*>): V
     fun visitNull(n: INull): V
 
     // Visits a tree's children, ignoring any return value
@@ -41,7 +41,7 @@ sealed class ITree(
       if (field == Type.NONE) {
         field = value
       } else {
-        org.explang.analysis.check(this, field == value) {
+        org.explang.compiler.check(this, field == value) {
           "Conflicting types for $this: $field, $value"
         }
       }
@@ -57,96 +57,110 @@ sealed class ITree(
 }
 
 class ICall(
-    syntax: ExTree,
+    syntax: ExTree?,
     val callee: ITree,
-    val args: List<ITree>
-) : ITree(syntax) {
+    val args: List<ITree>,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(callee) + args
   override fun <V> accept(v: Visitor<V>) = v.visitCall(this)
   override fun toString() = "call($callee, ${args.joinToString(",")})"
+  fun with(callee: ITree, args: List<ITree>) = ICall(syntax, callee, args, type)
 }
 
 class IIf(
-    syntax: ExTree,
+    syntax: ExTree?,
     val test: ITree,
     val left: ITree,
-    val right: ITree
-) : ITree(syntax) {
+    val right: ITree,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(test, left, right)
   override fun <V> accept(v: Visitor<V>) = v.visitIf(this)
   override fun toString() = "if($test, $left, $right)"
+  fun with(test: ITree, left: ITree, right: ITree) = IIf(syntax, test, left, right, type)
 }
 
 class ILet(
-    syntax: ExTree,
+    syntax: ExTree?,
     val bindings: List<IBinding>,
-    val bound: ITree
-) : ITree(syntax) {
+    val bound: ITree,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = bindings + listOf(bound)
   override fun <V> accept(v: Visitor<V>) = v.visitLet(this)
   override fun toString() = "let(${bindings.joinToString(",")}; $bound)"
+  fun with(bindings: List<IBinding>, bound: ITree) = ILet(syntax, bindings, bound, type)
 }
 
 class IBinding(
-    syntax: ExTree,
+    syntax: ExTree?,
     val symbol: ISymbol,
-    val value: ITree
-) : ITree(syntax) {
+    val value: ITree,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(symbol, value)
   override fun <V> accept(v: Visitor<V>) = v.visitBinding(this)
   override fun toString() = "$symbol = $value"
+  fun with(symbol: ISymbol, value: ITree) = IBinding(syntax, symbol, value, type)
 }
 
 class ILambda(
-    syntax: ExTree,
+    syntax: ExTree?,
     val parameters: List<IParameter>,
-    val annotation: Type,
-    val body: ITree
-) : ITree(syntax) {
+    val body: ITree,
+    val returnType: Type,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = parameters + listOf(body)
   override fun <V> accept(v: Visitor<V>) = v.visitLambda(this)
   override fun toString() = "(${parameters.joinToString(",")} -> $body)"
+  fun with(parameters: List<IParameter>, annotation: Type, body: ITree) =
+      ILambda(syntax, parameters, body, annotation, type)
 }
 
 class IParameter(
-    syntax: ExTree,
+    syntax: ExTree?,
     val symbol: ISymbol,
-    val annotation: Type
-) : ITree(syntax) {
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(symbol)
   override fun <V> accept(v: Visitor<V>): V = v.visitParameter(this)
-  override fun toString() = "$symbol:$annotation"
+  override fun toString() = "$symbol" + if (type != Type.NONE) ":$type" else ""
 }
 
 class ILiteral<L : Any>(
-    syntax: ExTree,
+    syntax: ExTree?,
     val implType: Class<L>,
-    val value: L
-) : ITree(syntax) {
+    val value: L,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitLiteral(this)
   override fun toString() = "$value"
 }
 
 class ISymbol(
-    syntax: ExTree,
-    val name: String
-) : ITree(syntax) {
+    syntax: ExTree?,
+    val name: String,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitSymbol(this)
   override fun toString() = "#$name"
 }
 
-class IIntrinsic(
-    syntax: ExTree,
-    val args: List<ITree>,
-    val name: String
-) : ITree(syntax) {
-  override fun children() = args
-  override fun <V> accept(v: Visitor<V>) = v.visitIntrinsic(this)
+open class IBuiltin<T: Any>(
+    syntax: ExTree?,
+    val name: String,
+    val value: T,
+    type: Type
+) : ITree(syntax, type, mutableListOf()) {
+  override fun children() = listOf<ITree>()
+  override fun <V> accept(v: Visitor<V>) = v.visitBuiltin(this)
 }
 
-class INull(syntax: ExTree?) : ITree(syntax) {
+class INull(syntax: ExTree?, type: Type) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitNull(this)
 }

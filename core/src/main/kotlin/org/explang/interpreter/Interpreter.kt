@@ -1,6 +1,6 @@
 package org.explang.interpreter
 
-import org.explang.analysis.*
+import org.explang.compiler.*
 import org.explang.intermediate.*
 import org.explang.syntax.ExTree
 
@@ -27,29 +27,35 @@ class Interpreter(
    */
   @Throws(EvalError::class)
   fun evaluate(tree: ExTree, env: Environment): EvalResult {
-    val compiler = SyntaxTranslator()
-    val intermediate = compiler.translate(tree)
+    val compilation = compile(tree, env)
+    return evaluate(compilation, env)
+  }
 
-    val envTypes = env.types()
-    val analyzer = Analyzer()
-    val analysis = analyzer.analyze(intermediate, envTypes)
+  fun compile(tree: ExTree, env: Environment): Compiler.CompilationResult {
+    val translator = SyntaxTranslator()
+    val intermediate = translator.translate(tree)
+    val compiler = Compiler()
+    val compilation = compiler.compile(intermediate, env)
     if (printAnalysis) {
       println("*Analysis*")
-      println(analysis)
+      println(compilation)
     }
+    return compilation
+  }
 
-    return intermediate.accept(DirectInterpreter(analysis, env))
+  fun evaluate(compilation: Compiler.CompilationResult, env: Environment): EvalResult {
+    return compilation.tree.accept(DirectInterpreter(compilation.resolver, env))
   }
 }
 
-private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Environment) :
+private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
     ITree.Visitor<EvalResult>, CallContext {
 
-  private val resolver = analysis.resolver
   private val stack = mutableListOf(Frame())
 
   override fun visitCall(call: ICall): EvalResult {
     val callee = call.callee.accept(this).value as Callable
+    // PERF: Building the args array list is slow.
     val args = call.args.map { it.accept(this) }
     return callee.call(this, args)
   }
@@ -137,6 +143,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
 
   override fun visitSymbol(symbol: ISymbol): EvalResult {
     val frame = stack.last()
+    // PERF: the map lookup while resolving is slow
     val resolution = resolver.resolve(symbol)
     val id = resolution.identifier
     return when (resolution) {
@@ -148,6 +155,12 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
         throw EvalError("Unbound symbol ${resolution.symbol}", symbol)
     }
   }
+
+  override fun visitBuiltin(builtin: IBuiltin<*>): EvalResult {
+    return EvalResult(builtin.value)
+  }
+
+  override fun visitNull(n: INull) = NULL
 
   ///// EvalContext implementation /////
 
@@ -165,10 +178,4 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     }
     stack.removeAt(stack.lastIndex)
   }
-
-  override fun visitIntrinsic(intrinsic: IIntrinsic): EvalResult {
-    TODO("Not yet implemented")
-  }
-
-  override fun visitNull(n: INull) = NULL
 }

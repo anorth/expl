@@ -1,8 +1,11 @@
 package org.explang.interpreter
 
+import org.explang.compiler.CompilationEnvironment
+import org.explang.intermediate.IBuiltin
+import org.explang.syntax.ExTree
 import org.explang.syntax.Type
 
-class Environment {
+class Environment : CompilationEnvironment {
   // Builtin functions are keyed by name and type.
   data class BuiltinKey(val name: String, val type: Type)
 
@@ -15,6 +18,7 @@ class Environment {
       OPERATORS.forEach(env::addBuiltin)
       return env
     }
+
     /** Returns an environment with built-ins initialized. */
     fun withBuiltins(): Environment {
       val env = withOperators()
@@ -38,13 +42,19 @@ class Environment {
 
   fun getValue(name: String) = values[name]!!
 
-  /** Returns the names and types of all environment items. */
-  fun types(): Map<String, List<Type>> {
+  ///// Compilation environment /////
+
+  override fun types(): Map<String, List<Type>> {
     val m = mutableMapOf<String, MutableList<Type>>()
-    for ((name, b) in builtins) {
+    for ((_, b) in builtins) {
       m.getOrPut(b.name, { mutableListOf() }).add(b.type)
     }
     values.mapValuesTo(m) { mutableListOf(it.value.type) }
     return m
+  }
+
+  override fun builtin(name: String, type: Type, syntax: ExTree?): IBuiltin<*> {
+    val bif = getBuiltin(name, type)
+    return IBuiltin(syntax, name, bif, bif.type)
   }
 }

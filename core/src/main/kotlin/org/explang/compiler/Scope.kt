@@ -1,4 +1,4 @@
-package org.explang.analysis
+package org.explang.compiler
 
 import org.explang.intermediate.ILambda
 import org.explang.intermediate.ILet

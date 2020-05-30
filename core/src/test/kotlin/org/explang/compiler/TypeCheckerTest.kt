@@ -1,4 +1,4 @@
-package org.explang.analysis
+package org.explang.compiler
 
 import org.explang.intermediate.ICall
 import org.explang.intermediate.IIf
@@ -225,7 +225,7 @@ class TypeCheckerTest {
   fun higherOrderFunction() {
     check("""(inner: (->long)) -> inner""").let { (tree, _, _) ->
       val fn = tree as ILambda
-      assertEquals(NONE, fn.annotation)
+      assertEquals(NONE, fn.returnType)
       assertEquals(function(LONG), fn.parameters[0].type)
       assertEquals(function(LONG), fn.body.type)
       assertEquals(function(function(LONG), function(LONG)), fn.type)

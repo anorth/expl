@@ -1,4 +1,4 @@
-package org.explang.analysis
+package org.explang.compiler
 
 import org.explang.intermediate.*
 import org.explang.syntax.FuncType
@@ -99,8 +99,8 @@ class TypeChecker(
     // Set the type for the symbol *before* visiting the bodies.
     for (binding in let.bindings) {
       if (binding.value is ILambda) {
-        val retType = binding.value.annotation
-        val paramTypes = binding.value.parameters.map(IParameter::annotation)
+        val retType = binding.value.returnType
+        val paramTypes = binding.value.parameters.map(IParameter::type)
         if (retType != Type.NONE && paramTypes.none { it == Type.NONE }) {
           val resolution = resolver.resolve(binding.symbol)
           symbolTypes[resolution] = Type.function(retType, *paramTypes.toTypedArray())
@@ -135,23 +135,22 @@ class TypeChecker(
     // including the name of the lambda for recursive calls?
 
     visitChildren(lambda) // Visit parameters and then body
-    check(lambda, lambda.annotation == Type.NONE || lambda.body.type == lambda.annotation) {
-      "Inconsistent return type for lambda, annotated ${lambda.annotation} " +
+    check(lambda, lambda.returnType == Type.NONE || lambda.body.type == lambda.returnType) {
+      "Inconsistent return type for lambda, annotated ${lambda.returnType} " +
           "but returns ${lambda.body.type}"
     }
 
     lambda.type = Type.function(lambda.body.type,
-        *lambda.parameters.map(IParameter::annotation).toTypedArray())
+        *lambda.parameters.map(IParameter::type).toTypedArray())
   }
 
   override fun visitParameter(parameter: IParameter) {
-    assert(parameter.annotation != Type.NONE) {
-      "Unexpected parameter annotation ${parameter.annotation}"
+    assert(parameter.type != Type.NONE) {
+      "Unexpected parameter type ${parameter.type}"
     }
-    parameter.type = parameter.annotation
     val resolution = resolver.resolve(parameter.symbol)
     assert(resolution !in symbolTypes) { "Parameter binding resolved before definition" }
-    symbolTypes[resolution] = parameter.annotation
+    symbolTypes[resolution] = parameter.type
   }
 
   override fun visitLiteral(literal: ILiteral<*>) {
@@ -199,9 +198,7 @@ class TypeChecker(
     }
   }
 
-  override fun visitIntrinsic(intrinsic: IIntrinsic) {
-    TODO("Not yet implemented")
-  }
+  override fun visitBuiltin(builtin: IBuiltin<*>) {}
 
   override fun visitNull(n: INull) {}
 }

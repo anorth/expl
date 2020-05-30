@@ -1,4 +1,4 @@
-package org.explang.analysis
+package org.explang.compiler
 
 import org.explang.intermediate.ILambda
 import org.explang.intermediate.ISymbol
@@ -18,7 +18,7 @@ interface Resolver {
 /** A resolver which looks up precomputed maps */
 class LookupResolver(
     private val resolutions: Map<ISymbol, Scope.Resolution>,
-    private val captured: Map<ILambda, Set<Scope.Resolution>>
+    private val captured: MutableMap<ILambda, Set<Scope.Resolution>>
 ) : Resolver {
   override fun resolve(symbol: ISymbol): Scope.Resolution {
     return resolutions[symbol]
@@ -32,6 +32,13 @@ class LookupResolver(
 
   override fun unresolved(): Collection<Scope.Resolution.Unresolved> {
     return resolutions.values.mapNotNull { it as? Scope.Resolution.Unresolved }
+  }
+
+  fun rename(from: ILambda, to: ILambda) {
+    if (from in captured) {
+      captured[to] = captured[from]!!
+      captured.remove(from)
+    }
   }
 
   override fun toString(): String {
