@@ -1,10 +1,9 @@
 package org.explang.interpreter
 
-import org.explang.analysis.Analyzer
-import org.explang.syntax.ExTree
+import org.explang.analysis.ITree
 
 class Function(
-    val body: ExTree<Analyzer.Tag>,
+    val body: ITree,
     // The function closure has to be mutable in order to support setting recursive and mutually-recursive
     // values in it after the function is defined (but before it's called).
     val closure: MutableMap<String, EvalResult>) : Callable {
@@ -28,7 +27,7 @@ class Function(
   private fun resolvedClosedValue(name: String, value: EvalResult) {
     val prev = closure[name]
     // Replace value only if it was set explicitly to be resolved later.
-    if (prev == NIL) {
+    if (prev == UNRESOLVED) {
       closure[name] = value
     }
   }

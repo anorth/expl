@@ -22,7 +22,9 @@ class TestInterpreter(debug: Boolean) {
       println(e.message)
       // TODO: figure out how to extract only the line of input in question and point to the right character.
       println(parse.input.replace("\n", " "))
-      println(" ".repeat(parse.tokens[e.tree.tokenRange.start].startIndex) + "^")
+      e.tree.syntax?.let {
+        println(" ".repeat(parse.tokens[it.tokenRange.start].startIndex) + "^")
+      }
       throw e
     }
   }

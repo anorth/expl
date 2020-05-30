@@ -167,7 +167,7 @@ class ExParameter<T>(
   override fun toString() = "$symbol:$annotation"
 }
 
-class ExLiteral<T, L>(
+class ExLiteral<T, L: Any>(
     override val tokenRange: IntRange,
     override val tag: T,
     val type: Class<L>,

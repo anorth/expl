@@ -1,6 +1,5 @@
 package org.explang.analysis
 
-import org.explang.syntax.ExTree
 import org.explang.syntax.Type
 
 /**
@@ -27,7 +26,7 @@ class Analyzer {
     }
   }
 
-  fun analyze(tree: ExTree<Tag>, environment: Map<String, List<Type>>): Analysis {
+  fun analyze(tree: ITree, environment: Map<String, List<Type>>): Analysis {
     val resolver = Scoper.buildResolver(tree, environment.keys)
     val types = TypeChecker.computeTypes(tree, resolver, environment) // Updates node tags in-place
     return Analysis(resolver, types.resolutions)

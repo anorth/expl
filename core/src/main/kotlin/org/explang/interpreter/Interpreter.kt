@@ -1,18 +1,18 @@
 package org.explang.interpreter
 
-import org.explang.analysis.Analyzer
-import org.explang.analysis.Scope
-import org.explang.array.ArrayValue
-import org.explang.array.LongRangeValue
-import org.explang.syntax.*
+import org.explang.analysis.*
+import org.explang.syntax.ExTree
 
 data class EvalResult(val value: Any)
 
-val NIL = EvalResult(object {
-  override fun toString() = "NIL"
+val UNRESOLVED = EvalResult(object {
+  override fun toString() = "UNRESOLVED"
+})
+val NULL = EvalResult(object {
+  override fun toString() = "NULL"
 })
 
-class EvalError(msg: String, val tree: ExTree<Analyzer.Tag>?) : Exception(msg)
+class EvalError(msg: String, val tree: ITree?) : Exception(msg)
 
 class Interpreter(
     private val printAnalysis: Boolean = false
@@ -26,59 +26,34 @@ class Interpreter(
    */
   @Throws(EvalError::class)
   fun evaluate(tree: ExTree<Analyzer.Tag>, env: Environment): EvalResult {
+    val compiler = IntermediateCompiler()
+    val intermediate = compiler.transform(tree)
+
     val envTypes = env.types()
     val analyzer = Analyzer()
-    val analysis = analyzer.analyze(tree, envTypes)
+    val analysis = analyzer.analyze(intermediate, envTypes)
     if (printAnalysis) {
       println("*Analysis*")
       println(analysis)
     }
 
-    return DirectInterpreter(analysis, env).visit(tree)
+    return intermediate.accept(DirectInterpreter(analysis, env))
   }
 }
 
 private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Environment) :
-    ExTree.Visitor<Analyzer.Tag, EvalResult>, CallContext {
+    ITree.Visitor<EvalResult>, CallContext {
 
   private val resolver = analysis.resolver
   private val stack = mutableListOf(Frame())
 
-  override fun visitCall(call: ExCall<Analyzer.Tag>): EvalResult {
+  override fun visitCall(call: ICall): EvalResult {
     val callee = call.callee.accept(this).value as Callable
     val args = call.args.map { it.accept(this) }
     return callee.call(this, args)
   }
 
-  override fun visitIndex(index: ExIndex<Analyzer.Tag>): EvalResult {
-    val indexee = index.indexee.accept(this).value as ArrayValue<*>
-    val indexer = index.indexer.accept(this).value
-    val idxType = index.indexer.tag.type
-    return when {
-      idxType.satisfies(Type.LONG) -> EvalResult(indexee.get(Math.toIntExact(indexer as Long))!!)
-      idxType.satisfies(Type.range(Type.LONG)) -> EvalResult(indexee.slice(indexer as LongRangeValue))
-      else -> throw EvalError("Can't index $indexee with $indexer", index)
-    }
-  }
-
-  override fun visitUnaryOp(op: ExUnaryOp<Analyzer.Tag>): EvalResult {
-    // Syntactic operators should be transformed to calls.
-    throw EvalError("Unexpected unary operator", op)
-  }
-
-  override fun visitBinaryOp(op: ExBinaryOp<Analyzer.Tag>): EvalResult {
-    // Syntactic operators should be transformed to calls.
-    throw EvalError("Unexpected binary operator", op)
-  }
-
-  override fun visitRangeOp(op: ExRangeOp<Analyzer.Tag>): EvalResult {
-    val first = op.first?.accept(this)?.value as Long?
-    val last = op.last?.accept(this)?.value as Long?
-    val step = op.step?.accept(this)?.value as Long?
-    return EvalResult(LongRangeValue.of(first, last, step))
-  }
-
-  override fun visitIf(iff: ExIf<Analyzer.Tag>): EvalResult {
+  override fun visitIf(iff: IIf): EvalResult {
     val test = iff.test.accept(this)
     // Short-circuit evaluation, evaluates on the the relevant branch.
     return if (test.value as Boolean) {
@@ -88,15 +63,15 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     }
   }
 
-  override fun visitLet(let: ExLet<Analyzer.Tag>): EvalResult {
+  override fun visitLet(let: ILet): EvalResult {
     val top = stack.last()
     // Copy the frame to add new local bindings, lexical scoping.
     stack[stack.lastIndex] = top.copy()
 
     // Add symbols for functions to frame before visiting bound value (for [mutual] recursion).
     for (binding in let.bindings) {
-      if (binding.value.tag.type.isFunc())
-        stack.last().setLocal(binding.symbol.name, NIL)
+      if (binding.value.type.isFunc())
+        stack.last().setLocal(binding.symbol.name, UNRESOLVED)
     }
 
     // Visit bound values, and remember the functions so they can be set in closures after all are resolved.
@@ -105,7 +80,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
       val r = binding.accept(this)
       // The second part of the test is needed to distinguish builtins from functions.
       // Would not be necessary if they shared an interface (and the builtins could ignore the call).
-      if (binding.value.tag.type.isFunc() && r.value is Function) {
+      if (binding.value.type.isFunc() && r.value is Function) {
         functions[binding.symbol.name] = r
       }
     }
@@ -123,14 +98,14 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     }
   }
 
-  override fun visitBinding(binding: ExBinding<Analyzer.Tag>): EvalResult {
+  override fun visitBinding(binding: IBinding): EvalResult {
     // Note: the symbol node is not visited.
     val value = binding.value.accept(this)
     stack.last().setLocal(binding.symbol.name, value)
     return value
   }
 
-  override fun visitLambda(lambda: ExLambda<Analyzer.Tag>): EvalResult {
+  override fun visitLambda(lambda: ILambda): EvalResult {
     // Function bodies can capture non-local values. The references are evaluated at the time
     // the function is defined. The value is closed over, not the reference.
     // At call time, the values are copied from the closure into the callee frame.
@@ -151,15 +126,15 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     return EvalResult(Function(lambda.body, closure))
   }
 
-  override fun visitParameter(parameter: ExParameter<Analyzer.Tag>): EvalResult {
+  override fun visitParameter(parameter: IParameter): EvalResult {
     throw EvalError("not used", parameter)
   }
 
-  override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>): EvalResult {
-    return EvalResult(literal.value!!)
+  override fun visitLiteral(literal: ILiteral<*>): EvalResult {
+    return EvalResult(literal.value)
   }
 
-  override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>): EvalResult {
+  override fun visitSymbol(symbol: ISymbol): EvalResult {
     val frame = stack.last()
     val resolution = resolver.resolve(symbol)
     val id = resolution.identifier
@@ -167,7 +142,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
       is Scope.Resolution.Argument -> frame.getArg(resolution.index)
       is Scope.Resolution.Local -> frame.getLocal(id)
       is Scope.Resolution.Closure -> frame.getClosure(id)
-      is Scope.Resolution.Environment -> EvalResult(env.getBuiltin(id, symbol.tag.type))
+      is Scope.Resolution.Environment -> EvalResult(env.getBuiltin(id, symbol.type))
       is Scope.Resolution.Unresolved ->
         throw EvalError("Unbound symbol ${resolution.symbol}", symbol)
     }
@@ -175,7 +150,7 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
 
   ///// EvalContext implementation /////
 
-  override fun evaluate(tree: ExTree<Analyzer.Tag>): EvalResult {
+  override fun evaluate(tree: ITree): EvalResult {
     return tree.accept(this)
   }
 
@@ -189,4 +164,10 @@ private class DirectInterpreter(val analysis: Analyzer.Analysis, val env: Enviro
     }
     stack.removeAt(stack.lastIndex)
   }
+
+  override fun visitIntrinsic(intrinsic: IIntrinsic): EvalResult {
+    TODO("Not yet implemented")
+  }
+
+  override fun visitNull(n: INull) = NULL
 }

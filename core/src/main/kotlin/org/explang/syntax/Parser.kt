@@ -145,17 +145,16 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return ExIndex(ctx.range(), tag(), target, indexer)
   }
 
-  override fun visitUnaryEx(ctx: ExplParser.UnaryExContext) = expandUnaryOp(ctx)
+  override fun visitUnaryEx(ctx: ExplParser.UnaryExContext) =
+      ExUnaryOp(ctx.range(), tag(), ctx.getChild(0).text, visit(ctx.expression()))
 
-  override fun visitExponentiationEx(ctx: ExplParser.ExponentiationExContext) = expandBinaryOp(ctx)
+  override fun visitExponentiationEx(ctx: ExplParser.ExponentiationExContext) = makeBinaryOp(ctx)
 
-  override fun visitMultiplicativeEx(ctx: ExplParser.MultiplicativeExContext) = expandBinaryOp(ctx)
+  override fun visitMultiplicativeEx(ctx: ExplParser.MultiplicativeExContext) = makeBinaryOp(ctx)
 
-  override fun visitAdditiveEx(ctx: ExplParser.AdditiveExContext) = expandBinaryOp(ctx)
+  override fun visitAdditiveEx(ctx: ExplParser.AdditiveExContext) = makeBinaryOp(ctx)
 
   override fun visitStepRangeEx(ctx: ExplParser.StepRangeExContext): ExTree<T> {
-    // TODO: desugar range operator to a call when we have a ExNull: ExTree value or can otherwise pass
-    // null or default arguments to the range builtin function.
     val first = visit(ctx.expression(0))
     return if (ctx.TIMES() == null) {
       val last = ctx.expression(1)?.let(this::visit)
@@ -189,11 +188,11 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
     return ExRangeOp(ctx.range(), tag(), null, last, null)
   }
 
-  override fun visitComparativeEx(ctx: ExplParser.ComparativeExContext) = expandBinaryOp(ctx)
+  override fun visitComparativeEx(ctx: ExplParser.ComparativeExContext) = makeBinaryOp(ctx)
 
-  override fun visitEqualityEx(ctx: ExplParser.EqualityExContext) = expandBinaryOp(ctx)
+  override fun visitEqualityEx(ctx: ExplParser.EqualityExContext) = makeBinaryOp(ctx)
 
-  override fun visitConjunctionEx(ctx: ExplParser.ConjunctionExContext) = expandBinaryOp(ctx)
+  override fun visitConjunctionEx(ctx: ExplParser.ConjunctionExContext) = makeBinaryOp(ctx)
 
   override fun visitLiteralEx(ctx: ExplParser.LiteralExContext): ExTree<T> {
     return visit(ctx.literal())
@@ -259,24 +258,11 @@ private class AstBuilder<T>(private val tag: () -> T) : ExplBaseVisitor<ExTree<T
 
   ///// Internals /////
 
-  private fun expandUnaryOp(ctx: ExplParser.UnaryExContext): ExCall<T> {
-//    return ExUnaryOp(ctx.range(), tag(), ctx.getChild(0).text, visit(ctx.expression()))
-    // De-sugar operators into calls.
-    val operand = visit(ctx.expression())
-    val opname = ctx.getChild(0)
-    val callee = ExSymbol(opname.range(), tag(), opname.text)
-    return ExCall(ctx.range(), tag(), callee, listOf(operand))
-  }
-
-  private fun expandBinaryOp(ctx: ExplParser.ExpressionContext): ExCall<T> {
+  private fun makeBinaryOp(ctx: ExplParser.ExpressionContext): ExBinaryOp<T> {
     // Left-associativity is handled by the grammar.
     val left = visit(ctx.getChild(0))
     val right = visit(ctx.getChild(2))
-//    return ExBinaryOp(ctx.range(), tag(), ctx.getChild(1).text, left, right)
-    // De-sugar operators into calls.
-    val opname = ctx.getChild(1)
-    val callee = ExSymbol(opname.range(), tag(), opname.text)
-    return ExCall(ctx.range(), tag(), callee, listOf(left, right))
+    return ExBinaryOp(ctx.range(), tag(), ctx.getChild(1).text, left, right)
   }
 
   private fun makeArguments(ctx: ExplParser.ArgumentsContext) = ctx.expression().map(::visit)

@@ -1,18 +1,14 @@
 package org.explang.analysis
 
-import org.explang.syntax.*
-
 /**
- * AST visitor which resolves symbols to scopes in which they are defined.
- *
- * @param <T> type of the AST tag (opaque)
+ * Intermediate tree visitor which resolves symbols to scopes in which they are defined.
  */
-class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
+class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
   companion object {
     /** Computes scopes and symbol resolutions for a tree. */
-    fun <T> buildResolver(tree: ExTree<T>, builtins: Set<String>): Resolver {
+    fun buildResolver(tree: ITree, builtins: Set<String>): Resolver {
       val rootScope = RootScope(tree, builtins)
-      val scoped = Scoper<T>(rootScope)
+      val scoped = Scoper(rootScope)
       tree.accept(scoped)
       assert(scoped.currentScope == rootScope) { "Scope visitor corrupt" }
 
@@ -20,9 +16,8 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
       return LookupResolver(scoped.resolutions, captured)
     }
 
-    private fun computeCapturedSymbols(resolutions: Iterable<Scope.Resolution>):
-        Map<ExLambda<*>, Set<Scope.Resolution>> {
-      val captured = mutableMapOf<ExLambda<*>, MutableSet<Scope.Resolution>>()
+    private fun computeCapturedSymbols(resolutions: Iterable<Scope.Resolution>): Map<ILambda, Set<Scope.Resolution>> {
+      val captured = mutableMapOf<ILambda, MutableSet<Scope.Resolution>>()
       resolutions.forEach {
         var res = it
         while (res is Scope.Resolution.Closure) {
@@ -38,24 +33,22 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
   }
 
   // Scopes introduced by syntactic trees (functions and bindings)
-  private val scopes = mutableMapOf<ExTree<*>, Scope>()
+  private val scopes = mutableMapOf<ITree, Scope>()
+
   // Maps symbols to resolutions. The "same" symbol string may occur multiple times with the
   // same resolution if it occurs multiple times in the tree.
-  private val resolutions = mutableMapOf<ExSymbol<*>, Scope.Resolution>()
+  private val resolutions = mutableMapOf<ISymbol, Scope.Resolution>()
 
   private var currentScope: Scope = rootScope
+
   // Tracks symbols resolved during the processing of a binding value.
-  private var resolutionsInBoundValue = mutableSetOf<ExSymbol<*>>()
+  private var resolutionsInBoundValue = mutableSetOf<ISymbol>()
 
-  override fun visitCall(call: ExCall<T>) = visitChildren(call, Unit)
-  override fun visitIndex(index: ExIndex<T>) = visitChildren(index, Unit)
-  override fun visitUnaryOp(op: ExUnaryOp<T>) = visitChildren(op, Unit)
-  override fun visitBinaryOp(op: ExBinaryOp<T>) = visitChildren(op, Unit)
-  override fun visitRangeOp(op: ExRangeOp<T>) = visitChildren(op, Unit)
+  override fun visitCall(call: ICall) = visitChildren(call)
 
-  override fun visitIf(iff: ExIf<T>) = visitChildren(iff, Unit)
+  override fun visitIf(iff: IIf) = visitChildren(iff)
 
-  override fun visitLet(let: ExLet<T>) {
+  override fun visitLet(let: ILet) {
     val scope = BindingScope(let, currentScope)
     scopes[let] = scope
     currentScope = scope
@@ -66,7 +59,7 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
     }
     // Track local resolutions made while visiting bound values, as the dependencies of each binding on others
     // from the same let.
-    val bindingDeps = mutableMapOf<ExSymbol<*>, Set<ExSymbol<*>>>()
+    val bindingDeps = mutableMapOf<ISymbol, Set<ISymbol>>()
     for (b in let.bindings) {
       resolutionsInBoundValue.clear()
       visitBinding(b)
@@ -82,34 +75,36 @@ class Scoper<T>(rootScope: RootScope) : ExTree.Visitor<T, Unit> {
     currentScope = currentScope.parent
   }
 
-  override fun visitBinding(binding: ExBinding<T>) {
+  override fun visitBinding(binding: IBinding) {
     binding.value.accept(this)
   }
 
-  override fun visitLambda(lambda: ExLambda<T>) {
+  override fun visitLambda(lambda: ILambda) {
     val lambdaScope = FunctionScope(lambda, currentScope)
 
     currentScope = lambdaScope
-    visitChildren(lambda, Unit) // Visit parameters and then body
+    visitChildren(lambda) // Visit parameters and then body
     currentScope = currentScope.parent
 
     scopes[lambda] = lambdaScope
   }
 
-  override fun visitParameter(parameter: ExParameter<T>) {
+  override fun visitParameter(parameter: IParameter) {
     val resolution = currentScope.define(parameter.symbol)
     resolutions[parameter.symbol] = resolution
   }
 
-  override fun visitLiteral(literal: ExLiteral<T, *>) {
-    // Nothing to do.
-  }
+  override fun visitLiteral(literal: ILiteral<*>) {}
 
-  override fun visitSymbol(symbol: ExSymbol<T>) {
+  override fun visitSymbol(symbol: ISymbol) {
     val res = currentScope.resolve(symbol)
     resolutions[symbol] = res
     if (res is Scope.Resolution.Local) {
       resolutionsInBoundValue.add(res.symbol)
     }
   }
+
+  override fun visitIntrinsic(intrinsic: IIntrinsic) {}
+
+  override fun visitNull(n: INull) {}
 }

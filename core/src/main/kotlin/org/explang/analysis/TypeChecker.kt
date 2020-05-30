@@ -1,6 +1,7 @@
 package org.explang.analysis
 
-import org.explang.syntax.*
+import org.explang.syntax.FuncType
+import org.explang.syntax.Type
 
 /**
  * Infers types for all nodes in the syntax tree.
@@ -13,16 +14,16 @@ import org.explang.syntax.*
 class TypeChecker(
     private val resolver: Resolver,
     private val builtins: Map<String, List<Type>>
-) : ExTree.Visitor<Analyzer.Tag, Unit> {
+) : ITree.Visitor<Unit> {
   data class Result(
       val resolutions: Map<Scope.Resolution, Type>
   )
 
   companion object {
-    fun computeTypes(tree: ExTree<Analyzer.Tag>, resolver: Resolver,
+    fun computeTypes(tree: ITree, resolver: Resolver,
         builtins: Map<String, List<Type>>): Result {
       val checker = TypeChecker(resolver, builtins)
-      checker.visit(tree)
+      tree.accept(checker)
       return Result(checker.symbolTypes)
     }
   }
@@ -34,121 +35,88 @@ class TypeChecker(
   // This is used to propagate types to each symbol occurrence sharing the same resolution.
   private val symbolTypes = mutableMapOf<Scope.Resolution, Type>()
 
-  override fun visitCall(call: ExCall<Analyzer.Tag>) {
+  override fun visitCall(call: ICall) {
     // Visit callee and argument expressions. The arguments must become fully typed, and the callee must at least
     // have some candidates.
-    visitChildren(call, Unit)
+    visitChildren(call)
     val callee = call.callee
     val args = call.args
 
-    if (callee.typeTag == Type.NONE) {
-      val argTypes = args.map(ExTree<Analyzer.Tag>::typeTag).toTypedArray()
-      for (candidate in callee.tag.typeCandidates) {
+    if (callee.type == Type.NONE) {
+      // Hack special handling for "*" in range operators until we have nullable types or optional arguments.
+      // Set all args to the same type; if none specify a type ("*:*"), use LONG.
+      val nullArgType: Type = args.firstOrNull() { it.type != Type.NONE }?.type ?: Type.LONG
+      for (arg in args) {
+        if (arg.type == Type.NONE) {
+          arg.type = nullArgType
+        }
+      }
+      val argTypes = args.map(ITree::type)
+
+      for (candidate in callee.typeCandidates) {
         if (!candidate.isFunc()) {
           throw CompileError("Type candidate for callee $callee is ${candidate}, not a function", callee)
         }
-        if (candidate.asFunc().parameters().contentEquals(argTypes)) {
-          callee.typeTag = candidate
+        if (candidate.asFunc().parameters().contentEquals(argTypes.toTypedArray())) {
+          callee.type = candidate
           break
         }
       }
-      if (callee.typeTag == Type.NONE) {
+      if (callee.type == Type.NONE) {
         throw CompileError("No type for $callee", callee)
       }
     }
 
-    val calleeType = callee.typeTag as? FuncType
-        ?: throw CompileError("Callee $callee is ${callee.typeTag}, not a function", callee)
+    val calleeType = callee.type as? FuncType
+        ?: throw CompileError("Callee $callee is ${callee.type}, not a function", callee)
     val formalParamTypes = calleeType.parameters()
     check(call, args.size == formalParamTypes.size) {
       "Expected ${formalParamTypes.size} arguments, got ${args.size}"
     }
     for (i in formalParamTypes.indices) {
-      check(args[i], args[i].typeTag.satisfies(formalParamTypes[i])) {
-        "Argument $i expected ${formalParamTypes[i]}, got ${args[i].typeTag}"
+      check(args[i], args[i].type?.satisfies(formalParamTypes[i]) ?: false) {
+        "Argument $i expected ${formalParamTypes[i]}, got ${args[i].type}"
       }
     }
 
-    call.typeTag = calleeType.result()
+    call.type = calleeType.result()
   }
 
-  override fun visitIndex(index: ExIndex<Analyzer.Tag>) {
-    visitChildren(index, Unit)
-    // Check the indexee is a slice.
-    check(index, index.indexee.typeTag is ArrayType) {
-      "Indexee ${index.indexee} is not indexable"
-    }
-    // Check the indexer is an integer or integral range.
-    val indexerType = index.indexer.typeTag
-    index.typeTag = when {
-      indexerType.satisfies(Type.LONG) -> index.indexee.typeTag.asArray().element()
-      indexerType.satisfies(Type.range(Type.LONG)) -> index.indexee.typeTag.asArray()
-      else -> throw CompileError(
-          "Cannot index ${index.indexee.typeTag} with ${index.indexer.typeTag}", index)
-    }
-  }
-
-  override fun visitUnaryOp(op: ExUnaryOp<Analyzer.Tag>) {
-    throw CompileError("Unexpected unary operator", op)
-  }
-
-  override fun visitBinaryOp(op: ExBinaryOp<Analyzer.Tag>) {
-    throw CompileError("Unexpected binary operator", op)
-  }
-
-  override fun visitRangeOp(op: ExRangeOp<Analyzer.Tag>) {
-    visitChildren(op, Unit)
-    // For now, all must be longs. Double to be supported later.
-    op.first?.let {
-      check(it, it.typeTag == Type.LONG) {
-        "Invalid type ${it.typeTag} for range first"
-      }
-    }
-    op.last?.let {
-      check(it, it.typeTag == Type.LONG) {
-        "Invalid type ${it.typeTag} for range last"
-      }
-    }
-    op.step?.let {
-      check(it, it.typeTag == Type.LONG) {
-        "Invalid type ${it.typeTag} for range step"
-      }
-    }
-
-    op.typeTag = Type.range(Type.LONG)
-  }
-
-  override fun visitIf(iff: ExIf<Analyzer.Tag>) {
-    visitChildren(iff, Unit)
-    check(iff, iff.test.typeTag == Type.BOOL) {
-      "Condition has type ${iff.test.typeTag}, should be boolean"
+  override fun visitIf(iff: IIf) {
+    visitChildren(iff)
+    check(iff, iff.test.type == Type.BOOL) {
+      "Condition has type ${iff.test.type}, should be boolean"
     }
 
     checkTypesMatch(iff, iff.left, iff.right)
 
     // Propagate branch type upwards
-    iff.typeTag = iff.left.typeTag
+    iff.type = iff.left.type
   }
 
-  override fun visitLet(let: ExLet<Analyzer.Tag>) {
+  override fun visitLet(let: ILet) {
     // Set types for bound lambdas carrying type annotations, which may recursively call each other or themselves.
     // Set the type for the symbol *before* visiting the bodies.
     for (binding in let.bindings) {
-      if (binding.value is ExLambda && binding.value.annotation != Type.NONE) {
-        val resolution = resolver.resolve(binding.symbol)
-        symbolTypes[resolution] = binding.value.type()
+      if (binding.value is ILambda) {
+        val retType = binding.value.annotation
+        val paramTypes = binding.value.parameters.map(IParameter::annotation)
+        if (retType != Type.NONE && paramTypes.none { it == Type.NONE }) {
+          val resolution = resolver.resolve(binding.symbol)
+          symbolTypes[resolution] = Type.function(retType, *paramTypes.toTypedArray())
+        }
       }
     }
 
-    visitChildren(let, Unit) // Visits bindings and then bound expression
+    visitChildren(let) // Visits bindings and then bound expression
     // Propagate bound expression type upwards
-    let.typeTag = let.bound.typeTag
+    let.type = let.bound.type
   }
 
-  override fun visitBinding(binding: ExBinding<Analyzer.Tag>) {
+  override fun visitBinding(binding: IBinding) {
     val resolution = resolver.resolve(binding.symbol)
-    visit(binding.value)
-    val valueType = binding.value.typeTag
+    binding.value.accept(this)
+    val valueType = binding.value.type
     assert(valueType != Type.NONE) { "No type for bound expression" }
 
     // The binding expression remains untyped, but the symbol resolution gets a type.
@@ -162,41 +130,41 @@ class TypeChecker(
     }
   }
 
-  override fun visitLambda(lambda: ExLambda<Analyzer.Tag>) {
+  override fun visitLambda(lambda: ILambda) {
     // We could populate types for enclosed symbols here,
     // including the name of the lambda for recursive calls?
 
-    visitChildren(lambda, Unit) // Visit parameters and then body
-    check(lambda, lambda.annotation == Type.NONE || lambda.body.typeTag == lambda.annotation) {
+    visitChildren(lambda) // Visit parameters and then body
+    check(lambda, lambda.annotation == Type.NONE || lambda.body.type == lambda.annotation) {
       "Inconsistent return type for lambda, annotated ${lambda.annotation} " +
-          "but returns ${lambda.body.typeTag}"
+          "but returns ${lambda.body.type}"
     }
 
-    lambda.typeTag = Type.function(lambda.body.typeTag,
-        *lambda.parameters.map(ExParameter<*>::annotation).toTypedArray())
+    lambda.type = Type.function(lambda.body.type,
+        *lambda.parameters.map(IParameter::annotation).toTypedArray())
   }
 
-  override fun visitParameter(parameter: ExParameter<Analyzer.Tag>) {
+  override fun visitParameter(parameter: IParameter) {
     assert(parameter.annotation != Type.NONE) {
       "Unexpected parameter annotation ${parameter.annotation}"
     }
-    parameter.typeTag = parameter.annotation
+    parameter.type = parameter.annotation
     val resolution = resolver.resolve(parameter.symbol)
     assert(resolution !in symbolTypes) { "Parameter binding resolved before definition" }
     symbolTypes[resolution] = parameter.annotation
   }
 
-  override fun visitLiteral(literal: ExLiteral<Analyzer.Tag, *>) {
-    val actual = when (literal.type) {
+  override fun visitLiteral(literal: ILiteral<*>) {
+    val actual = when (literal.implType) {
       Boolean::class.java -> Type.BOOL
       Long::class.java -> Type.LONG
       Double::class.java -> Type.DOUBLE
       else -> throw CompileError("Unrecognized literal type ${literal.type}", literal)
     }
-    literal.typeTag = actual
+    literal.type = actual
   }
 
-  override fun visitSymbol(symbol: ExSymbol<Analyzer.Tag>) {
+  override fun visitSymbol(symbol: ISymbol) {
     // Follow closure chain to a binding or argument to find the type.
     // This is a bit messy. It might be better to change the resolver's captures to include the
     // closure resolution, and set the closure symbol types with the enclosing function definition.
@@ -208,9 +176,9 @@ class TypeChecker(
     if (resolution is Scope.Resolution.Environment) {
       val candidates = builtins[resolution.identifier]
       if (candidates != null && candidates.isNotEmpty()) {
-        symbol.tag.typeCandidates.addAll(candidates)
+        symbol.typeCandidates.addAll(candidates)
         if (candidates.size == 1) {
-          symbol.typeTag = candidates[0]
+          symbol.type = candidates[0]
         }
       } else {
         throw CompileError("No type for $resolution", symbol)
@@ -224,37 +192,25 @@ class TypeChecker(
           symbolTypes[resolution] = type
           resolution = resolution.capture
         }
-        symbol.typeTag = type
+        symbol.type = type
       } else {
         throw CompileError("No type for $resolution", symbol)
       }
     }
   }
+
+  override fun visitIntrinsic(intrinsic: IIntrinsic) {
+    TODO("Not yet implemented")
+  }
+
+  override fun visitNull(n: INull) {}
 }
 
 ///// Private implementation /////
 
 // Enforces two trees have the same type.
-private fun checkTypesMatch(parent: ExTree<Analyzer.Tag>, left: ExTree<Analyzer.Tag>,
-    right: ExTree<Analyzer.Tag>) {
-  check(parent, left.typeTag == right.typeTag) {
-    "Incompatible types for $parent: ${left.typeTag}, ${right.typeTag}"
+private fun checkTypesMatch(parent: ITree, left: ITree, right: ITree) {
+  check(parent, left.type == right.type) {
+    "Incompatible types for $parent: ${left.type}, ${right.type}"
   }
 }
-
-private fun ExLambda<*>.type(): Type {
-  return Type.function(annotation,
-      *parameters.map(ExParameter<*>::annotation).toTypedArray())
-}
-
-private var ExTree<Analyzer.Tag>.typeTag: Type
-  get() = tag.type
-  set(value) {
-    if (tag.type == Type.NONE) {
-      tag.type = value
-    } else {
-      check(this, tag.type == value) {
-        "Conflicting types for $this: ${tag.type}, $value"
-      }
-    }
-  }

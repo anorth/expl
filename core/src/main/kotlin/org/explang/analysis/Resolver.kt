@@ -1,15 +1,12 @@
 package org.explang.analysis
 
-import org.explang.syntax.ExLambda
-import org.explang.syntax.ExSymbol
-
 /** Resolves symbol occurences to bindings or arguments. */
 interface Resolver {
   /** Resolves a symbol. */
-  fun resolve(symbol: ExSymbol<*>): Scope.Resolution
+  fun resolve(symbol: ISymbol): Scope.Resolution
 
   /** Returns resolutions of symbols captured by a lambda. */
-  fun captured(lambda: ExLambda<*>): Collection<Scope.Resolution>
+  fun captured(lambda: ILambda): Collection<Scope.Resolution>
 
   /** Returns any failed resolutions. */
   fun unresolved(): Collection<Scope.Resolution.Unresolved>
@@ -17,16 +14,16 @@ interface Resolver {
 
 /** A resolver which looks up precomputed maps */
 class LookupResolver(
-    private val resolutions: Map<ExSymbol<*>, Scope.Resolution>,
-    private val captured: Map<ExLambda<*>, Set<Scope.Resolution>>
+    private val resolutions: Map<ISymbol, Scope.Resolution>,
+    private val captured: Map<ILambda, Set<Scope.Resolution>>
 ) : Resolver {
-  override fun resolve(symbol: ExSymbol<*>): Scope.Resolution {
+  override fun resolve(symbol: ISymbol): Scope.Resolution {
     return resolutions[symbol]
         ?: // This shouldn't happen because an unresolved symbol is explicitly represented
         throw RuntimeException("Unresolved symbol $symbol")
   }
 
-  override fun captured(lambda: ExLambda<*>): Collection<Scope.Resolution> {
+  override fun captured(lambda: ILambda): Collection<Scope.Resolution> {
     return captured[lambda] ?: listOf()
   }
 

@@ -1,10 +1,9 @@
 package org.explang.interpreter
 
-import org.explang.analysis.Analyzer
-import org.explang.syntax.ExTree
+import org.explang.analysis.ITree
 
 interface CallContext {
-  fun evaluate(tree: ExTree<Analyzer.Tag>): EvalResult
+  fun evaluate(tree: ITree): EvalResult
   fun pushFrame(frame: Frame)
   fun popFrame()
 }
