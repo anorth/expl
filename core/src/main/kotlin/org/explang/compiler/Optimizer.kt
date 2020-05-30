@@ -5,29 +5,24 @@ import org.explang.intermediate.*
 
 class Optimizer(private val resolver: LookupResolver, private val env: CompilationEnvironment) {
   fun optimize(tree: ITree): ITree {
-    val opt = tree.accept(Inliner(resolver, env))
+    val opt = tree.accept(SymbolResolver(resolver, env))
     return opt
   }
 }
 
-private class Inliner(
+private class SymbolResolver(
     private val resolver: LookupResolver,
     private val env: CompilationEnvironment
 ) : TreeTransformer(resolver) {
   override fun visitSymbol(symbol: ISymbol): ITree {
     val resolution = resolver.resolve(symbol)
+    // Statically resolve all symbols.
     return when (resolution) {
-      is Scope.Resolution.Environment -> {
-        // Statically resolve the lookup into the environment.
-        env.builtin(symbol.name, symbol.type, symbol.syntax)
-      }
-//      is Scope.Resolution.Argument -> TODO()
-//      is Scope.Resolution.Local -> TODO()
-//      is Scope.Resolution.Closure -> TODO()
-//      is Scope.Resolution.Unresolved -> TODO()
-      else -> {
-        symbol
-      }
+      is Scope.Resolution.Argument -> IArgRead(symbol.syntax, symbol.type, symbol.name, resolution.index)
+      is Scope.Resolution.Environment -> env.builtin(symbol.name, symbol.type, symbol.syntax)
+      is Scope.Resolution.Local -> ILocalRead(symbol.syntax, symbol.type, symbol.name)
+      is Scope.Resolution.Closure -> IClosureRead(symbol.syntax, symbol.type, symbol.name)
+      is Scope.Resolution.Unresolved -> throw CompileError("Unresolved symbol $symbol", symbol)
     }
   }
 }
@@ -58,12 +53,11 @@ private open class TreeTransformer(private val resolver: LookupResolver) : ITree
 
   // Parameter symbol is not traversed, retains identity.
   override fun visitParameter(parameter: IParameter) = parameter
-
   override fun visitLiteral(literal: ILiteral<*>): ITree = literal
-
   override fun visitSymbol(symbol: ISymbol): ITree = symbol
-
+  override fun visitArgRead(read: IArgRead): ITree = read
+  override fun visitLocalRead(read: ILocalRead): ITree = read
+  override fun visitClosureRead(read: IClosureRead): ITree = read
   override fun visitBuiltin(builtin: IBuiltin<*>): ITree = builtin
-
   override fun visitNull(n: INull): ITree = n
 }

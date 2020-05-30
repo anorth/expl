@@ -142,18 +142,20 @@ private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
   }
 
   override fun visitSymbol(symbol: ISymbol): EvalResult {
-    val frame = stack.last()
-    // PERF: the map lookup while resolving is slow
-    val resolution = resolver.resolve(symbol)
-    val id = resolution.identifier
-    return when (resolution) {
-      is Scope.Resolution.Argument -> frame.getArg(resolution.index)
-      is Scope.Resolution.Local -> frame.getLocal(id)
-      is Scope.Resolution.Closure -> frame.getClosure(id)
-      is Scope.Resolution.Environment -> EvalResult(env.getBuiltin(id, symbol.type))
-      is Scope.Resolution.Unresolved ->
-        throw EvalError("Unbound symbol ${resolution.symbol}", symbol)
-    }
+    // Symbols should all be resolved to args, locals, closure or builtins.
+    throw EvalError("Unexpected symbol $symbol", symbol)
+  }
+
+  override fun visitArgRead(read: IArgRead): EvalResult {
+    return stack.last().getArg(read.index)
+  }
+
+  override fun visitLocalRead(read: ILocalRead): EvalResult {
+    return stack.last().getLocal(read.name)
+  }
+
+  override fun visitClosureRead(read: IClosureRead): EvalResult {
+    return stack.last().getClosure(read.name)
   }
 
   override fun visitBuiltin(builtin: IBuiltin<*>): EvalResult {

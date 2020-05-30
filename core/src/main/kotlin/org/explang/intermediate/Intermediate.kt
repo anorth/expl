@@ -25,6 +25,9 @@ sealed class ITree(
     fun visitParameter(parameter: IParameter): V
     fun visitLiteral(literal: ILiteral<*>): V
     fun visitSymbol(symbol: ISymbol): V
+    fun visitArgRead(read: IArgRead): V
+    fun visitLocalRead(read: ILocalRead): V
+    fun visitClosureRead(read: IClosureRead): V
     fun visitBuiltin(builtin: IBuiltin<*>): V
     fun visitNull(n: INull): V
 
@@ -150,7 +153,35 @@ class ISymbol(
   override fun toString() = "#$name"
 }
 
-class IBuiltin<T: Any>(
+class IArgRead(
+    syntax: ExTree?,
+    type: Type,
+    val name: String,
+    val index: Int
+) : ITree(syntax, type, mutableListOf()) {
+  override fun children() = listOf<ITree>()
+  override fun <V> accept(v: Visitor<V>) = v.visitArgRead(this)
+}
+
+class ILocalRead(
+    syntax: ExTree?,
+    type: Type,
+    val name: String
+) : ITree(syntax, type, mutableListOf()) {
+  override fun children() = listOf<ITree>()
+  override fun <V> accept(v: Visitor<V>) = v.visitLocalRead(this)
+}
+
+class IClosureRead(
+    syntax: ExTree?,
+    type: Type,
+    val name: String
+) : ITree(syntax, type, mutableListOf()) {
+  override fun children() = listOf<ITree>()
+  override fun <V> accept(v: Visitor<V>) = v.visitClosureRead(this)
+}
+
+class IBuiltin<T : Any>(
     syntax: ExTree?,
     type: Type,
     val name: String,

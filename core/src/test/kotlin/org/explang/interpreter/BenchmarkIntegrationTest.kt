@@ -34,7 +34,7 @@ class BenchmarkIntegrationTest {
     }
 
     println("Here we go for reals")
-    val iterations = 20
+    val iterations = 30
     var totalDuration = 0L
     for (i in 1..iterations) {
       totalDuration += measureNanoTime {
