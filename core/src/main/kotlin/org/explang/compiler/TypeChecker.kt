@@ -199,7 +199,6 @@ class TypeChecker(
   }
 
   override fun visitBuiltin(builtin: IBuiltin<*>) {}
-
   override fun visitNull(n: INull) {}
 }
 

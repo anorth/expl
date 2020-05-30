@@ -55,6 +55,6 @@ class Environment : CompilationEnvironment {
 
   override fun builtin(name: String, type: Type, syntax: ExTree?): IBuiltin<*> {
     val bif = getBuiltin(name, type)
-    return IBuiltin(syntax, name, bif, bif.type)
+    return IBuiltin(syntax, bif.type, name, bif)
   }
 }

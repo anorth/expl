@@ -32,7 +32,7 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
           throw CompileError(res.toString(), res.symbol)
         }
       }
-      return captured as  MutableMap<ILambda, Set<Scope.Resolution>>
+      return captured as MutableMap<ILambda, Set<Scope.Resolution>>
     }
   }
 
@@ -98,8 +98,6 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
     resolutions[parameter.symbol] = resolution
   }
 
-  override fun visitLiteral(literal: ILiteral<*>) {}
-
   override fun visitSymbol(symbol: ISymbol) {
     val res = currentScope.resolve(symbol)
     resolutions[symbol] = res
@@ -108,7 +106,7 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
     }
   }
 
+  override fun visitLiteral(literal: ILiteral<*>) {}
   override fun visitBuiltin(builtin: IBuiltin<*>) {}
-
   override fun visitNull(n: INull) {}
 }

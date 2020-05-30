@@ -58,71 +58,71 @@ sealed class ITree(
 
 class ICall(
     syntax: ExTree?,
+    type: Type,
     val callee: ITree,
-    val args: List<ITree>,
-    type: Type
+    val args: List<ITree>
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(callee) + args
   override fun <V> accept(v: Visitor<V>) = v.visitCall(this)
   override fun toString() = "call($callee, ${args.joinToString(",")})"
-  fun with(callee: ITree, args: List<ITree>) = ICall(syntax, callee, args, type)
+  fun with(callee: ITree, args: List<ITree>) = ICall(syntax, type, callee, args)
 }
 
 class IIf(
     syntax: ExTree?,
+    type: Type,
     val test: ITree,
     val left: ITree,
-    val right: ITree,
-    type: Type
+    val right: ITree
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(test, left, right)
   override fun <V> accept(v: Visitor<V>) = v.visitIf(this)
   override fun toString() = "if($test, $left, $right)"
-  fun with(test: ITree, left: ITree, right: ITree) = IIf(syntax, test, left, right, type)
+  fun with(test: ITree, left: ITree, right: ITree) = IIf(syntax, type, test, left, right)
 }
 
 class ILet(
     syntax: ExTree?,
+    type: Type,
     val bindings: List<IBinding>,
-    val bound: ITree,
-    type: Type
+    val bound: ITree
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = bindings + listOf(bound)
   override fun <V> accept(v: Visitor<V>) = v.visitLet(this)
   override fun toString() = "let(${bindings.joinToString(",")}; $bound)"
-  fun with(bindings: List<IBinding>, bound: ITree) = ILet(syntax, bindings, bound, type)
+  fun with(bindings: List<IBinding>, bound: ITree) = ILet(syntax, type, bindings, bound)
 }
 
 class IBinding(
     syntax: ExTree?,
+    type: Type,
     val symbol: ISymbol,
-    val value: ITree,
-    type: Type
+    val value: ITree
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(symbol, value)
   override fun <V> accept(v: Visitor<V>) = v.visitBinding(this)
   override fun toString() = "$symbol = $value"
-  fun with(symbol: ISymbol, value: ITree) = IBinding(syntax, symbol, value, type)
+  fun with(symbol: ISymbol, value: ITree) = IBinding(syntax, type, symbol, value)
 }
 
 class ILambda(
     syntax: ExTree?,
+    type: Type,
     val parameters: List<IParameter>,
     val body: ITree,
-    val returnType: Type,
-    type: Type
+    val returnType: Type
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = parameters + listOf(body)
   override fun <V> accept(v: Visitor<V>) = v.visitLambda(this)
   override fun toString() = "(${parameters.joinToString(",")} -> $body)"
   fun with(parameters: List<IParameter>, annotation: Type, body: ITree) =
-      ILambda(syntax, parameters, body, annotation, type)
+      ILambda(syntax, type, parameters, body, annotation)
 }
 
 class IParameter(
     syntax: ExTree?,
-    val symbol: ISymbol,
-    type: Type
+    type: Type,
+    val symbol: ISymbol
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf(symbol)
   override fun <V> accept(v: Visitor<V>): V = v.visitParameter(this)
@@ -131,9 +131,9 @@ class IParameter(
 
 class ILiteral<L : Any>(
     syntax: ExTree?,
+    type: Type,
     val implType: Class<L>,
-    val value: L,
-    type: Type
+    val value: L
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitLiteral(this)
@@ -142,19 +142,19 @@ class ILiteral<L : Any>(
 
 class ISymbol(
     syntax: ExTree?,
-    val name: String,
-    type: Type
+    type: Type,
+    val name: String
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitSymbol(this)
   override fun toString() = "#$name"
 }
 
-open class IBuiltin<T: Any>(
+class IBuiltin<T: Any>(
     syntax: ExTree?,
+    type: Type,
     val name: String,
-    val value: T,
-    type: Type
+    val value: T
 ) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
   override fun <V> accept(v: Visitor<V>) = v.visitBuiltin(this)
