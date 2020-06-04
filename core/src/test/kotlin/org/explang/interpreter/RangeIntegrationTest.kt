@@ -1,6 +1,6 @@
 package org.explang.interpreter
 
-import org.explang.array.LongArrayValue
+import org.explang.array.ArrayValue
 import org.explang.array.LongRangeValue
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -33,8 +33,17 @@ class RangeIntegrationTest {
   }
 
   @Test
-  fun mapToLong() {
-    assertArray(listOf(2, 4, 6), "mapr(1:3, x: long -> 2*x)")
+  fun mapLongs() {
+    assertArray(listOf(2L, 4L, 6L), "map(1:3, x: long -> 2*x)")
+    assertArray(listOf(0.0, 0.0, 0.0), "map(1:3, x: long -> 0.0)")
+    assertArray(listOf(true, true, true), "map(1:3, x: long -> true)")
+  }
+
+  @Test
+  fun mapDoubles() {
+    assertArray(listOf(2.0, 4.0, 6.0), "map(1.0:3.0, x: double -> 2.0*x)")
+    assertArray(listOf(0L, 0L, 0L), "map(1.0:3.0, x: double -> 0)")
+    assertArray(listOf(true, true, true), "map(1.0:3.0, x: double -> true)")
   }
 
   private fun assertRange(expected: LongRangeValue, expression: String) {
@@ -42,9 +51,9 @@ class RangeIntegrationTest {
     assertEquals(expected, result)
   }
 
-  private fun assertArray(expected: Iterable<Long>, expression: String) {
+  private fun <T> assertArray(expected: Iterable<T>, expression: String) {
     val result = interpreter.eval(expression, env)
-    assertEquals(expected, (result as LongArrayValue).toList())
+    assertEquals(expected.toList(), (result as ArrayValue<*>).toList())
   }
 }
 

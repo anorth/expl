@@ -87,21 +87,6 @@ data class DoubleRangeValue(
   override fun toString() = rangeToString(first, last, step, impliedStep(first, last))
 }
 
-// Not Kotlin extensions so as to be visible from Java.
-inline fun <T, R> fold(range: RangeValue<T>, initial: R, operation: (R, T) -> R): R =
-    range.fold(initial, operation)
-
-inline fun <T> reduce(range: RangeValue<T>, acc: (T, T) -> T): T =
-    range.reduce(acc)
-
-inline fun <T> mapToLong(range: RangeValue<T>, mapper: (T) -> Long): ArrayValue<Long> {
-  val mapped = mutableListOf<Long>()
-  for (v in range) {
-    mapped.add(mapper(v))
-  }
-  return LongArrayValue.of(*mapped.toLongArray())
-}
-
 private fun impliedStep(first: Long?, last: Long?) =
     if ((last ?: Long.MAX_VALUE) < (first ?: Long.MIN_VALUE)) -1L else 1L
 

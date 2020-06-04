@@ -63,7 +63,7 @@ class TypeChecker(
         }
       }
       if (callee.type == Type.NONE) {
-        throw CompileError("No type for $callee", callee)
+        throw CompileError("No type for $callee with args $argTypes", callee)
       }
     }
 

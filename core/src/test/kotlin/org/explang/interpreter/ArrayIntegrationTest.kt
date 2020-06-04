@@ -1,9 +1,13 @@
 package org.explang.interpreter
 
 import org.explang.array.ArrayValue
+import org.explang.array.BooleanArrayValue
 import org.explang.array.DoubleArrayValue
+import org.explang.array.LongArrayValue
 import org.hamcrest.Matchers
 import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThat
 import org.junit.Test
 import kotlin.reflect.KClass
 
@@ -18,10 +22,11 @@ class ArrayIntegrationTest {
   }
 
   @Test
-  fun mapDouble() {
-    val res = DoubleArrayValue.of(1.0, 1.0, 1.0)
-    assertArray(res, "map(zeros(3), x: double -> x + 1.0)")
+  fun mapDoubles() {
+    assertArray(DoubleArrayValue.of(1.0, 1.0, 1.0), "map(zeros(3), x: double -> x + 1.0)")
     assertArray(zeros(3), "map(zeros(3), sign)")
+    assertArray(LongArrayValue.of(1, 1, 1), "map(zeros(3), x: double -> 1)")
+    assertArray(BooleanArrayValue.of(false, false, false), "map(zeros(3), positive)")
   }
 
   @Test
@@ -72,12 +77,12 @@ class ArrayIntegrationTest {
 
   private fun assertResult(expected: Any, expression: String) {
     val result = interpreter.eval(expression, env)
-    Assert.assertEquals(expected, result)
+    assertEquals(expected, result)
   }
 
   private fun <T> assertArray(expected: ArrayValue<T>, expression: String) {
     val result = interpreter.eval(expression, env) as ArrayValue<*>
-    Assert.assertEquals(expected.toList(), result.toList())
+    assertEquals(expected.toList(), result.toList())
   }
 
   private fun assertException(expected: KClass<out Throwable>, expression: String) {
@@ -85,7 +90,7 @@ class ArrayIntegrationTest {
       val result = interpreter.eval(expression, env)
       Assert.fail("Unexpected success: $result, expected $expected")
     } catch (e: Throwable) {
-      Assert.assertThat(e, Matchers.instanceOf(expected.java))
+      assertThat(e, Matchers.instanceOf(expected.java))
     }
   }
 }

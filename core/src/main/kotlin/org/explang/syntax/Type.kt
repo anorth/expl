@@ -51,6 +51,10 @@ sealed class PrimType(name: String) : Type(name) {
   object LONG : PrimType("long")
   object DOUBLE : PrimType("double") // Consider naming these "float" and "int" if 32-bit versions are excluded
 
+  companion object {
+    fun all() = listOf(BOOL, LONG, DOUBLE)
+  }
+
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (javaClass != other?.javaClass) return false

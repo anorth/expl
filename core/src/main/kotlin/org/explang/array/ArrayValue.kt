@@ -211,18 +211,3 @@ private inline fun <T> makeSlice(size: Int, range: LongRangeValue,
   return construct(Math.toIntExact(first - 1), Math.toIntExact(last - 1 + step.sign),
       Math.toIntExact(step))
 }
-
-// Not Kotlin extensions so as to be visible from Java.
-inline fun <T, R> fold(array: ArrayValue<T>, initial: R, operation: (R, T) -> R): R =
-    array.fold(initial, operation)
-
-inline fun <T> reduce(array: ArrayValue<T>, acc: (T, T) -> T): T =
-    array.reduce(acc)
-
-inline fun <T> mapToDouble(array: ArrayValue<T>, mapper: (T) -> Double): ArrayValue<Double> {
-  val mapped = DoubleArray(array.size)
-  for (i in 0 until array.size) {
-    mapped[i] = mapper(array[i + 1])
-  }
-  return DoubleArrayValue.of(*mapped)
-}
