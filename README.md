@@ -1,24 +1,23 @@
 # expl
-An expression language for explorable, explainable programming.
+An embeddable expression language for modelling and exploring.
 
 This is a very early work in progress.
 
-This language is very much inspired by Bret Victor's ideas about
-[tools and media for understanding](http://worrydream.com/ClimateChange/#tools),
-and specifically their potential to help humanity address climate breakdown
-(among other species-wide challenges). It's a language for modelling and analysis, and for
-embedding in media for understanding. Expl aims to give humans the tools they need to
-understand and reverse global warming 🌏.
-
 Goals:
-- A familiar, accessible syntax to most programmers, analysts and modellers, without feeling 
-too much like "programming" (c.f. spreadsheet formulae)
-- Fast numerical calculation (better than Pandas)
-- Powerful symbolic calculation (think Mathematica)
-- No such thing as slow code; the compiler find a near-optimal execution
- (no penalty for the natural expression of a result)
-- Easily embeddable in applications and other programming languages
+- An accessible syntax to analysts and modellers, without feeling 
+too much like "programming" (think spreadsheet formulae)
+- Easily embeddable in applications and other programming environments
+- Fast numerical calculation, vector/array manipulation, tabular data
+- No efficiency penalty for natural expression of a solution
 - Support for explorable interfaces and extreme debug-ability
-- Portability to parallel GPU execution and future hardware
+
+Approach:
+- Limited goals, not a full-featured application development language
+- High level of abstraction enabling extreme compiler restructuring
+- Purely functional, immutable, strictly-typed, but "blue-collar" pragmatism
+
+For now, I'm exploring these ideas via an interpreter, but the goal is to JIT-compile.
+
+Inspirations: Spreadsheets, Pandas, Julia, Wolfram, JQ
 
 *Expl* is not a very good name. I'm looking for a new one.
