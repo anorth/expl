@@ -8,7 +8,7 @@ class Function(
     // values in it after the function is defined (but before it's called).
     val closure: MutableMap<String, EvalResult>) : Callable {
 
-  override fun call(ctx: CallContext, args: Array<EvalResult>): EvalResult {
+  override fun invoke(ctx: CallContext, args: Array<EvalResult>): EvalResult {
     val frame = Frame(args, closure = closure)
     ctx.pushFrame(frame)
     try {

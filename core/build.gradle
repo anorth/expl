@@ -12,6 +12,7 @@ dependencies {
 
     compile "com.google.code.findbugs:jsr305:3.0.2"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compile "com.google.guava:guava:29.0-jre"
 
     // Not just testCompile, for testing tools in main tree.
     compile "junit:junit:4.12"

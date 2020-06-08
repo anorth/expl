@@ -15,7 +15,7 @@ class SyntaxTranslator {
 private class Translator : ExTree.Visitor<ITree> {
   override fun visitCall(call: ExCall): ICall {
     val callee = call.callee.accept(this)
-    val args = call.args.mapArr(ITree::class.java) { it.accept(this) }
+    val args = call.args.mapArr(ITree::class) { it.accept(this) }
     return ICall(call, Type.NONE, callee, args)
   }
 
@@ -41,9 +41,9 @@ private class Translator : ExTree.Visitor<ITree> {
 
   override fun visitRangeOp(op: ExRangeOp): ITree {
     val callee = ISymbol(op, Type.NONE, ":")
-    val args = arrayOf(op.first?.accept(this) ?: INull(null, Type.NONE),
-        op.last?.accept(this) ?: INull(null, Type.NONE),
-        op.step?.accept(this) ?: INull(null, Type.NONE))
+    val args = arrayOf(op.first?.accept(this) ?: INil(null, Type.NIL),
+        op.last?.accept(this) ?: INil(null, Type.NIL),
+        op.step?.accept(this) ?: INil(null, Type.NIL))
     return ICall(op, Type.NONE, callee, args)
   }
 

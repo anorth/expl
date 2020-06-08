@@ -111,5 +111,5 @@ class Scoper(rootScope: RootScope) : ITree.Visitor<Unit> {
   override fun visitLocalRead(read: ILocalRead) {}
   override fun visitClosureRead(read: IClosureRead) {}
   override fun visitBuiltin(builtin: IBuiltin<*>) {}
-  override fun visitNull(n: INull) {}
+  override fun visitNil(n: INil) {}
 }

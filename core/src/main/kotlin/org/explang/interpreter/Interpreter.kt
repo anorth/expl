@@ -4,6 +4,7 @@ import org.explang.common.mapArr
 import org.explang.compiler.*
 import org.explang.intermediate.*
 import org.explang.syntax.ExTree
+import org.explang.syntax.FuncType
 
 data class EvalResult(val value: Any)
 
@@ -54,10 +55,11 @@ private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
 
   private val stack = mutableListOf(Frame())
 
+  @Suppress("UNCHECKED_CAST")
   override fun visitCall(call: ICall): EvalResult {
     val callee = call.callee.accept(this).value as Callable
-    val args = call.args.mapArr(EvalResult::class.java) { it.accept(this) }
-    return callee.call(this, args)
+    val args = call.args.mapArr(EvalResult::class) { it.accept(this) }
+    return callee.invoke(this, args)
   }
 
   override fun visitIf(iff: IIf): EvalResult {
@@ -77,7 +79,7 @@ private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
 
     // Add symbols for functions to frame before visiting bound value (for [mutual] recursion).
     for (binding in let.bindings) {
-      if (binding.value.type.isFunc())
+      if (binding.value.type is FuncType)
         stack.last().setLocal(binding.symbol.name, UNRESOLVED)
     }
 
@@ -87,7 +89,7 @@ private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
       val r = binding.accept(this)
       // The second part of the test is needed to distinguish builtins from functions.
       // Would not be necessary if they shared an interface (and the builtins could ignore the call).
-      if (binding.value.type.isFunc() && r.value is Function) {
+      if (binding.value.type is FuncType && r.value is Function) {
         functions[binding.symbol.name] = r
       }
     }
@@ -162,7 +164,7 @@ private class DirectInterpreter(val resolver: Resolver, val env: Environment) :
     return EvalResult(builtin.value)
   }
 
-  override fun visitNull(n: INull) = NULL
+  override fun visitNil(n: INil) = NULL
 
   ///// EvalContext implementation /////
 

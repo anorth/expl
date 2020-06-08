@@ -3,12 +3,10 @@ package org.explang.interpreter
 import org.explang.compiler.CompilationEnvironment
 import org.explang.intermediate.IBuiltin
 import org.explang.syntax.ExTree
+import org.explang.syntax.FuncType
 import org.explang.syntax.Type
 
 class Environment : CompilationEnvironment {
-  // Builtin functions are keyed by name and type.
-  data class BuiltinKey(val name: String, val type: Type)
-
   class Value(val type: Type, val value: Any)
 
   companion object {
@@ -27,18 +25,21 @@ class Environment : CompilationEnvironment {
     }
   }
 
-  private val builtins = mutableMapOf<BuiltinKey, BuiltinFunction>()
+  private val builtins = mutableMapOf<String, Builtin>()
   private val values = mutableMapOf<String, Value>()
 
-  fun addBuiltin(f: BuiltinFunction) {
-    builtins[BuiltinKey(f.name, f.type)] = f
+  fun addBuiltin(f: Builtin) {
+    builtins[f.name] = f
   }
 
   fun addValue(name: String, type: Type, value: Any) {
     values[name] = Value(type, value)
   }
 
-  fun getBuiltin(name: String, type: Type) = builtins[BuiltinKey(name, type)]!!
+  fun getBuiltin(name: String, type: Type): Callable {
+    val opts = builtins[name]!!
+    return opts.forType(type as FuncType)
+  }
 
   fun getValue(name: String) = values[name]!!
 
@@ -47,7 +48,7 @@ class Environment : CompilationEnvironment {
   override fun types(): Map<String, List<Type>> {
     val m = mutableMapOf<String, MutableList<Type>>()
     for ((_, b) in builtins) {
-      m.getOrPut(b.name, { mutableListOf() }).add(b.type)
+      m.getOrPut(b.name, { mutableListOf() }).addAll(b.types())
     }
     values.mapValuesTo(m) { mutableListOf(it.value.type) }
     return m
@@ -55,6 +56,6 @@ class Environment : CompilationEnvironment {
 
   override fun builtin(name: String, type: Type, syntax: ExTree?): IBuiltin<*> {
     val bif = getBuiltin(name, type)
-    return IBuiltin(syntax, bif.type, name, bif)
+    return IBuiltin(syntax, type, name, bif)
   }
 }

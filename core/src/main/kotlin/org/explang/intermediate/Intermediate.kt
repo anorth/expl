@@ -1,5 +1,6 @@
 package org.explang.intermediate
 
+import org.explang.compiler.CompileError
 import org.explang.syntax.ExTree
 import org.explang.syntax.Type
 
@@ -29,7 +30,7 @@ sealed class ITree(
     fun visitLocalRead(read: ILocalRead): V
     fun visitClosureRead(read: IClosureRead): V
     fun visitBuiltin(builtin: IBuiltin<*>): V
-    fun visitNull(n: INull): V
+    fun visitNil(n: INil): V
 
     // Visits a tree's children, ignoring any return value
     fun visitChildren(tree: ITree) {
@@ -39,19 +40,20 @@ sealed class ITree(
     }
   }
 
-  var type: Type = Type.NONE
+  private var _type = type
+
+  var type: Type
+    get() = _type
     set(value) {
-      if (field == Type.NONE) {
-        field = value
-      } else {
-        org.explang.compiler.check(this, field == value) {
-          "Conflicting types for $this: $field, $value"
-        }
+      if (_type == Type.NONE) {
+        _type = value
+      } else if (_type != value) {
+        throw CompileError("Conflicting types for $this: $_type, $value", this)
       }
     }
 
-  init {
-    this.type = type
+  fun replaceType(t: Type) {
+    _type = t
   }
 
   abstract fun children(): Iterable<ITree>
@@ -191,7 +193,8 @@ class IBuiltin<T : Any>(
   override fun <V> accept(v: Visitor<V>) = v.visitBuiltin(this)
 }
 
-class INull(syntax: ExTree?, type: Type) : ITree(syntax, type, mutableListOf()) {
+class INil(syntax: ExTree?, type: Type) : ITree(syntax, type, mutableListOf()) {
   override fun children() = listOf<ITree>()
-  override fun <V> accept(v: Visitor<V>) = v.visitNull(this)
+  override fun <V> accept(v: Visitor<V>) = v.visitNil(this)
+  override fun toString() = "nil"
 }

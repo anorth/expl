@@ -26,14 +26,14 @@ class ArrayIntegrationTest {
     assertArray(DoubleArrayValue.of(1.0, 1.0, 1.0), "map(zeros(3), x: double -> x + 1.0)")
     assertArray(zeros(3), "map(zeros(3), sign)")
     assertArray(LongArrayValue.of(1, 1, 1), "map(zeros(3), x: double -> 1)")
-    assertArray(BooleanArrayValue.of(false, false, false), "map(zeros(3), positive)")
+    assertArray(BooleanArrayValue.of(false, false, false), "map(zeros(3), isNaN)")
   }
 
   @Test
   fun filterDouble() {
     assertArray(zeros(0), "filter(zeros(3), x: double -> x > 0.0)")
     assertArray(zeros(3), "filter(zeros(3), x: double -> x == 0.0)")
-    assertArray(zeros(0), "filter(zeros(3), positive)")
+    assertArray(zeros(0), "filter(zeros(3), isNaN)")
   }
 
   @Test

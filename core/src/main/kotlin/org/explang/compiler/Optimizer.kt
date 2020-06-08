@@ -29,7 +29,7 @@ private class SymbolResolver(
 
 private open class TreeTransformer(private val resolver: LookupResolver) : ITree.Visitor<ITree> {
   override fun visitCall(call: ICall): ITree {
-    return call.with(call.callee.accept(this), call.args.mapArr(ITree::class.java) { it.accept(this) })
+    return call.with(call.callee.accept(this), call.args.mapArr(ITree::class) { it.accept(this) })
   }
 
   override fun visitIf(iff: IIf): ITree {
@@ -59,5 +59,5 @@ private open class TreeTransformer(private val resolver: LookupResolver) : ITree
   override fun visitLocalRead(read: ILocalRead): ITree = read
   override fun visitClosureRead(read: IClosureRead): ITree = read
   override fun visitBuiltin(builtin: IBuiltin<*>): ITree = builtin
-  override fun visitNull(n: INull): ITree = n
+  override fun visitNil(n: INil): ITree = n
 }

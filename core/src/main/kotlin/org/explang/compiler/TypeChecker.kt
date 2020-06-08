@@ -1,8 +1,12 @@
 package org.explang.compiler
 
+import com.google.common.collect.Lists
 import org.explang.intermediate.*
 import org.explang.syntax.FuncType
 import org.explang.syntax.Type
+import org.explang.syntax.Type.Companion.NONE
+import org.explang.syntax.Type.Companion.function
+import org.explang.syntax.TypeParameter
 
 /**
  * Infers types for all nodes in the syntax tree.
@@ -42,44 +46,28 @@ class TypeChecker(
     val callee = call.callee
     val args = call.args
 
-    if (callee.type == Type.NONE) {
-      // Hack special handling for "*" in range operators until we have nullable types or optional arguments.
-      // Set all args to the same type; if none specify a type ("*:*"), use LONG.
-      val nullArgType: Type = args.firstOrNull { it.type != Type.NONE }?.type ?: Type.LONG
-      for (arg in args) {
-        if (arg.type == Type.NONE) {
-          arg.type = nullArgType
+    val calleeCandidates = callee.candidates()
+    val argCandidates = Lists.cartesianProduct(args.map(ITree::candidates))
+    typed@ for (cc in calleeCandidates) {
+      check(call, cc is FuncType) {"Type cc for callee $callee is $cc, not a function"}
+      for (argCandidate in argCandidates) {
+        val requiredType = function(TypeParameter("<out>"), *argCandidate.toTypedArray())
+        val bindings = mutableMapOf<TypeParameter, Type>()
+        if (cc.unify(requiredType, bindings)) {
+          callee.replaceType(cc.replace(bindings))
+          args.forEachIndexed { i, arg ->
+            // Should this always replace the type in order to bind?
+            if (arg.type == NONE) arg.type = argCandidate[i].replace(bindings)
+          }
+          break@typed
         }
-      }
-      val argTypes = args.map(ITree::type)
-
-      for (candidate in callee.typeCandidates) {
-        if (!candidate.isFunc()) {
-          throw CompileError("Type candidate for callee $callee is ${candidate}, not a function", callee)
-        }
-        if (candidate.asFunc().parameters().contentEquals(argTypes.toTypedArray())) {
-          callee.type = candidate
-          break
-        }
-      }
-      if (callee.type == Type.NONE) {
-        throw CompileError("No type for $callee with args $argTypes", callee)
       }
     }
 
-    val calleeType = callee.type as? FuncType
-        ?: throw CompileError("Callee $callee is ${callee.type}, not a function", callee)
-    val formalParamTypes = calleeType.parameters()
-    check(call, args.size == formalParamTypes.size) {
-      "Expected ${formalParamTypes.size} arguments, got ${args.size}"
+    if (callee.type == NONE || !callee.type.concrete) {
+      throw CompileError("No type for $callee with args ${args.joinToString(",")}", callee)
     }
-    for (i in formalParamTypes.indices) {
-      check(args[i], args[i].type.satisfies(formalParamTypes[i])) {
-        "Argument $i expected ${formalParamTypes[i]}, got ${args[i].type}"
-      }
-    }
-
-    call.type = calleeType.result()
+    call.type = (callee.type as FuncType).result()
   }
 
   override fun visitIf(iff: IIf) {
@@ -101,7 +89,7 @@ class TypeChecker(
       if (binding.value is ILambda) {
         val retType = binding.value.returnType
         val paramTypes = binding.value.parameters.map(IParameter::type)
-        if (retType != Type.NONE && paramTypes.none { it == Type.NONE }) {
+        if (retType != NONE && paramTypes.none { it == NONE }) {
           val resolution = resolver.resolve(binding.symbol)
           symbolTypes[resolution] = Type.function(retType, *paramTypes.toTypedArray())
         }
@@ -117,7 +105,7 @@ class TypeChecker(
     val resolution = resolver.resolve(binding.symbol)
     binding.value.accept(this)
     val valueType = binding.value.type
-    assert(valueType != Type.NONE) { "No type for bound expression" }
+    assert(valueType != NONE) { "No type for bound expression" }
 
     // The binding expression remains untyped, but the symbol resolution gets a type.
     // Propagate value type to the symbol resolution
@@ -135,7 +123,7 @@ class TypeChecker(
     // including the name of the lambda for recursive calls?
 
     visitChildren(lambda) // Visit parameters and then body
-    check(lambda, lambda.returnType == Type.NONE || lambda.body.type == lambda.returnType) {
+    check(lambda, lambda.returnType == NONE || lambda.body.type == lambda.returnType) {
       "Inconsistent return type for lambda, annotated ${lambda.returnType} " +
           "but returns ${lambda.body.type}"
     }
@@ -145,7 +133,7 @@ class TypeChecker(
   }
 
   override fun visitParameter(parameter: IParameter) {
-    assert(parameter.type != Type.NONE) {
+    assert(parameter.type != NONE) {
       "Unexpected parameter type ${parameter.type}"
     }
     val resolution = resolver.resolve(parameter.symbol)
@@ -202,10 +190,12 @@ class TypeChecker(
   override fun visitLocalRead(read: ILocalRead) {}
   override fun visitClosureRead(read: IClosureRead) {}
   override fun visitBuiltin(builtin: IBuiltin<*>) {}
-  override fun visitNull(n: INull) {}
+  override fun visitNil(n: INil) {}
 }
 
 ///// Private implementation /////
+
+private fun ITree.candidates() = if (type != NONE) listOf(type) else typeCandidates
 
 // Enforces two trees have the same type.
 private fun checkTypesMatch(parent: ITree, left: ITree, right: ITree) {

@@ -1,52 +1,52 @@
 package org.explang.syntax
 
+import org.explang.common.mapArr
+
 /**
- * Describes a guest language type.
+ * Describes a type.
  *
  * Primitive types compare equal on identity. Function types compare equal on argument and
  * result types.
  */
 sealed class Type constructor(
-    val name: String
+    val name: String,
+    /** Whether the type has no parameters. */
+    val concrete: Boolean
 ) {
   companion object {
-    @JvmField
     val NONE = NoneType
-    @JvmField
+    val NIL = NilType
     val BOOL = PrimType.BOOL
-    @JvmField
     val DOUBLE = PrimType.DOUBLE
-    @JvmField
     val LONG = PrimType.LONG
 
-    @JvmStatic
     fun function(result: Type, vararg arguments: Type) = FuncType(result, arguments)
-    @JvmStatic
     fun range(element: Type) = RangeType(element)
-    @JvmStatic
     fun array(element: Type) = ArrayType(element)
   }
 
-  fun name() = name
+  /** Replaces a parameter in this type. */
+  abstract fun replace(bindings: Map<TypeParameter, Type>): Type
+
+  /** Unifies a type with this one, writing any new bindings into a provided map. */
+  abstract fun unify(other: Type, bindings: MutableMap<TypeParameter, Type> = mutableMapOf()): Boolean
+
   override fun toString() = name
-
-  open fun isFunc(): Boolean = false
-  open fun isArray(): Boolean = false
-
-  open fun asRange(): RangeType = throw RuntimeTypeError("$this is not a range")
-  open fun asArray(): ArrayType = throw RuntimeTypeError("$this is not a range")
-  open fun asFunc(): FuncType = throw RuntimeTypeError("$this is not a function")
-
-  /** Whether a value of this type is acceptable where an [other] is required */
-  open fun satisfies(other: Type) = this == other
 }
 
-object NoneType : Type("none") {
-  override fun satisfies(other: Type) = false
+// TODO: rename to undefined, to avoid confusion with nil/null
+object NoneType : Type("none", concrete = false) {
+  override fun replace(bindings: Map<TypeParameter, Type>) = this
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>) = other == this
+}
+
+object NilType : Type("nil", concrete = true) {
+  override fun replace(bindings: Map<TypeParameter, Type>) = this
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>) = other == this
 }
 
 /** A primitive type */
-sealed class PrimType(name: String) : Type(name) {
+sealed class PrimType(name: String) : Type(name, concrete = true) {
   object BOOL : PrimType("boolean")
   object LONG : PrimType("long")
   object DOUBLE : PrimType("double") // Consider naming these "float" and "int" if 32-bit versions are excluded
@@ -54,6 +54,15 @@ sealed class PrimType(name: String) : Type(name) {
   companion object {
     fun all() = listOf(BOOL, LONG, DOUBLE)
   }
+
+  override fun replace(bindings: Map<TypeParameter, Type>) = this
+
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>) =
+      when (other) {
+        this -> true
+        is TypeParameter -> bindings.bind(other, this)
+        else -> false
+      }
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -69,17 +78,24 @@ sealed class PrimType(name: String) : Type(name) {
 /** A function type */
 class FuncType(
     private val result: Type,
-    private val parameters: Array<out Type>
-) : Type(funcTypeName(result, parameters)) {
+    private val arguments: Array<out Type>
+) : Type(funcTypeName(result, arguments), concrete = result.concrete && arguments.all(Type::concrete)) {
   fun result() = result
-  fun parameters() = parameters
+  fun arguments() = arguments
 
-  override fun isFunc() = true
-  override fun asFunc() = this
+  override fun replace(bindings: Map<TypeParameter, Type>) =
+      FuncType(result.replace(bindings), arguments.mapArr(Type::class) { it.replace(bindings) })
 
-  override fun satisfies(other: Type) = other is FuncType &&
-      result.satisfies(other.result) &&
-      other.parameters.zip(parameters).all { (o, t) -> o.satisfies(t) }
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>): Boolean {
+    return when (other) {
+      this -> true
+      is TypeParameter -> bindings.bind(other, this)
+      is FuncType -> result.unify(other.result, bindings) &&
+          arguments.size == other.arguments.size &&
+          arguments.zip(other.arguments) { a, b -> a.unify(b, bindings) }.all { it }
+      else -> false
+    }
+  }
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -87,13 +103,13 @@ class FuncType(
 
     other as FuncType
     if (result != other.result) return false
-    if (!parameters.contentEquals(other.parameters)) return false
+    if (!arguments.contentEquals(other.arguments)) return false
     return true
   }
 
   override fun hashCode(): Int {
     var result1 = result.hashCode()
-    result1 = 31 * result1 + parameters.contentHashCode()
+    result1 = 31 * result1 + arguments.contentHashCode()
     return result1
   }
 }
@@ -101,8 +117,16 @@ class FuncType(
 /** A range of numbers type. */
 class RangeType(
     private val element: Type
-) : Type("range($element)") {
-  override fun asRange() = this
+) : Type("range($element)", concrete = true) {
+  override fun replace(bindings: Map<TypeParameter, Type>) = RangeType(element.replace(bindings))
+
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>) =
+      when (other) {
+        this -> true
+        is TypeParameter -> bindings.bind(other, this)
+        is RangeType -> element.unify(other.element, bindings)
+        else -> false
+      }
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -121,15 +145,16 @@ class RangeType(
 /** A 1-dimensional array. */
 class ArrayType(
     private val element: Type
-) : Type(arrayTypeName(element, null)) {
-  fun element() = element
+) : Type(arrayTypeName(element), concrete = element.concrete) {
+  override fun replace(bindings: Map<TypeParameter, Type>) = ArrayType(element.replace(bindings))
 
-  override fun isArray() = true
-  override fun asArray() = this
-
-  override fun satisfies(other: Type): Boolean {
-    return other is ArrayType && element == other.element
-  }
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>) =
+      when (other) {
+        this -> true
+        is TypeParameter -> bindings.bind(other, this)
+        is ArrayType -> element.unify(other.element, bindings)
+        else -> false
+      }
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -145,10 +170,32 @@ class ArrayType(
   }
 }
 
+class TypeParameter(
+    name: String
+) : Type(name, concrete = false) {
+  override fun replace(bindings: Map<TypeParameter, Type>) = bindings.getOrDefault(this, this)
+
+  override fun unify(other: Type, bindings: MutableMap<TypeParameter, Type>) =
+      when (other) {
+        this -> true
+        is TypeParameter -> bindings.bind(other, this) // TODO and other way too?
+        else -> bindings.bind(this, other)
+      }
+
+  // Instance-based equality/hashcode
+}
+
 /** Computes the name for a function type. */
 private fun funcTypeName(result: Type, parameters: Array<out Type>) =
-    "(${parameters.joinToString(",")}->$result)"
+    "(${parameters.joinToString(",")}→$result)"
 
-private fun arrayTypeName(element: Type, dims: Int?): String {
-  return "$element[${dims ?: ""}]"
+private fun arrayTypeName(element: Type): String {
+  return "$element[]"
+}
+
+private fun <K, V> MutableMap<K, V>.bind(key: K, value: V) : Boolean {
+  val found = this[key]
+  if (found == null) this[key] = value
+  else if (found != value) return false
+  return true
 }

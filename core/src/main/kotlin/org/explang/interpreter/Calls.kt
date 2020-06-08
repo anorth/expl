@@ -8,9 +8,7 @@ interface CallContext {
   fun popFrame()
 }
 
-interface Callable {
-  fun call(ctx: CallContext, args: Array<EvalResult>): EvalResult
-}
+typealias Callable = (ctx: CallContext, args: Array<EvalResult>) -> EvalResult
 
 class Frame(
     val args: Array<EvalResult> = arrayOf(),

@@ -1,6 +1,5 @@
 package org.explang.array
 
-import org.explang.syntax.Type
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
@@ -40,6 +39,7 @@ sealed class ArrayValue<T>(
     }
   }
 
+  abstract fun newInstance(size: Int, init: (Int) -> T): ArrayValue<T>
   abstract fun filter(predicate: (T) -> Boolean): ArrayValue<T>
 
   protected abstract fun getUnmapped(index: Int): T
@@ -68,7 +68,6 @@ sealed class ArrayValue<T>(
 class BooleanArrayValue(private val array: BooleanArray, start: Int, end: Int, step: Int) :
     ArrayValue<Boolean>(start, end, step) {
   companion object {
-
     fun of(vararg vs: Boolean) = BooleanArrayValue(vs, 0, vs.size, 1)
     fun of(array: BooleanArray, range: LongRangeValue) =
         makeSlice(array.size, range) { start: Int, end: Int, step: Int ->
@@ -79,6 +78,9 @@ class BooleanArrayValue(private val array: BooleanArray, start: Int, end: Int, s
   override fun getUnmapped(index: Int) = array[index]
 
   override fun reslice(start: Int, end: Int, step: Int) = BooleanArrayValue(array, start, end, step)
+
+  override fun newInstance(size: Int, init: (Int) -> Boolean) =
+      BooleanArrayValue(BooleanArray(size) {i -> init(i+1)}, 0, size, 1)
 
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (Boolean) -> Boolean): ArrayValue<Boolean> {
@@ -107,6 +109,9 @@ class LongArrayValue(private val array: LongArray, start: Int, end: Int, step: I
 
   override fun reslice(start: Int, end: Int, step: Int) = LongArrayValue(array, start, end, step)
 
+  override fun newInstance(size: Int, init: (Int) -> Long) =
+      LongArrayValue(LongArray(size) {i -> init(i+1)}, 0, size, 1)
+
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (Long) -> Boolean): ArrayValue<Long> {
     val arr = LongArray(size)
@@ -134,6 +139,9 @@ class DoubleArrayValue(private val array: DoubleArray, start: Int, end: Int, ste
 
   override fun reslice(start: Int, end: Int, step: Int) = DoubleArrayValue(array, start, end, step)
 
+  override fun newInstance(size: Int, init: (Int) -> Double) =
+      DoubleArrayValue(DoubleArray(size) {i -> init(i+1)}, 0, size, 1)
+
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (Double) -> Boolean): ArrayValue<Double> {
     val arr = DoubleArray(size)
@@ -149,35 +157,39 @@ class DoubleArrayValue(private val array: DoubleArray, start: Int, end: Int, ste
 
 class ObjectArrayValue<T>(
     private val array: Array<T>,
-    val implType: Class<T>,
-    val elementType: Type,
     start: Int, end: Int, step: Int) : ArrayValue<T>(start, end, step) {
   companion object {
-    fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>) =
-        ObjectArrayValue(array, implType, elementType, 0, array.size, 1)
+    fun <T> of(array: Array<T>) = ObjectArrayValue(array, 0, array.size, 1)
 
-    fun <T> of(implType: Class<T>, elementType: Type, array: Array<T>, range: LongRangeValue) =
+    fun <T> of(array: Array<T>, range: LongRangeValue) =
         makeSlice(array.size, range) { start: Int, end: Int, step: Int ->
-          ObjectArrayValue(array, implType, elementType, start, end, step)
+          ObjectArrayValue(array, start, end, step)
         }
   }
 
   override fun getUnmapped(index: Int) = array[index]
 
   override fun reslice(start: Int, end: Int, step: Int) =
-      ObjectArrayValue(array, implType, elementType, start, end, step)
+      ObjectArrayValue(array, start, end, step)
+
+  override fun newInstance(size: Int, init: (Int) -> T): ObjectArrayValue<T> {
+    @Suppress("UNCHECKED_CAST")
+    val arr = java.lang.reflect.Array.newInstance(Any::class.java, size) as Array<T>
+    arr.forEachIndexed { i, _ -> arr[i] = init(i+1) }
+    return of(arr)
+  }
 
   @Suppress("OVERRIDE_BY_INLINE")
   override inline fun filter(predicate: (T) -> Boolean): ArrayValue<T> {
     @Suppress("UNCHECKED_CAST")
-    val arr = java.lang.reflect.Array.newInstance(implType, size) as Array<T>
+    val arr = java.lang.reflect.Array.newInstance(Any::class.java, size) as Array<T>
     var nextIdx = 0
     for (d in this) {
       if (predicate(d)) {
         arr[nextIdx++] = d
       }
     }
-    return of(implType, elementType, arr.copyOfRange(0, nextIdx))
+    return of(arr.copyOfRange(0, nextIdx))
   }
 }
 
